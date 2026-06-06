@@ -1,0 +1,10 @@
+.git
+.gitnexus
+.idea
+.vscode
+**/target
+**/node_modules
+**/__pycache__
+**/.pytest_cache
+.env
+*.log

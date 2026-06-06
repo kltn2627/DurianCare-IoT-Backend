@@ -1,0 +1,29 @@
+server:
+  port: ${SERVER_PORT:8081}
+
+spring:
+  application:
+    name: duriancare-auth-service
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/duriancare}
+    username: ${DATABASE_USERNAME:duriancare}
+    password: ${DATABASE_PASSWORD:duriancare_dev}
+    hikari:
+      schema: auth
+  jpa:
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO:validate}
+    open-in-view: false
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:duriancare_dev}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

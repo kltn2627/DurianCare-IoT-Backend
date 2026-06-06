@@ -1,0 +1,22 @@
+{
+  "name": "duriancare-iot-service",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MQTT telemetry ingestion service for DurianCare ESP32 devices",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "node src/main.js",
+    "dev": "node --watch src/main.js",
+    "check": "node --check src/main.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0",
+    "kafkajs": "^2.2.4",
+    "mongodb": "^6.15.0",
+    "mqtt": "^5.10.4"
+  }
+}

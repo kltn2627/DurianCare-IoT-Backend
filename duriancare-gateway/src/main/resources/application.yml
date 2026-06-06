@@ -1,0 +1,52 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: duriancare-gateway
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:duriancare_dev}
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: auth-service
+              uri: ${AUTH_SERVICE_URL:http://localhost:8081}
+              predicates:
+                - Path=/api/auth/**
+            - id: farm-service
+              uri: ${FARM_SERVICE_URL:http://localhost:8082}
+              predicates:
+                - Path=/api/farms/**,/api/zones/**,/api/trees/**,/api/regimens/**
+            - id: iot-service
+              uri: ${IOT_SERVICE_URL:http://localhost:3001}
+              predicates:
+                - Path=/api/iot/**
+            - id: ai-service
+              uri: ${AI_SERVICE_URL:http://localhost:8000}
+              predicates:
+                - Path=/api/ai/**
+            - id: chat-service
+              uri: ${CHAT_SERVICE_URL:http://localhost:3002}
+              predicates:
+                - Path=/api/chat/**,/socket.io/**
+            - id: traceability-service
+              uri: ${TRACEABILITY_SERVICE_URL:http://localhost:8083}
+              predicates:
+                - Path=/api/traceability/**
+
+duriancare:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:replace-with-at-least-32-characters}
+      issuer: ${JWT_ISSUER:duriancare-auth-service}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

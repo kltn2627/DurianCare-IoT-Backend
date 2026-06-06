@@ -1,0 +1,240 @@
+### Maven ###
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### Gradle ###
+.gradle
+build/
+!gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+gradle-app.setting
+!gradle-wrapper.properties
+*.sw?
+.gradletasknamecache
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+.idea_modules/
+atlassian-ide-plugin.xml
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
+.code-workspace
+
+### Eclipse ###
+.metadata
+tmp/
+*.tmp
+*.bak
+*.swp
+*~.nib
+local.properties
+.loadpath
+.recommenders
+.externalToolBuilders/
+*.launch
+
+### macOS ###
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+### Windows ###
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+### Linux ###
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+### Logs ###
+*.log
+*.log.*
+logs/
+log/
+*.log.gz
+*.log.zip
+
+### Spring Boot ###
+HELP.md
+spring-shell.log
+.attach_pid*
+derby.log
+
+### Environment Variables & Secrets ###
+.env
+.env.local
+.env.*.local
+*.env
+!.env
+!**/.env
+application-local.yml
+application-local.yaml
+application-local.properties
+application-dev.yml
+application-dev.yaml
+application-dev.properties
+application-secret.yml
+application-secret.yaml
+application-secret.properties
+*-secret.yml
+*-secret.yaml
+*-secret.properties
+secrets/
+.secrets
+
+### Database ###
+*.db
+*.sqlite
+*.sqlite3
+*.h2.db
+*.mv.db
+*.trace.db
+data/
+*.lck
+
+### Docker ###
+docker-compose.override.yml
+.docker/
+
+### Kubernetes ###
+.kube/
+k8s-local/
+
+### Test Coverage ###
+.sonar/
+sonar-project.properties
+*.coverage
+coverage/
+.nyc_output/
+*.lcov
+
+### Temporary Files ###
+*.tmp
+*.temp
+temp/
+tmp/
+
+### Package Files ###
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+!gradle-wrapper.jar
+!.mvn/wrapper/maven-wrapper.jar
+
+### Node (if using frontend assets) ###
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+yarn.lock
+
+### Python ###
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+.python-version
+
+### AI Models ###
+*.pt
+*.onnx
+
+### Certificates & Keys ###
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.jks
+*.keystore
+*.truststore
+
+### Backup Files ###
+*.bak
+*.backup
+*.old
+*~
+
+### Cache ###
+.cache/
+*.cache
+
+### Other ###
+.history/
+.scannerwork/
+*.pid
+*.seed
+*.pid.lock
+/.mvn
+/mvnw
+/mvnw.cmd
+.gitnexus
