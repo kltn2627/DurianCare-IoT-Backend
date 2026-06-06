@@ -8,9 +8,9 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-duriancare}
-      POSTGRES_USER: ${POSTGRES_USER:-duriancare}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-duriancare_dev}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./infrastructure/postgres/init.sql:/docker-entrypoint-initdb.d/001-init.sql:ro
@@ -29,8 +29,8 @@ services:
     ports:
       - "27017:27017"
     environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-duriancare}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-duriancare_dev}
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
     volumes:
       - mongodb_data:/data/db
     healthcheck:
@@ -52,7 +52,7 @@ services:
     ports:
       - "6379:6379"
     environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-duriancare_dev}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
     command:
       - sh
       - -c
@@ -108,8 +108,8 @@ services:
     environment:
       EMQX_NAME: duriancare-emqx
       EMQX_HOST: 127.0.0.1
-      EMQX_DASHBOARD__DEFAULT_USERNAME: admin
-      EMQX_DASHBOARD__DEFAULT_PASSWORD: ${EMQX_DASHBOARD_PASSWORD:-duriancare_dev}
+      EMQX_DASHBOARD__DEFAULT_USERNAME: ${EMQX_DASHBOARD_USERNAME}
+      EMQX_DASHBOARD__DEFAULT_PASSWORD: ${EMQX_DASHBOARD_PASSWORD}
     volumes:
       - emqx_data:/opt/emqx/data
       - emqx_log:/opt/emqx/log
@@ -131,14 +131,14 @@ services:
     ports:
       - "8081:8081"
     environment:
-      DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-duriancare}
-      DATABASE_USERNAME: ${POSTGRES_USER:-duriancare}
-      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-duriancare_dev}
+      DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      DATABASE_USERNAME: ${POSTGRES_USER}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-duriancare_dev}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      JWT_SECRET: ${JWT_SECRET:-replace-with-at-least-32-characters}
+      JWT_SECRET: ${JWT_SECRET}
     depends_on:
       postgres:
         condition: service_healthy
@@ -159,9 +159,9 @@ services:
     ports:
       - "8082:8082"
     environment:
-      DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-duriancare}
-      DATABASE_USERNAME: ${POSTGRES_USER:-duriancare}
-      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-duriancare_dev}
+      DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      DATABASE_USERNAME: ${POSTGRES_USER}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
     depends_on:
       postgres:
@@ -184,7 +184,7 @@ services:
       PORT: 3001
       MQTT_URL: mqtt://emqx:1883
       MQTT_TOPIC: duriancare/devices/+/telemetry
-      MONGO_URL: mongodb://${MONGO_INITDB_ROOT_USERNAME:-duriancare}:${MONGO_INITDB_ROOT_PASSWORD:-duriancare_dev}@mongodb:27017/?authSource=admin
+      MONGO_URL: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/?authSource=admin
       MONGO_DATABASE: duriancare_iot
       KAFKA_BROKERS: kafka:29092
       KAFKA_TELEMETRY_TOPIC: iot.telemetry.received
@@ -223,8 +223,8 @@ services:
       - "3002:3002"
     environment:
       PORT: 3002
-      MONGO_URL: mongodb://${MONGO_INITDB_ROOT_USERNAME:-duriancare}:${MONGO_INITDB_ROOT_PASSWORD:-duriancare_dev}@mongodb:27017/?authSource=admin
-      REDIS_URL: redis://:${REDIS_PASSWORD:-duriancare_dev}@redis:6379
+      MONGO_URL: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/?authSource=admin
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       KAFKA_BROKERS: kafka:29092
     depends_on:
       mongodb:
@@ -246,9 +246,9 @@ services:
     ports:
       - "8083:8083"
     environment:
-      DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-duriancare}
-      DATABASE_USERNAME: ${POSTGRES_USER:-duriancare}
-      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-duriancare_dev}
+      DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      DATABASE_USERNAME: ${POSTGRES_USER}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
     depends_on:
       postgres:
@@ -270,8 +270,8 @@ services:
     environment:
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-duriancare_dev}
-      JWT_SECRET: ${JWT_SECRET:-replace-with-at-least-32-characters}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
       AUTH_SERVICE_URL: http://duriancare-auth-service:8081
       FARM_SERVICE_URL: http://duriancare-farm-service:8082
       IOT_SERVICE_URL: http://duriancare-iot-service:3001
