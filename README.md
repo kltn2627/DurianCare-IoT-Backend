@@ -16,9 +16,25 @@ Base repository for the DurianCare microservice ecosystem.
 
 ## Local infrastructure
 
+Run the complete backend stack:
+
 ```bash
-docker compose up -d
+docker compose --project-directory . -f infrastructure/docker-compose.yml up -d --build
+docker compose --project-directory . -f infrastructure/docker-compose.yml ps
 ```
+
+This starts all seven application services plus PostgreSQL, MongoDB, Redis,
+Kafka and EMQX. Compose injects Docker network hostnames such as `postgres`,
+`redis` and `kafka`; no source-code configuration changes are required.
+
+To run services from IntelliJ instead, start only the infrastructure:
+
+```bash
+docker compose --project-directory . -f infrastructure/docker-compose.yml up -d postgres mongodb redis kafka emqx
+```
+
+Applications running on the host use the `localhost` defaults from their
+`application.yml` or service `.env` files.
 
 Infrastructure endpoints:
 
@@ -28,6 +44,10 @@ Infrastructure endpoints:
 - Kafka: `localhost:9092`
 - EMQX MQTT: `localhost:1883`
 - EMQX dashboard: `http://localhost:18083`
+- API Gateway: `http://localhost:8080`
+
+The AI service starts without model weights, but inference returns `503` until
+`duriancare-ai-service/models/durian-disease.pt` is provided.
 
 ## Build
 
