@@ -208,7 +208,19 @@ services:
     ports:
       - "8000:8000"
     environment:
-      YOLO_MODEL_PATH: models/durian-disease.pt
+      YOLO_MODEL_PATH: yolov8m.pt
+      MOBILENET_WEIGHTS_PATH: models/mobilenetv2_classifier_high_acc.pth
+      YOLO_CONFIDENCE: 0.25
+      ENABLE_YOLO_CROP: ${ENABLE_YOLO_CROP:-false}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_CHAT_MODEL: ${OPENAI_CHAT_MODEL:-gpt-4.1-mini}
+      OPENAI_EMBEDDING_MODEL: ${OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}
+      KNOWLEDGE_BASE_PATH: /app/knowledge_base
+      CHROMA_PERSIST_PATH: /app/vector_store
+      RAG_COLLECTION_NAME: duriancare_knowledge
+    volumes:
+      - ./duriancare-ai-service/knowledge_base:/app/knowledge_base:ro
+      - ./duriancare-ai-service/vector_store:/app/vector_store
     networks:
       - duriancare-network
 

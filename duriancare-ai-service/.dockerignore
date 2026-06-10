@@ -1,0 +1,11 @@
+.env
+.env.*
+__pycache__
+**/__pycache__
+*.py[cod]
+.pytest_cache
+.venv
+venv
+vector_store
+db
+*.log

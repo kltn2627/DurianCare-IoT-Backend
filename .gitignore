@@ -208,6 +208,10 @@ venv/
 *.pt
 *.onnx
 
+### Local Vector Stores ###
+**/vector_store/
+**/chroma_db/
+
 ### Certificates & Keys ###
 *.pem
 *.key

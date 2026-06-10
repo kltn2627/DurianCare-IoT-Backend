@@ -29,7 +29,7 @@ spring:
             - id: ai-service
               uri: ${AI_SERVICE_URL:http://localhost:8000}
               predicates:
-                - Path=/api/ai/**
+                - Path=/api/v1/predict,/api/v1/chat/**,/api/ai/**
             - id: chat-service
               uri: ${CHAT_SERVICE_URL:http://localhost:3002}
               predicates:
