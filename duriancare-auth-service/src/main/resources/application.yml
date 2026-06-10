@@ -14,6 +14,17 @@ spring:
     hibernate:
       ddl-auto: ${JPA_DDL_AUTO:validate}
     open-in-view: false
+    properties:
+      hibernate:
+        default_schema: auth
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    schemas: auth
+    default-schema: auth
+    create-schemas: true
+    validate-on-migrate: true
+    clean-disabled: true
   data:
     redis:
       host: ${REDIS_HOST:localhost}
