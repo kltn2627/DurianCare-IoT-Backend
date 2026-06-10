@@ -242,3 +242,6 @@ venv/
 /mvnw
 /mvnw.cmd
 .gitnexus
+duriancare-ai-service/evaluate_model.py
+*.png
+*.jpg
