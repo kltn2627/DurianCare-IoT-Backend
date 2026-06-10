@@ -21,6 +21,7 @@
         <module>duriancare-gateway</module>
         <module>duriancare-auth-service</module>
         <module>duriancare-farm-service</module>
+        <module>duriancare-cultivation-service</module>
         <module>duriancare-traceability-service</module>
     </modules>
 
