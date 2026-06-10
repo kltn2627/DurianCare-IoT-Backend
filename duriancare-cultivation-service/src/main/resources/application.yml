@@ -1,0 +1,22 @@
+server:
+  port: ${SERVER_PORT:8085}
+
+spring:
+  application:
+    name: duriancare-cultivation-service
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/duriancare}
+    username: ${DATABASE_USERNAME:duriancare}
+    password: ${DATABASE_PASSWORD:duriancare_dev}
+    hikari:
+      schema: cultivation
+  jpa:
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO:validate}
+    open-in-view: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
