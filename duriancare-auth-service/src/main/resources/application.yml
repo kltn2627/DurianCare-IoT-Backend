@@ -7,7 +7,7 @@ spring:
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/duriancare}
     username: ${DATABASE_USERNAME:duriancare}
-    password: ${DATABASE_PASSWORD:duriancare_dev}
+    password: ${DATABASE_PASSWORD:}
     hikari:
       schema: auth
   jpa:
@@ -29,7 +29,7 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:duriancare_dev}
+      password: ${REDIS_PASSWORD:}
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
 

@@ -6,6 +6,7 @@ COPY duriancare-auth-service/pom.xml duriancare-auth-service/pom.xml
 COPY duriancare-farm-service/pom.xml duriancare-farm-service/pom.xml
 COPY duriancare-cultivation-service/pom.xml duriancare-cultivation-service/pom.xml
 COPY duriancare-traceability-service/pom.xml duriancare-traceability-service/pom.xml
+COPY duriancare-notification-service/pom.xml duriancare-notification-service/pom.xml
 RUN mvn -pl duriancare-farm-service -am dependency:go-offline
 COPY duriancare-farm-service/src duriancare-farm-service/src
 RUN mvn -pl duriancare-farm-service -am package -DskipTests

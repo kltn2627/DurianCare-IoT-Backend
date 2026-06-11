@@ -6,6 +6,7 @@ COPY duriancare-auth-service/pom.xml duriancare-auth-service/pom.xml
 COPY duriancare-farm-service/pom.xml duriancare-farm-service/pom.xml
 COPY duriancare-cultivation-service/pom.xml duriancare-cultivation-service/pom.xml
 COPY duriancare-traceability-service/pom.xml duriancare-traceability-service/pom.xml
+COPY duriancare-notification-service/pom.xml duriancare-notification-service/pom.xml
 RUN mvn -pl duriancare-cultivation-service -am dependency:go-offline
 COPY duriancare-cultivation-service/src duriancare-cultivation-service/src
 RUN mvn -pl duriancare-cultivation-service -am package -DskipTests
@@ -13,5 +14,5 @@ RUN mvn -pl duriancare-cultivation-service -am package -DskipTests
 FROM eclipse-temurin:21-jre
 WORKDIR /app
 COPY --from=build /workspace/duriancare-cultivation-service/target/*.jar app.jar
-EXPOSE 8085
+EXPOSE 8084
 ENTRYPOINT ["java", "-jar", "app.jar"]

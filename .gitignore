@@ -129,8 +129,8 @@ derby.log
 .env.local
 .env.*.local
 *.env
-!.env
-!**/.env
+**/.env
+**/.env.*
 application-local.yml
 application-local.yaml
 application-local.properties
@@ -208,6 +208,10 @@ venv/
 *.pt
 *.onnx
 
+### Local Vector Stores ###
+**/vector_store/
+**/chroma_db/
+
 ### Certificates & Keys ###
 *.pem
 *.key
@@ -238,3 +242,6 @@ venv/
 /mvnw
 /mvnw.cmd
 .gitnexus
+duriancare-ai-service/evaluate_model.py
+*.png
+*.jpg

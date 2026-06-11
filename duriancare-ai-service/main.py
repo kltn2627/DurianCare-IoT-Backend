@@ -1,65 +1,75 @@
-import os
 from contextlib import asynccontextmanager
-from pathlib import Path
-from tempfile import NamedTemporaryFile
+import logging
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
-from ultralytics import YOLO
+from fastapi import FastAPI
 
-MODEL_PATH = Path(os.getenv("YOLO_MODEL_PATH", "models/durian-disease.pt"))
-model: YOLO | None = None
+from app.api.chat import router as chat_router
+from app.api.predict import router as prediction_router
+from app.core.config import settings
+from app.services.disease_classifier import DoubleModelDiseaseClassifier
+from app.services.rag_service import RagService
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI):
-    global model
-    if MODEL_PATH.exists():
-        model = YOLO(str(MODEL_PATH))
+async def lifespan(app: FastAPI):
+    classifier = DoubleModelDiseaseClassifier(settings)
+    app.state.disease_classifier = None
+    app.state.model_load_error = None
+    app.state.rag_service = None
+    app.state.rag_load_error = None
+    try:
+        classifier.load_models()
+        app.state.disease_classifier = classifier
+    except Exception as exception:
+        logger.exception("Failed to load disease prediction models")
+        app.state.model_load_error = str(exception)
+
+    rag_service = RagService(settings)
+    try:
+        rag_service.initialize()
+        app.state.rag_service = rag_service
+    except Exception as exception:
+        logger.exception("Failed to initialize RAG service")
+        app.state.rag_load_error = str(exception)
+
     yield
-    model = None
+    app.state.disease_classifier = None
+    app.state.rag_service = None
 
 
 app = FastAPI(
     title="DurianCare AI Service",
-    version="0.1.0",
+    version="0.3.0",
     lifespan=lifespan,
 )
+app.include_router(prediction_router)
+app.include_router(chat_router)
 
 
 @app.get("/actuator/health")
 def health() -> dict[str, str | bool]:
-    return {
-        "status": "UP",
+    classifier = getattr(app.state, "disease_classifier", None)
+    rag_service = getattr(app.state, "rag_service", None)
+    if classifier is not None and rag_service is not None:
+        service_status = "UP"
+    elif classifier is not None or rag_service is not None:
+        service_status = "DEGRADED"
+    else:
+        service_status = "DOWN"
+
+    response: dict[str, str | bool] = {
+        "status": service_status,
         "service": "duriancare-ai-service",
-        "modelLoaded": model is not None,
+        "modelsLoaded": classifier is not None,
+        "device": classifier.device.type if classifier is not None else "unavailable",
+        "ragReady": rag_service is not None,
     }
-
-
-@app.post("/api/ai/diagnoses")
-async def diagnose(image: UploadFile = File(...)) -> dict:
-    if model is None:
-        raise HTTPException(status_code=503, detail="YOLO model is not available")
-    if not image.content_type or not image.content_type.startswith("image/"):
-        raise HTTPException(status_code=415, detail="An image file is required")
-
-    suffix = Path(image.filename or "upload.jpg").suffix
-    with NamedTemporaryFile(suffix=suffix, delete=False) as temporary_file:
-        temporary_path = Path(temporary_file.name)
-        temporary_file.write(await image.read())
-
-    try:
-        result = model.predict(source=str(temporary_path), verbose=False)[0]
-        detections = []
-        for box in result.boxes:
-            class_id = int(box.cls.item())
-            detections.append(
-                {
-                    "classId": class_id,
-                    "label": result.names[class_id],
-                    "confidence": round(float(box.conf.item()), 6),
-                    "boundingBox": [round(float(value), 2) for value in box.xyxy[0].tolist()],
-                }
-            )
-        return {"detections": detections}
-    finally:
-        temporary_path.unlink(missing_ok=True)
+    model_load_error = getattr(app.state, "model_load_error", None)
+    if model_load_error:
+        response["modelLoadError"] = model_load_error
+    rag_load_error = getattr(app.state, "rag_load_error", None)
+    if rag_load_error:
+        response["ragLoadError"] = rag_load_error
+    return response

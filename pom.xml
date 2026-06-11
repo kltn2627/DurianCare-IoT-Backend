@@ -23,6 +23,7 @@
         <module>duriancare-farm-service</module>
         <module>duriancare-cultivation-service</module>
         <module>duriancare-traceability-service</module>
+        <module>duriancare-notification-service</module>
     </modules>
 
     <properties>
