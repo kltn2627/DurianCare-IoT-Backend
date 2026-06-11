@@ -171,6 +171,26 @@ services:
     networks:
       - duriancare-network
 
+  duriancare-cultivation-service:
+    build:
+      context: .
+      dockerfile: duriancare-cultivation-service/Dockerfile
+    image: duriancare/cultivation-service:local
+    container_name: duriancare-cultivation-service
+    restart: unless-stopped
+    ports:
+      - "8084:8084"
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      DATABASE_USERNAME: ${POSTGRES_USER}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
+      SERVER_PORT: 8084
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - duriancare-network
+
   duriancare-iot-service:
     build:
       context: ./duriancare-iot-service
@@ -205,22 +225,23 @@ services:
     image: duriancare/ai-service:local
     container_name: duriancare-ai-service
     restart: unless-stopped
-    ports:
-      - "8000:8000"
     environment:
       YOLO_MODEL_PATH: yolov8m.pt
       MOBILENET_WEIGHTS_PATH: models/mobilenetv2_classifier_high_acc.pth
       YOLO_CONFIDENCE: 0.25
       ENABLE_YOLO_CROP: ${ENABLE_YOLO_CROP:-false}
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
-      OPENAI_CHAT_MODEL: ${OPENAI_CHAT_MODEL:-gpt-4.1-mini}
-      OPENAI_EMBEDDING_MODEL: ${OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GEMINI_CHAT_MODEL: ${GEMINI_CHAT_MODEL}
+      GEMINI_EMBEDDING_MODEL: ${GEMINI_EMBEDDING_MODEL}
+      POSTGRES_URL: jdbc:postgresql://duriancare-postgres:5432/${POSTGRES_DB}
       KNOWLEDGE_BASE_PATH: /app/knowledge_base
       CHROMA_PERSIST_PATH: /app/vector_store
       RAG_COLLECTION_NAME: duriancare_knowledge
     volumes:
-      - ./duriancare-ai-service/knowledge_base:/app/knowledge_base:ro
-      - ./duriancare-ai-service/vector_store:/app/vector_store
+      - ai_vector_store:/app/vector_store
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - duriancare-network
 
@@ -270,6 +291,36 @@ services:
     networks:
       - duriancare-network
 
+  duriancare-notification-service:
+    build:
+      context: .
+      dockerfile: duriancare-notification-service/Dockerfile
+    image: duriancare/notification-service:local
+    container_name: duriancare-notification-service
+    restart: unless-stopped
+    ports:
+      - "8085:8085"
+    environment:
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      SPRING_MAIL_HOST: ${SPRING_MAIL_HOST}
+      SPRING_MAIL_PORT: ${SPRING_MAIL_PORT}
+      SPRING_MAIL_USERNAME: ${SPRING_MAIL_USERNAME}
+      SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD}
+      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME}
+      MAIL_ENABLED: ${MAIL_ENABLED}
+      OTP_TTL: ${OTP_TTL}
+      OTP_LENGTH: ${OTP_LENGTH}
+      OTP_MAX_ATTEMPTS: ${OTP_MAX_ATTEMPTS}
+      KAFKA_ALERT_TOPIC: ${KAFKA_ALERT_TOPIC}
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - duriancare-network
+
   duriancare-gateway:
     build:
       context: .
@@ -286,16 +337,20 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       AUTH_SERVICE_URL: http://duriancare-auth-service:8081
       FARM_SERVICE_URL: http://duriancare-farm-service:8082
+      CULTIVATION_SERVICE_URL: http://duriancare-cultivation-service:8084
       IOT_SERVICE_URL: http://duriancare-iot-service:3001
       AI_SERVICE_URL: http://duriancare-ai-service:8000
       CHAT_SERVICE_URL: http://duriancare-chat-service:3002
       TRACEABILITY_SERVICE_URL: http://duriancare-traceability-service:8083
+      NOTIFICATION_SERVICE_URL: http://duriancare-notification-service:8085
     depends_on:
       redis:
         condition: service_healthy
       duriancare-auth-service:
         condition: service_started
       duriancare-farm-service:
+        condition: service_started
+      duriancare-cultivation-service:
         condition: service_started
       duriancare-iot-service:
         condition: service_started
@@ -304,6 +359,8 @@ services:
       duriancare-chat-service:
         condition: service_started
       duriancare-traceability-service:
+        condition: service_started
+      duriancare-notification-service:
         condition: service_started
     networks:
       - duriancare-network
@@ -319,3 +376,4 @@ volumes:
   kafka_data:
   emqx_data:
   emqx_log:
+  ai_vector_store:

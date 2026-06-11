@@ -16,7 +16,10 @@ from langchain_community.document_loaders import (
 )
 from langchain_core.documents import Document
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_google_genai import (
+    ChatGoogleGenerativeAI,
+    GoogleGenerativeAIEmbeddings,
+)
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from app.core.config import Settings
@@ -53,8 +56,8 @@ class RagService:
         self.document_count = 0
 
     def initialize(self) -> None:
-        if not self.settings.openai_api_key:
-            raise RagInitializationError("OPENAI_API_KEY is not configured")
+        if not self.settings.gemini_api_key:
+            raise RagInitializationError("GEMINI_API_KEY is not configured")
 
         documents, fingerprint = self._load_documents()
         if not documents:
@@ -63,9 +66,9 @@ class RagService:
             )
 
         self.settings.chroma_path.mkdir(parents=True, exist_ok=True)
-        embeddings = OpenAIEmbeddings(
-            model=self.settings.openai_embedding_model,
-            api_key=self.settings.openai_api_key,
+        embeddings = GoogleGenerativeAIEmbeddings(
+            model=self.settings.gemini_embedding_model,
+            google_api_key=self.settings.gemini_api_key,
         )
         vector_store = self._load_or_build_vector_store(
             documents,
@@ -76,10 +79,10 @@ class RagService:
             search_type="similarity",
             search_kwargs={"k": 3},
         )
-        llm = ChatOpenAI(
-            model=self.settings.openai_chat_model,
+        llm = ChatGoogleGenerativeAI(
+            model=self.settings.gemini_chat_model,
             temperature=0,
-            api_key=self.settings.openai_api_key,
+            google_api_key=self.settings.gemini_api_key,
         )
         prompt = ChatPromptTemplate.from_messages(
             [
@@ -156,7 +159,7 @@ class RagService:
         self,
         documents: list[Document],
         fingerprint: str,
-        embeddings: OpenAIEmbeddings,
+        embeddings: GoogleGenerativeAIEmbeddings,
     ) -> Chroma:
         vector_store = Chroma(
             collection_name=self.settings.rag_collection_name,
@@ -196,7 +199,7 @@ class RagService:
             json.dumps(
                 {
                     "fingerprint": fingerprint,
-                    "embedding_model": self.settings.openai_embedding_model,
+                    "embedding_model": self.settings.gemini_embedding_model,
                     "chunk_size": 1000,
                     "chunk_overlap": 200,
                 },
@@ -216,7 +219,7 @@ class RagService:
         return (
             manifest.get("fingerprint") == fingerprint
             and manifest.get("embedding_model")
-            == self.settings.openai_embedding_model
+            == self.settings.gemini_embedding_model
             and manifest.get("chunk_size") == 1000
             and manifest.get("chunk_overlap") == 200
         )

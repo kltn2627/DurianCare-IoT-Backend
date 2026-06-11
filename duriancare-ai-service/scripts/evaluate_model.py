@@ -1,4 +1,6 @@
 import os
+from pathlib import Path
+
 import torch
 from torch import nn
 from torchvision import models, transforms
@@ -11,8 +13,21 @@ import numpy as np
 # =====================================================================
 # 1. CẤU HÌNH ĐƯỜNG DẪN THỰC TẾ
 # =====================================================================
-TEST_DIR = r"C:/Users/minhd/Code/DataSet/Durian_AI_Training/DLD_Dataset/test"
-WEIGHTS_PATH = r"models/mobilenetv2_classifier_high_acc.pth"
+SERVICE_ROOT = Path(__file__).resolve().parents[1]
+
+
+def resolve_service_path(environment_name, default_relative_path):
+    configured_path = Path(os.getenv(environment_name, default_relative_path)).expanduser()
+    if not configured_path.is_absolute():
+        configured_path = SERVICE_ROOT / configured_path
+    return configured_path.resolve()
+
+
+TEST_DIR = resolve_service_path("TEST_DATASET_DIR", "datasets/test")
+WEIGHTS_PATH = resolve_service_path(
+    "MOBILENET_WEIGHTS_PATH",
+    "models/mobilenetv2_classifier_high_acc.pth",
+)
 
 CLASSES = [
     "ALGAL_LEAF_SPOT",

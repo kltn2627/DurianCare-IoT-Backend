@@ -8,7 +8,7 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:duriancare_dev}
+      password: ${REDIS_PASSWORD:}
   cloud:
     gateway:
       server:
@@ -23,7 +23,7 @@ spring:
               predicates:
                 - Path=/api/farms/**,/api/zones/**,/api/trees/**,/api/regimens/**
             - id: cultivation-service
-              uri: ${CULTIVATION_SERVICE_URL:http://localhost:8085}
+              uri: ${CULTIVATION_SERVICE_URL:http://localhost:8084}
               predicates:
                 - Path=/api/cultivation-schedules/**
             - id: iot-service
@@ -42,6 +42,10 @@ spring:
               uri: ${TRACEABILITY_SERVICE_URL:http://localhost:8083}
               predicates:
                 - Path=/api/traceability/**
+            - id: notification-service
+              uri: ${NOTIFICATION_SERVICE_URL:http://localhost:8085}
+              predicates:
+                - Path=/api/v1/notification/**
 
 duriancare:
   security:

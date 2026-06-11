@@ -1,5 +1,5 @@
 server:
-  port: ${SERVER_PORT:8085}
+  port: ${SERVER_PORT:8084}
 
 spring:
   application:
@@ -7,7 +7,7 @@ spring:
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/duriancare}
     username: ${DATABASE_USERNAME:duriancare}
-    password: ${DATABASE_PASSWORD:duriancare_dev}
+    password: ${DATABASE_PASSWORD:}
     hikari:
       schema: cultivation
   jpa:
