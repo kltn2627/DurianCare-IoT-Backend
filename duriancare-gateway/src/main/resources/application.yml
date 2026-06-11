@@ -22,6 +22,10 @@ spring:
               uri: ${FARM_SERVICE_URL:http://localhost:8082}
               predicates:
                 - Path=/api/farms/**,/api/zones/**,/api/trees/**,/api/regimens/**
+            - id: cultivation-service
+              uri: ${CULTIVATION_SERVICE_URL:http://localhost:8085}
+              predicates:
+                - Path=/api/cultivation-schedules/**
             - id: iot-service
               uri: ${IOT_SERVICE_URL:http://localhost:3001}
               predicates:

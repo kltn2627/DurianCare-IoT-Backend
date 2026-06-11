@@ -9,6 +9,7 @@ Base repository for the DurianCare microservice ecosystem.
 | `duriancare-gateway` | Spring Cloud Gateway | 8080 | Routing, CORS, JWT validation and token revocation checks |
 | `duriancare-auth-service` | Spring Boot | 8081 | Accounts and `OWNER`/`ENGINEER` authorization |
 | `duriancare-farm-service` | Spring Boot | 8082 | Farm zones, durian trees and treatment schedules |
+| `duriancare-cultivation-service` | Spring Boot | 8085 | Cultivation calendar, fertilizer/pesticide schedules and task status tracking |
 | `duriancare-iot-service` | Node.js | 3001 | MQTT ingestion and climate telemetry |
 | `duriancare-ai-service` | FastAPI | 8000 | Disease inference and RAG agricultural advice |
 | `duriancare-chat-service` | NestJS | 3002 | Socket.io chat and treatment reminders |
