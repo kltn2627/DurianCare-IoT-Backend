@@ -4,6 +4,7 @@ import com.duriancare.gateway.security.JwtTokenValidator;
 import com.duriancare.gateway.security.PublicEndpointMatcher;
 import io.jsonwebtoken.Claims;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import org.springframework.core.Ordered;
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.http.HttpHeaders;
@@ -90,7 +91,16 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     }
 
     private Mono<Void> writeError(ServerWebExchange exchange, HttpStatus status, String message) {
-        byte[] body = ("{\"message\":\"" + message + "\"}").getBytes(StandardCharsets.UTF_8);
+        byte[] body = ("{\"timestamp\":\""
+                + Instant.now()
+                + "\",\"status\":"
+                + status.value()
+                + ",\"error\":\""
+                + status.getReasonPhrase()
+                + "\",\"message\":\""
+                + message
+                + "\"}")
+                .getBytes(StandardCharsets.UTF_8);
         exchange.getResponse().setStatusCode(status);
         exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
         return exchange.getResponse().writeWith(Mono.just(exchange.getResponse().bufferFactory().wrap(body)));

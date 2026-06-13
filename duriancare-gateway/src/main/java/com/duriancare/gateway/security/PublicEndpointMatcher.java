@@ -10,6 +10,8 @@ public class PublicEndpointMatcher {
     private static final List<String> PUBLIC_PATHS = List.of(
             "/api/auth/login",
             "/api/auth/register",
+            "/api/auth/otp/resend",
+            "/api/auth/otp/verify",
             "/api/auth/refresh",
             "/api/v1/notification/otp/generate",
             "/api/v1/notification/otp/validate",
