@@ -12,9 +12,10 @@ import org.springframework.stereotype.Component;
 public class JwtTokenValidator {
 
     private static final Set<String> ALLOWED_ROLES = Set.of(
+            "ADMIN",
+            "EXPERT",
             "FARMER",
-            "ENGINEER",
-            "CUSTOMER");
+            "GUEST");
 
     private final JwtProperties properties;
     private final SecretKey signingKey;

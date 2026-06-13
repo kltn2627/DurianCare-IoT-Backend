@@ -187,16 +187,24 @@ services:
     environment:
       CONFIG_SERVER_URL: http://config-server:8888
       EUREKA_DEFAULT_ZONE: http://discovery-server:8761/eureka/
-      MONGODB_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/${MONGODB_AUTH_DATABASE:-duriancare_auth}?authSource=admin
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      AUTH_DB_SCHEMA: ${AUTH_DB_SCHEMA:-duriancare_auth}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      AUTH_EVENTS_TOPIC: ${AUTH_EVENTS_TOPIC:-duriancare.auth.events}
+      AUTH_OTP_TTL: ${AUTH_OTP_TTL:-5m}
       JWT_SECRET: ${JWT_SECRET}
+      JWT_ISSUER: ${JWT_ISSUER:-duriancare-auth-service}
+      JWT_ACCESS_TOKEN_TTL: ${JWT_ACCESS_TOKEN_TTL:-1h}
+      JWT_REFRESH_TOKEN_TTL: ${JWT_REFRESH_TOKEN_TTL:-7d}
     depends_on:
       config-server:
         condition: service_started
-      mongodb:
+      postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -377,6 +385,8 @@ services:
       OTP_LENGTH: ${OTP_LENGTH}
       OTP_MAX_ATTEMPTS: ${OTP_MAX_ATTEMPTS}
       KAFKA_ALERT_TOPIC: ${KAFKA_ALERT_TOPIC}
+      AUTH_EVENTS_TOPIC: ${AUTH_EVENTS_TOPIC:-duriancare.auth.events}
+      KAFKA_CONSUMER_GROUP: ${KAFKA_CONSUMER_GROUP:-duriancare-notification-service}
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
     depends_on:
       config-server:

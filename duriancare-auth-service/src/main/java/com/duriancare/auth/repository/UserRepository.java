@@ -1,10 +1,11 @@
 package com.duriancare.auth.repository;
 
-import com.duriancare.auth.domain.User;
+import com.duriancare.auth.entity.User;
 import java.util.Optional;
-import org.springframework.data.mongodb.repository.MongoRepository;
+import java.util.UUID;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface UserRepository extends MongoRepository<User, String> {
+public interface UserRepository extends JpaRepository<User, UUID> {
 
     Optional<User> findByEmailIgnoreCase(String email);
 

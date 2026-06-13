@@ -1,8 +1,7 @@
 package com.duriancare.auth.domain;
 
 public enum UserStatus {
-    PENDING,
+    PENDING_VERIFICATION,
     ACTIVE,
-    SUSPENDED,
-    DEACTIVATED
+    BLOCKED
 }

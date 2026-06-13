@@ -31,6 +31,11 @@ spring:
             required: true
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP:duriancare-notification-service}
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
 
 eureka:
   client:
@@ -47,6 +52,7 @@ duriancare:
       enabled: ${MAIL_ENABLED}
       from-address: ${MAIL_FROM_ADDRESS}
       from-name: ${MAIL_FROM_NAME}
+    auth-events-topic: ${AUTH_EVENTS_TOPIC:duriancare.auth.events}
 
 management:
   endpoints:
