@@ -1,0 +1,54 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  java-build:
+    name: Compile Spring Boot modules
+    runs-on: ubuntu-latest
+
+    steps:
+      # Fetch the monorepo source code.
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Install JDK 22 and cache the local Maven repository.
+      - name: Set up JDK 22 with Maven cache
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "22"
+          cache: maven
+
+      # Compile all modules declared by the parent POM.
+      # Integration tests are intentionally excluded from this CI stage.
+      - name: Compile Spring Boot modules
+        run: mvn --batch-mode --no-transfer-progress clean test-compile -DskipTests
+
+  compose-validation:
+    name: Validate Docker Compose
+    runs-on: ubuntu-latest
+
+    steps:
+      # Fetch infrastructure/docker-compose.yml and referenced local files.
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Render and validate the Compose model without starting containers.
+      # The project directory remains the monorepo root so relative build
+      # contexts and volume mounts resolve consistently.
+      - name: Validate infrastructure Docker Compose
+        run: >-
+          docker compose
+          --project-directory .
+          -f infrastructure/docker-compose.yml
+          config --quiet

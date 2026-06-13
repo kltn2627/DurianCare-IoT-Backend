@@ -129,8 +129,8 @@ derby.log
 .env.local
 .env.*.local
 *.env
-!.env
-!**/.env
+**/.env
+**/.env.*
 application-local.yml
 application-local.yaml
 application-local.properties
@@ -191,6 +191,7 @@ tmp/
 
 ### Node (if using frontend assets) ###
 node_modules/
+dist/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -207,6 +208,10 @@ venv/
 ### AI Models ###
 *.pt
 *.onnx
+
+### Local Vector Stores ###
+**/vector_store/
+**/chroma_db/
 
 ### Certificates & Keys ###
 *.pem
@@ -238,3 +243,6 @@ venv/
 /mvnw
 /mvnw.cmd
 .gitnexus
+duriancare-ai-service/evaluate_model.py
+*.png
+*.jpg

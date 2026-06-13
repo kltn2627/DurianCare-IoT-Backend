@@ -11,6 +11,8 @@ public class PublicEndpointMatcher {
             "/api/auth/login",
             "/api/auth/register",
             "/api/auth/refresh",
+            "/api/v1/notification/otp/generate",
+            "/api/v1/notification/otp/validate",
             "/actuator/health",
             "/actuator/info",
             "/**/v3/api-docs/**",

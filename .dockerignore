@@ -1,4 +1,5 @@
 .git
+.git/**
 .gitnexus
 .idea
 .vscode
@@ -7,4 +8,13 @@
 **/__pycache__
 **/.pytest_cache
 .env
+.env.*
+**/.env
+**/.env.*
+secrets
+**/secrets
+*.pem
+*.key
+*.p12
+*.jks
 *.log

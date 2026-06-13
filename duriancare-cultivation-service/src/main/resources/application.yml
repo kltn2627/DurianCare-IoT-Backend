@@ -1,0 +1,25 @@
+server:
+  port: ${SERVER_PORT:8084}
+
+spring:
+  application:
+    name: duriancare-cultivation-service
+  config:
+    import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/duriancare_cultivation}
+      auto-index-creation: true
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_DEFAULT_ZONE:http://localhost:8761/eureka/}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

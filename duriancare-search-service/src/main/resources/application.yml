@@ -1,0 +1,33 @@
+server:
+  port: ${SERVER_PORT:8086}
+
+spring:
+  application:
+    name: duriancare-search-service
+  config:
+    import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
+  elasticsearch:
+    uris: ${ELASTICSEARCH_URIS:http://localhost:9200}
+    connection-timeout: 5s
+    socket-timeout: 10s
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_DEFAULT_ZONE:http://localhost:8761/eureka/}
+
+duriancare:
+  search:
+    index-topic: ${SEARCH_INDEX_TOPIC:search.document.upsert}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

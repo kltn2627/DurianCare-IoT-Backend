@@ -1,0 +1,58 @@
+server:
+  port: ${SERVER_PORT:8085}
+
+spring:
+  application:
+    name: duriancare-notification-service
+  config:
+    import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/duriancare_notification}
+      auto-index-creation: true
+    redis:
+      host: ${SPRING_REDIS_HOST}
+      port: ${SPRING_REDIS_PORT}
+      password: ${SPRING_REDIS_PASSWORD}
+      timeout: 3s
+      repositories:
+        enabled: false
+  mail:
+    host: ${SPRING_MAIL_HOST}
+    port: ${SPRING_MAIL_PORT}
+    username: ${SPRING_MAIL_USERNAME}
+    password: ${SPRING_MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_DEFAULT_ZONE:http://localhost:8761/eureka/}
+
+duriancare:
+  notification:
+    otp:
+      ttl: ${OTP_TTL}
+      length: ${OTP_LENGTH}
+      max-attempts: ${OTP_MAX_ATTEMPTS}
+    mail:
+      enabled: ${MAIL_ENABLED}
+      from-address: ${MAIL_FROM_ADDRESS}
+      from-name: ${MAIL_FROM_NAME}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  health:
+    mail:
+      enabled: false
