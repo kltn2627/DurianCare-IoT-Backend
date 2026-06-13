@@ -6,7 +6,6 @@ import com.duriancare.cultivation.service.CultivationScheduleService;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
-import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -40,7 +39,7 @@ public class CultivationScheduleController {
     }
 
     @GetMapping("/{id}")
-    public CultivationScheduleResponse get(@PathVariable UUID id) {
+    public CultivationScheduleResponse get(@PathVariable String id) {
         return CultivationScheduleResponse.from(service.get(id));
     }
 
@@ -52,13 +51,13 @@ public class CultivationScheduleController {
 
     @PatchMapping("/{id}/status")
     public CultivationScheduleResponse updateStatus(
-            @PathVariable UUID id,
+            @PathVariable String id,
             @Valid @RequestBody UpdateCultivationStatusRequest request) {
         return CultivationScheduleResponse.from(service.updateStatus(id, request.status()));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable UUID id) {
+    public ResponseEntity<Void> delete(@PathVariable String id) {
         service.delete(id);
         return ResponseEntity.noContent().build();
     }

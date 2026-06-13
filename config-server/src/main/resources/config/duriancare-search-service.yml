@@ -1,0 +1,10 @@
+server:
+  port: ${SERVER_PORT:8086}
+
+spring:
+  elasticsearch:
+    uris: ${ELASTICSEARCH_URIS:http://localhost:9200}
+
+duriancare:
+  search:
+    index-topic: ${SEARCH_INDEX_TOPIC:search.document.upsert}

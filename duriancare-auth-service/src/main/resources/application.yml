@@ -4,34 +4,23 @@ server:
 spring:
   application:
     name: duriancare-auth-service
-  datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/duriancare}
-    username: ${DATABASE_USERNAME:duriancare}
-    password: ${DATABASE_PASSWORD:}
-    hikari:
-      schema: auth
-  jpa:
-    hibernate:
-      ddl-auto: ${JPA_DDL_AUTO:validate}
-    open-in-view: false
-    properties:
-      hibernate:
-        default_schema: auth
-  flyway:
-    enabled: true
-    locations: classpath:db/migration
-    schemas: auth
-    default-schema: auth
-    create-schemas: true
-    validate-on-migrate: true
-    clean-disabled: true
+  config:
+    import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
   data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/duriancare_auth}
+      auto-index-creation: true
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_DEFAULT_ZONE:http://localhost:8761/eureka/}
 
 management:
   endpoints:

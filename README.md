@@ -7,31 +7,38 @@ Base repository for the DurianCare microservice ecosystem.
 | Service | Runtime | Default port | Responsibility |
 | --- | --- | ---: | --- |
 | `duriancare-gateway` | Spring Cloud Gateway | 8080 | Routing, CORS, JWT validation and token revocation checks |
-| `duriancare-auth-service` | Spring Boot | 8081 | Accounts and `OWNER`/`ENGINEER` authorization |
+| `discovery-server` | Eureka Server | 8761 | Spring service registration and discovery |
+| `config-server` | Spring Cloud Config | 8888 | Centralized production configuration |
+| `duriancare-auth-service` | Spring Boot | 8081 | Accounts and `FARMER`/`ENGINEER`/`CUSTOMER` authorization |
 | `duriancare-farm-service` | Spring Boot | 8082 | Farm zones, durian trees and treatment schedules |
-| `duriancare-cultivation-service` | Spring Boot | 8085 | Cultivation calendar, fertilizer/pesticide schedules and task status tracking |
+| `duriancare-cultivation-service` | Spring Boot | 8084 | Cultivation calendar, fertilizer/pesticide schedules and task status tracking |
+| `duriancare-search-service` | Spring Boot | 8086 | Kafka-fed Elasticsearch read models |
 | `duriancare-iot-service` | Node.js | 3001 | MQTT ingestion and climate telemetry |
 | `duriancare-ai-service` | FastAPI | 8000 | Disease inference and RAG agricultural advice |
 | `duriancare-chat-service` | NestJS | 3002 | Socket.io chat and treatment reminders |
 | `duriancare-traceability-service` | Spring Boot | 8083 | Crop history packaging and dynamic QR generation |
+| `duriancare-notification-service` | Spring Boot | 8085 | Redis-backed OTP, SMTP delivery and MongoDB notification history |
 
 ## Local infrastructure
 
 Run the complete backend stack:
 
 ```bash
-docker compose --project-directory . -f infrastructure/docker-compose.yml up -d --build
-docker compose --project-directory . -f infrastructure/docker-compose.yml ps
+docker compose --env-file .env -f infrastructure/docker-compose.yml up -d --build
+docker compose --env-file .env -f infrastructure/docker-compose.yml ps
 ```
 
-This starts all seven application services plus PostgreSQL, MongoDB, Redis,
-Kafka and EMQX. Compose injects Docker network hostnames such as `postgres`,
-`redis` and `kafka`; no source-code configuration changes are required.
+This starts all twelve platform/application services plus PostgreSQL, MongoDB,
+Redis, Elasticsearch, Kafka and EMQX. Compose injects Docker network hostnames;
+no source-code configuration changes are required.
+
+Business services use separate MongoDB databases. IoT telemetry is stored in
+the PostgreSQL `duriancare_iot` schema.
 
 To run services from IntelliJ instead, start only the infrastructure:
 
 ```bash
-docker compose --project-directory . -f infrastructure/docker-compose.yml up -d postgres mongodb redis kafka emqx
+docker compose --env-file .env -f infrastructure/docker-compose.yml up -d postgres mongodb redis elasticsearch kafka emqx discovery-server config-server
 ```
 
 Applications running on the host use the `localhost` defaults from their
@@ -43,8 +50,14 @@ Infrastructure endpoints:
 - MongoDB: `localhost:27017`
 - Redis: `localhost:6379`
 - Kafka: `localhost:9092`
+- Elasticsearch: `http://localhost:9200`
 - EMQX MQTT: `localhost:1883`
+- EMQX MQTT WebSocket: `localhost:8084`
 - EMQX dashboard: `http://localhost:18083`
+- Cultivation API direct access: `http://localhost:18084`
+- Eureka dashboard: `http://localhost:8761`
+- Config Server: `http://localhost:8888`
+- Search API direct access: `http://localhost:8086`
 - API Gateway: `http://localhost:8080`
 
 The AI service remains available for health checks if model loading fails, but
@@ -93,7 +106,7 @@ Place PDF, TXT or Markdown documents in:
 duriancare-ai-service/knowledge_base/
 ```
 
-Configure `OPENAI_API_KEY` in the local `.env`. The service scans the knowledge
+Configure `GEMINI_API_KEY` in the local `.env`. The service scans the knowledge
 base at startup, splits documents into 1000-character chunks with 200-character
 overlap, and persists a Chroma index in the ignored `vector_store/` directory.
 The index is rebuilt only when source documents or embedding configuration
@@ -109,8 +122,8 @@ Content-Type: application/json
 Optional environment variables:
 
 ```text
-OPENAI_CHAT_MODEL=gpt-4.1-mini
-OPENAI_EMBEDDING_MODEL=text-embedding-3-small
+GEMINI_CHAT_MODEL=gemini-2.5-flash
+GEMINI_EMBEDDING_MODEL=gemini-embedding-001
 ```
 
 Missing credentials, an empty knowledge base, or an indexing failure does not

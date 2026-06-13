@@ -1,82 +1,53 @@
 package com.duriancare.cultivation.domain;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.PreUpdate;
-import jakarta.persistence.Table;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.UUID;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
+import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
 
-@Entity
-@Table(name = "cultivation_schedules")
+@Document(collection = "cultivation_schedules")
+@CompoundIndex(
+        name = "zone_schedule_idx",
+        def = "{'zoneId': 1, 'scheduledDate': 1, 'scheduledTime': 1}")
 public class CultivationSchedule {
 
     @Id
-    private UUID id;
+    private String id;
 
-    @Column(nullable = false, length = 64)
+    @Indexed
     private String zoneId;
 
-    @Column(nullable = false, length = 64)
+    @Indexed
     private String cropId;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 32)
     private CultivationTaskType type;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 32)
+    @Indexed
     private CultivationTaskStatus status;
 
-    @Column(nullable = false)
     private LocalDate scheduledDate;
 
-    @Column(nullable = false)
     private LocalTime scheduledTime;
 
-    @Column(nullable = false, length = 160)
     private String materialName;
 
-    @Column(nullable = false, length = 80)
     private String dosage;
 
-    @Column(nullable = false, length = 120)
     private String assignee;
 
-    @Column(nullable = false, length = 80)
     private String safetyInterval;
 
-    @Column(nullable = false, length = 500)
     private String notes;
 
-    @Column(nullable = false)
     private Instant createdAt;
 
-    @Column(nullable = false)
     private Instant updatedAt;
 
-    @PrePersist
-    void prePersist() {
-        Instant now = Instant.now();
-        id = id == null ? UUID.randomUUID() : id;
-        status = status == null ? CultivationTaskStatus.PLANNED : status;
-        createdAt = now;
-        updatedAt = now;
-    }
-
-    @PreUpdate
-    void preUpdate() {
-        updatedAt = Instant.now();
-    }
-
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
     public String getZoneId() { return zoneId; }
     public void setZoneId(String zoneId) { this.zoneId = zoneId; }
     public String getCropId() { return cropId; }
@@ -100,5 +71,7 @@ public class CultivationSchedule {
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
     public Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
 }
