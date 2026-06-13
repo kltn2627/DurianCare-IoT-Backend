@@ -18,10 +18,15 @@ public class SmtpEmailService implements EmailService {
 
     private final JavaMailSender mailSender;
     private final MailProperties properties;
+    private final NotificationHistoryService historyService;
 
-    public SmtpEmailService(JavaMailSender mailSender, MailProperties properties) {
+    public SmtpEmailService(
+            JavaMailSender mailSender,
+            MailProperties properties,
+            NotificationHistoryService historyService) {
         this.mailSender = mailSender;
         this.properties = properties;
+        this.historyService = historyService;
     }
 
     @Override
@@ -41,7 +46,9 @@ public class SmtpEmailService implements EmailService {
                             + " phut.</p>",
                     true);
             mailSender.send(message);
+            historyService.recordOtpSent(recipient);
         } catch (MessagingException | UnsupportedEncodingException | RuntimeException exception) {
+            historyService.recordOtpFailure(recipient, exception.getMessage());
             throw new EmailDeliveryException("Unable to deliver OTP email", exception);
         }
     }

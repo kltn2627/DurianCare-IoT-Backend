@@ -1,0 +1,8 @@
+server:
+  port: ${SERVER_PORT:8084}
+
+spring:
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/duriancare_cultivation}
+      auto-index-creation: true

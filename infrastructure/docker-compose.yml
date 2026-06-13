@@ -13,7 +13,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./infrastructure/postgres/init.sql:/docker-entrypoint-initdb.d/001-init.sql:ro
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/001-init.sql:ro
+      - ../duriancare-iot-service/db/migration/V1__init_iot_schema.sql:/docker-entrypoint-initdb.d/010-iot.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
@@ -64,6 +65,26 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+    networks:
+      - duriancare-network
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.17.0
+    container_name: duriancare-elasticsearch
+    restart: unless-stopped
+    ports:
+      - "9200:9200"
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9200/_cluster/health | grep -vq '\"status\":\"red\"'"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
     networks:
       - duriancare-network
 
@@ -121,9 +142,42 @@ services:
     networks:
       - duriancare-network
 
+  discovery-server:
+    build:
+      context: ..
+      dockerfile: discovery-server/Dockerfile
+    image: duriancare/discovery-server:local
+    container_name: duriancare-discovery-server
+    restart: unless-stopped
+    ports:
+      - "8761:8761"
+    environment:
+      SERVER_PORT: 8761
+    networks:
+      - duriancare-network
+
+  config-server:
+    build:
+      context: ..
+      dockerfile: config-server/Dockerfile
+    image: duriancare/config-server:local
+    container_name: duriancare-config-server
+    restart: unless-stopped
+    ports:
+      - "8888:8888"
+    environment:
+      SERVER_PORT: 8888
+      EUREKA_DEFAULT_ZONE: http://discovery-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    depends_on:
+      discovery-server:
+        condition: service_started
+    networks:
+      - duriancare-network
+
   duriancare-auth-service:
     build:
-      context: .
+      context: ..
       dockerfile: duriancare-auth-service/Dockerfile
     image: duriancare/auth-service:local
     container_name: duriancare-auth-service
@@ -131,16 +185,18 @@ services:
     ports:
       - "8081:8081"
     environment:
-      DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
-      DATABASE_USERNAME: ${POSTGRES_USER}
-      DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
+      CONFIG_SERVER_URL: http://config-server:8888
+      EUREKA_DEFAULT_ZONE: http://discovery-server:8761/eureka/
+      MONGODB_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/${MONGODB_AUTH_DATABASE:-duriancare_auth}?authSource=admin
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       JWT_SECRET: ${JWT_SECRET}
     depends_on:
-      postgres:
+      config-server:
+        condition: service_started
+      mongodb:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -151,7 +207,7 @@ services:
 
   duriancare-farm-service:
     build:
-      context: .
+      context: ..
       dockerfile: duriancare-farm-service/Dockerfile
     image: duriancare/farm-service:local
     container_name: duriancare-farm-service
@@ -159,12 +215,14 @@ services:
     ports:
       - "8082:8082"
     environment:
-      DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
-      DATABASE_USERNAME: ${POSTGRES_USER}
-      DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
+      CONFIG_SERVER_URL: http://config-server:8888
+      EUREKA_DEFAULT_ZONE: http://discovery-server:8761/eureka/
+      MONGODB_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/${MONGODB_FARM_DATABASE:-duriancare_farm}?authSource=admin
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
     depends_on:
-      postgres:
+      config-server:
+        condition: service_started
+      mongodb:
         condition: service_healthy
       kafka:
         condition: service_healthy
@@ -173,27 +231,32 @@ services:
 
   duriancare-cultivation-service:
     build:
-      context: .
+      context: ..
       dockerfile: duriancare-cultivation-service/Dockerfile
     image: duriancare/cultivation-service:local
     container_name: duriancare-cultivation-service
     restart: unless-stopped
     ports:
-      - "8084:8084"
+      - "18084:8084"
     environment:
-      DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
-      DATABASE_USERNAME: ${POSTGRES_USER}
-      DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
+      CONFIG_SERVER_URL: http://config-server:8888
+      EUREKA_DEFAULT_ZONE: http://discovery-server:8761/eureka/
+      MONGODB_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/${MONGODB_CULTIVATION_DATABASE:-duriancare_cultivation}?authSource=admin
       SERVER_PORT: 8084
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
     depends_on:
-      postgres:
+      config-server:
+        condition: service_started
+      mongodb:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     networks:
       - duriancare-network
 
   duriancare-iot-service:
     build:
-      context: ./duriancare-iot-service
+      context: ../duriancare-iot-service
       dockerfile: Dockerfile
     image: duriancare/iot-service:local
     container_name: duriancare-iot-service
@@ -204,12 +267,16 @@ services:
       PORT: 3001
       MQTT_URL: mqtt://emqx:1883
       MQTT_TOPIC: duriancare/devices/+/telemetry
-      MONGO_URL: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/?authSource=admin
-      MONGO_DATABASE: duriancare_iot
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_SCHEMA: ${POSTGRES_SCHEMA:-duriancare_iot}
       KAFKA_BROKERS: kafka:29092
       KAFKA_TELEMETRY_TOPIC: iot.telemetry.received
     depends_on:
-      mongodb:
+      postgres:
         condition: service_healthy
       kafka:
         condition: service_healthy
@@ -220,7 +287,7 @@ services:
 
   duriancare-ai-service:
     build:
-      context: ./duriancare-ai-service
+      context: ../duriancare-ai-service
       dockerfile: Dockerfile
     image: duriancare/ai-service:local
     container_name: duriancare-ai-service
@@ -233,21 +300,17 @@ services:
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       GEMINI_CHAT_MODEL: ${GEMINI_CHAT_MODEL}
       GEMINI_EMBEDDING_MODEL: ${GEMINI_EMBEDDING_MODEL}
-      POSTGRES_URL: jdbc:postgresql://duriancare-postgres:5432/${POSTGRES_DB}
       KNOWLEDGE_BASE_PATH: /app/knowledge_base
       CHROMA_PERSIST_PATH: /app/vector_store
       RAG_COLLECTION_NAME: duriancare_knowledge
     volumes:
       - ai_vector_store:/app/vector_store
-    depends_on:
-      postgres:
-        condition: service_healthy
     networks:
       - duriancare-network
 
   duriancare-chat-service:
     build:
-      context: ./duriancare-chat-service
+      context: ../duriancare-chat-service
       dockerfile: Dockerfile
     image: duriancare/chat-service:local
     container_name: duriancare-chat-service
@@ -256,22 +319,16 @@ services:
       - "3002:3002"
     environment:
       PORT: 3002
-      MONGO_URL: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/?authSource=admin
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
-      KAFKA_BROKERS: kafka:29092
+      MONGO_URL: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/${MONGODB_CHAT_DATABASE:-duriancare_chat}?authSource=admin
     depends_on:
       mongodb:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      kafka:
         condition: service_healthy
     networks:
       - duriancare-network
 
   duriancare-traceability-service:
     build:
-      context: .
+      context: ..
       dockerfile: duriancare-traceability-service/Dockerfile
     image: duriancare/traceability-service:local
     container_name: duriancare-traceability-service
@@ -279,12 +336,14 @@ services:
     ports:
       - "8083:8083"
     environment:
-      DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
-      DATABASE_USERNAME: ${POSTGRES_USER}
-      DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
+      CONFIG_SERVER_URL: http://config-server:8888
+      EUREKA_DEFAULT_ZONE: http://discovery-server:8761/eureka/
+      MONGODB_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/${MONGODB_TRACEABILITY_DATABASE:-duriancare_traceability}?authSource=admin
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
     depends_on:
-      postgres:
+      config-server:
+        condition: service_started
+      mongodb:
         condition: service_healthy
       kafka:
         condition: service_healthy
@@ -293,7 +352,7 @@ services:
 
   duriancare-notification-service:
     build:
-      context: .
+      context: ..
       dockerfile: duriancare-notification-service/Dockerfile
     image: duriancare/notification-service:local
     container_name: duriancare-notification-service
@@ -301,6 +360,9 @@ services:
     ports:
       - "8085:8085"
     environment:
+      CONFIG_SERVER_URL: http://config-server:8888
+      EUREKA_DEFAULT_ZONE: http://discovery-server:8761/eureka/
+      MONGODB_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/${MONGODB_NOTIFICATION_DATABASE:-duriancare_notification}?authSource=admin
       SPRING_REDIS_HOST: redis
       SPRING_REDIS_PORT: 6379
       SPRING_REDIS_PASSWORD: ${REDIS_PASSWORD}
@@ -315,15 +377,48 @@ services:
       OTP_LENGTH: ${OTP_LENGTH}
       OTP_MAX_ATTEMPTS: ${OTP_MAX_ATTEMPTS}
       KAFKA_ALERT_TOPIC: ${KAFKA_ALERT_TOPIC}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
     depends_on:
+      config-server:
+        condition: service_started
+      mongodb:
+        condition: service_healthy
       redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - duriancare-network
+
+  duriancare-search-service:
+    build:
+      context: ..
+      dockerfile: duriancare-search-service/Dockerfile
+    image: duriancare/search-service:local
+    container_name: duriancare-search-service
+    restart: unless-stopped
+    ports:
+      - "8086:8086"
+    environment:
+      SERVER_PORT: 8086
+      CONFIG_SERVER_URL: http://config-server:8888
+      EUREKA_DEFAULT_ZONE: http://discovery-server:8761/eureka/
+      ELASTICSEARCH_URIS: http://elasticsearch:9200
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SEARCH_INDEX_TOPIC: search.document.upsert
+    depends_on:
+      config-server:
+        condition: service_started
+      elasticsearch:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     networks:
       - duriancare-network
 
   duriancare-gateway:
     build:
-      context: .
+      context: ..
       dockerfile: duriancare-gateway/Dockerfile
     image: duriancare/gateway:local
     container_name: duriancare-gateway
@@ -331,19 +426,18 @@ services:
     ports:
       - "8080:8080"
     environment:
+      CONFIG_SERVER_URL: http://config-server:8888
+      EUREKA_DEFAULT_ZONE: http://discovery-server:8761/eureka/
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
-      AUTH_SERVICE_URL: http://duriancare-auth-service:8081
-      FARM_SERVICE_URL: http://duriancare-farm-service:8082
-      CULTIVATION_SERVICE_URL: http://duriancare-cultivation-service:8084
       IOT_SERVICE_URL: http://duriancare-iot-service:3001
       AI_SERVICE_URL: http://duriancare-ai-service:8000
       CHAT_SERVICE_URL: http://duriancare-chat-service:3002
-      TRACEABILITY_SERVICE_URL: http://duriancare-traceability-service:8083
-      NOTIFICATION_SERVICE_URL: http://duriancare-notification-service:8085
     depends_on:
+      config-server:
+        condition: service_started
       redis:
         condition: service_healthy
       duriancare-auth-service:
@@ -362,6 +456,8 @@ services:
         condition: service_started
       duriancare-notification-service:
         condition: service_started
+      duriancare-search-service:
+        condition: service_started
     networks:
       - duriancare-network
 
@@ -377,3 +473,4 @@ volumes:
   emqx_data:
   emqx_log:
   ai_vector_store:
+  elasticsearch_data:

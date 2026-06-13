@@ -18,12 +18,15 @@
     <name>DurianCare IoT Backend</name>
 
     <modules>
+        <module>discovery-server</module>
+        <module>config-server</module>
         <module>duriancare-gateway</module>
         <module>duriancare-auth-service</module>
         <module>duriancare-farm-service</module>
         <module>duriancare-cultivation-service</module>
         <module>duriancare-traceability-service</module>
         <module>duriancare-notification-service</module>
+        <module>duriancare-search-service</module>
     </modules>
 
     <properties>

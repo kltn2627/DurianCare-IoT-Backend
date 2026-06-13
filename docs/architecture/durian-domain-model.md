@@ -2,17 +2,17 @@
 
 ## Architecture Rules
 
-- Each service owns its schema and Flyway history table.
-- Foreign keys are allowed only inside the same service boundary.
-- References to another service are stored as UUID values, not database foreign keys.
+- Each business service owns a separate MongoDB database.
+- IoT telemetry owns the PostgreSQL `duriancare_iot` schema.
+- References to another service are stored as string identifiers, not database foreign keys.
 - Cross-service state is synchronized through Kafka events or queried through service APIs.
-- PostgreSQL enums should be stored as `VARCHAR` plus check constraints to simplify evolution.
+- MongoDB documents embed owned value objects and store cross-service references as IDs.
 
 ## 1. User And Auth Service
 
 ```text
 User
-  id: UUID
+  id: String
   email: String
   passwordHash: String
   role: UserRole
@@ -335,72 +335,24 @@ and each QR points to an immutable published snapshot.
 
 ```text
 IoTDevice
+Telemetry
   id: UUID
-  deviceCode: String
-  farmId: UUID
-  farmZoneId: UUID
-  name: String
-  hardwareModel: String
-  firmwareVersion: String?
-  mqttClientId: String
-  status: DeviceStatus
-  installedAt: LocalDateTime?
-  lastSeenAt: LocalDateTime?
-  createdAt: LocalDateTime
-  updatedAt: LocalDateTime
-
-SensorType
-  id: UUID
-  code: SensorCode
-  name: String
-  unit: String
-  minimumValidValue: BigDecimal
-  maximumValidValue: BigDecimal
-  description: String?
-
-DeviceSensor
-  id: UUID
-  deviceId: UUID
-  sensorTypeId: UUID
-  channel: String?
-  calibrationOffset: BigDecimal
-  active: Boolean
-
-SensorReading
-  id: UUID
-  deviceId: UUID
-  sensorTypeId: UUID
-  farmZoneId: UUID
-  value: BigDecimal
-  quality: ReadingQuality
-  measuredAt: LocalDateTime
-  receivedAt: LocalDateTime
-
-SensorReadingSeries
-  deviceId: UUID
-  sensorType: SensorCode
-  from: LocalDateTime
-  to: LocalDateTime
-  interval: String
-  points: List<SensorDataPoint>
-
-SensorDataPoint
+  deviceId: String
+  temperature: BigDecimal?
+  humidity: BigDecimal?
+  light: BigDecimal?
   timestamp: LocalDateTime
-  minimum: BigDecimal
-  maximum: BigDecimal
-  average: BigDecimal
+  receivedAt: LocalDateTime
 ```
 
 Enums:
 
 ```text
-SensorCode = AIR_TEMPERATURE_DHT22 | AIR_HUMIDITY_DHT22 | SOIL_MOISTURE
-DeviceStatus = ONLINE | OFFLINE | MAINTENANCE | DISABLED
-ReadingQuality = GOOD | UNCERTAIN | BAD
+Telemetry fields are nullable individually, but each record must contain at
+least one measurement.
 ```
 
-Relationships: `IoTDevice 1-N DeviceSensor`, `SensorType 1-N DeviceSensor`;
-telemetry is keyed by `deviceId`, `sensorTypeId`, and `measuredAt`.
+Telemetry is indexed by `deviceId` and `timestamp`.
 
 ## 6. Chat And Notification Service
 

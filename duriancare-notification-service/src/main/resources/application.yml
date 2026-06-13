@@ -4,12 +4,19 @@ server:
 spring:
   application:
     name: duriancare-notification-service
+  config:
+    import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
   data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/duriancare_notification}
+      auto-index-creation: true
     redis:
       host: ${SPRING_REDIS_HOST}
       port: ${SPRING_REDIS_PORT}
       password: ${SPRING_REDIS_PASSWORD}
       timeout: 3s
+      repositories:
+        enabled: false
   mail:
     host: ${SPRING_MAIL_HOST}
     port: ${SPRING_MAIL_PORT}
@@ -22,6 +29,13 @@ spring:
           starttls:
             enable: true
             required: true
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_DEFAULT_ZONE:http://localhost:8761/eureka/}
 
 duriancare:
   notification:

@@ -4,6 +4,8 @@ server:
 spring:
   application:
     name: duriancare-gateway
+  config:
+    import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -15,15 +17,15 @@ spring:
         webflux:
           routes:
             - id: auth-service
-              uri: ${AUTH_SERVICE_URL:http://localhost:8081}
+              uri: ${AUTH_SERVICE_URL:lb://duriancare-auth-service}
               predicates:
                 - Path=/api/auth/**
             - id: farm-service
-              uri: ${FARM_SERVICE_URL:http://localhost:8082}
+              uri: ${FARM_SERVICE_URL:lb://duriancare-farm-service}
               predicates:
                 - Path=/api/farms/**,/api/zones/**,/api/trees/**,/api/regimens/**
             - id: cultivation-service
-              uri: ${CULTIVATION_SERVICE_URL:http://localhost:8084}
+              uri: ${CULTIVATION_SERVICE_URL:lb://duriancare-cultivation-service}
               predicates:
                 - Path=/api/cultivation-schedules/**
             - id: iot-service
@@ -39,13 +41,22 @@ spring:
               predicates:
                 - Path=/api/chat/**,/socket.io/**
             - id: traceability-service
-              uri: ${TRACEABILITY_SERVICE_URL:http://localhost:8083}
+              uri: ${TRACEABILITY_SERVICE_URL:lb://duriancare-traceability-service}
               predicates:
                 - Path=/api/traceability/**
             - id: notification-service
-              uri: ${NOTIFICATION_SERVICE_URL:http://localhost:8085}
+              uri: ${NOTIFICATION_SERVICE_URL:lb://duriancare-notification-service}
               predicates:
                 - Path=/api/v1/notification/**
+            - id: search-service
+              uri: ${SEARCH_SERVICE_URL:lb://duriancare-search-service}
+              predicates:
+                - Path=/api/search/**
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_DEFAULT_ZONE:http://localhost:8761/eureka/}
 
 duriancare:
   security:

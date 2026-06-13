@@ -1,0 +1,14 @@
+server:
+  port: ${SERVER_PORT:8085}
+
+spring:
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/duriancare_notification}
+      auto-index-creation: true
+    redis:
+      host: ${SPRING_REDIS_HOST:localhost}
+      port: ${SPRING_REDIS_PORT:6379}
+      password: ${SPRING_REDIS_PASSWORD:}
+      repositories:
+        enabled: false
