@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class PredictionSource(str, Enum):
@@ -17,6 +17,17 @@ class BoundingBox(BaseModel):
     bottom: int
 
 
+class StoredImageInfo(BaseModel):
+    object_key: str
+    url: str
+
+
+class S3PredictionRequest(BaseModel):
+    object_key: str = Field(min_length=1, max_length=1024)
+    source: PredictionSource = PredictionSource.IOT_CAMERA
+    device_id: str | None = Field(default=None, max_length=150)
+
+
 class PredictionData(BaseModel):
     predicted_disease: str
     confidence: str
@@ -24,6 +35,7 @@ class PredictionData(BaseModel):
     device_id: str | None = None
     used_detection_crop: bool
     bounding_box: BoundingBox | None = None
+    image: StoredImageInfo | None = None
 
 
 class PredictionResponse(BaseModel):

@@ -8,7 +8,7 @@ import jakarta.validation.constraints.Size;
 
 public record RegisterRequest(
         @NotBlank @Email @Size(max = 320) String email,
-        @NotBlank @Size(min = 8, max = 72) String password,
+        @NotBlank @Size(min = 12, max = 72) String password,
         @NotBlank @Size(max = 150) String fullName,
         @Pattern(regexp = "^$|^[0-9+() .-]{8,30}$") String phoneNumber,
         UserRole role) {

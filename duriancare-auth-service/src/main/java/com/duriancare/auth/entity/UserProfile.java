@@ -1,8 +1,11 @@
 package com.duriancare.auth.entity;
 
+import com.duriancare.auth.domain.UserGender;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
@@ -10,6 +13,7 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.UUID;
@@ -34,6 +38,19 @@ public class UserProfile {
 
     @Column(name = "farm_address", length = 500)
     private String farmAddress;
+
+    @Column(name = "province_city", length = 150)
+    private String provinceCity;
+
+    @Column(name = "date_of_birth")
+    private LocalDate dateOfBirth;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "gender", length = 32)
+    private UserGender gender;
+
+    @Column(name = "bio", length = 500)
+    private String bio;
 
     @Column(name = "avatar_url", length = 1000)
     private String avatarUrl;
@@ -81,11 +98,75 @@ public class UserProfile {
         return phoneNumber;
     }
 
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
+
     public String getFarmAddress() {
         return farmAddress;
     }
 
+    public String getAddress() {
+        return farmAddress;
+    }
+
+    public void setFarmAddress(String farmAddress) {
+        this.farmAddress = farmAddress;
+    }
+
+    public void setAddress(String address) {
+        this.farmAddress = address;
+    }
+
+    public String getProvinceCity() {
+        return provinceCity;
+    }
+
+    public void setProvinceCity(String provinceCity) {
+        this.provinceCity = provinceCity;
+    }
+
+    public LocalDate getDateOfBirth() {
+        return dateOfBirth;
+    }
+
+    public void setDateOfBirth(LocalDate dateOfBirth) {
+        this.dateOfBirth = dateOfBirth;
+    }
+
+    public UserGender getGender() {
+        return gender;
+    }
+
+    public void setGender(UserGender gender) {
+        this.gender = gender;
+    }
+
+    public String getBio() {
+        return bio;
+    }
+
+    public void setBio(String bio) {
+        this.bio = bio;
+    }
+
     public String getAvatarUrl() {
         return avatarUrl;
+    }
+
+    public void setAvatarUrl(String avatarUrl) {
+        this.avatarUrl = avatarUrl;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
     }
 }

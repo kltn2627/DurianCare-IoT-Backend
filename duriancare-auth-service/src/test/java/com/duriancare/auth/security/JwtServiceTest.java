@@ -1,6 +1,7 @@
 package com.duriancare.auth.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.duriancare.auth.config.JwtProperties;
 import com.duriancare.auth.domain.UserRole;
@@ -38,5 +39,26 @@ class JwtServiceTest {
         assertThat(claims.get("type", String.class)).isEqualTo("access");
         assertThat(claims.get("email", String.class)).isEqualTo("expert@example.com");
         assertThat(claims.get("role", String.class)).isEqualTo("EXPERT");
+    }
+
+    @Test
+    void refreshTokenCannotBeUsedAsAccessToken() {
+        JwtService jwtService = new JwtService(new JwtProperties(
+                "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+                "duriancare-auth-service",
+                Duration.ofHours(1),
+                Duration.ofDays(7)));
+        User user = new User(
+                "farmer@example.com",
+                "password-hash",
+                UserStatus.ACTIVE,
+                UserRole.FARMER);
+        ReflectionTestUtils.setField(user, "id", UUID.randomUUID());
+
+        IssuedToken refreshToken = jwtService.generateRefreshToken(user);
+
+        assertThatThrownBy(() -> jwtService.parseAccessToken(refreshToken.value()))
+                .isInstanceOf(com.duriancare.auth.exception.InvalidTokenException.class)
+                .hasMessageContaining("Unexpected token type");
     }
 }

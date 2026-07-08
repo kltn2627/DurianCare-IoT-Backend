@@ -2,6 +2,7 @@ package com.duriancare.auth.domain;
 
 public enum UserStatus {
     PENDING_VERIFICATION,
+    PENDING_APPROVAL,
     ACTIVE,
     BLOCKED
 }

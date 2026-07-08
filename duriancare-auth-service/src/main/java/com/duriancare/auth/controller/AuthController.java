@@ -8,13 +8,17 @@ import com.duriancare.auth.dto.MessageResponse;
 import com.duriancare.auth.dto.RefreshTokenRequest;
 import com.duriancare.auth.dto.RegisterRequest;
 import com.duriancare.auth.dto.VerifyOtpRequest;
+import com.duriancare.auth.domain.UserStatus;
 import com.duriancare.auth.exception.InvalidTokenException;
 import com.duriancare.auth.service.AuthService;
 import jakarta.validation.Valid;
+import java.util.UUID;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -45,8 +49,17 @@ public class AuthController {
 
     @PostMapping("/otp/verify")
     MessageResponse verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
-        authService.verifyRegistrationOtp(request);
-        return new MessageResponse("Account has been activated.");
+        UserStatus status = authService.verifyRegistrationOtp(request);
+        return new MessageResponse(status == UserStatus.ACTIVE
+                ? "Account has been activated."
+                : "Email verified. Expert account is awaiting administrator approval.");
+    }
+
+    @PostMapping("/admin/users/{userId}/approve-expert")
+    @PreAuthorize("hasRole('ADMIN')")
+    MessageResponse approveExpert(@PathVariable UUID userId) {
+        authService.approveExpert(userId);
+        return new MessageResponse("Expert account has been approved.");
     }
 
     @PostMapping("/login")

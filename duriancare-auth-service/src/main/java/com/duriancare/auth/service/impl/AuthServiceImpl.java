@@ -26,6 +26,7 @@ import com.duriancare.auth.repository.UserProfileRepository;
 import com.duriancare.auth.repository.UserRepository;
 import com.duriancare.auth.security.IssuedToken;
 import com.duriancare.auth.security.JwtService;
+import com.duriancare.auth.security.RefreshTokenSessionService;
 import com.duriancare.auth.security.RevokedTokenService;
 import com.duriancare.auth.service.AuthService;
 import io.jsonwebtoken.Claims;
@@ -51,6 +52,7 @@ public class AuthServiceImpl implements AuthService {
     private final OtpVerificationRepository otpRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final RefreshTokenSessionService refreshTokenSessionService;
     private final RevokedTokenService revokedTokenService;
     private final AuthEventPublisher eventPublisher;
     private final AuthProperties authProperties;
@@ -62,6 +64,7 @@ public class AuthServiceImpl implements AuthService {
             OtpVerificationRepository otpRepository,
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
+            RefreshTokenSessionService refreshTokenSessionService,
             RevokedTokenService revokedTokenService,
             AuthEventPublisher eventPublisher,
             AuthProperties authProperties) {
@@ -71,6 +74,7 @@ public class AuthServiceImpl implements AuthService {
         this.otpRepository = otpRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.refreshTokenSessionService = refreshTokenSessionService;
         this.revokedTokenService = revokedTokenService;
         this.eventPublisher = eventPublisher;
         this.authProperties = authProperties;
@@ -120,6 +124,11 @@ public class AuthServiceImpl implements AuthService {
         }
         OtpVerification verification = otpRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Registration verification was not found"));
+        LocalDateTime nextAllowedAt = verification.getLastSentAt()
+                .plus(authProperties.otpResendCooldown());
+        if (nextAllowedAt.isAfter(LocalDateTime.now(ZoneOffset.UTC))) {
+            throw new InvalidRequestException("Please wait before requesting another OTP");
+        }
         String otp = createOtp();
         verification.renew(passwordEncoder.encode(otp), expiresAt());
         otpRepository.save(verification);
@@ -131,8 +140,8 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    @Transactional
-    public void verifyRegistrationOtp(VerifyOtpRequest request) {
+    @Transactional(noRollbackFor = InvalidRequestException.class)
+    public UserStatus verifyRegistrationOtp(VerifyOtpRequest request) {
         String email = normalizeEmail(request.email());
         User user = findUserByEmail(email);
         if (user.getStatus() != UserStatus.PENDING_VERIFICATION) {
@@ -146,17 +155,41 @@ public class AuthServiceImpl implements AuthService {
         if (verification.getExpiredAt().isBefore(LocalDateTime.now(ZoneOffset.UTC))) {
             throw new InvalidRequestException("OTP has expired");
         }
+        if (verification.getFailedAttempts() >= authProperties.otpMaxAttempts()) {
+            throw new InvalidRequestException("Too many incorrect OTP attempts. Request a new code.");
+        }
         if (!passwordEncoder.matches(request.otpCode(), verification.getOtpCode())) {
-            throw new InvalidRequestException("OTP is incorrect");
+            verification.recordFailedAttempt();
+            otpRepository.save(verification);
+            int attemptsRemaining = authProperties.otpMaxAttempts() - verification.getFailedAttempts();
+            throw new InvalidRequestException(
+                    attemptsRemaining > 0
+                            ? "OTP is incorrect. Attempts remaining: " + attemptsRemaining
+                            : "Too many incorrect OTP attempts. Request a new code.");
         }
 
-        user.setStatus(UserStatus.ACTIVE);
+        UserStatus verifiedStatus = user.getRole() == UserRole.EXPERT
+                ? UserStatus.PENDING_APPROVAL
+                : UserStatus.ACTIVE;
+        user.setStatus(verifiedStatus);
         verification.markVerified();
         profileRepository.save(new UserProfile(
                 user,
                 verification.getPendingFullName(),
                 verification.getPendingPhoneNumber()));
         preferenceRepository.save(new UserPreference(user, "vi", true, true));
+        return verifiedStatus;
+    }
+
+    @Override
+    @Transactional
+    public void approveExpert(UUID userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User was not found"));
+        if (user.getRole() != UserRole.EXPERT || user.getStatus() != UserStatus.PENDING_APPROVAL) {
+            throw new InvalidRequestException("User is not an expert awaiting approval");
+        }
+        user.setStatus(UserStatus.ACTIVE);
     }
 
     @Override
@@ -173,6 +206,7 @@ public class AuthServiceImpl implements AuthService {
 
         IssuedToken accessToken = jwtService.generateAccessToken(user);
         IssuedToken refreshToken = jwtService.generateRefreshToken(user);
+        refreshTokenSessionService.register(user.getId(), refreshToken);
         UserProfile profile = profileRepository.findByUser_Id(user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("User profile was not found"));
         return new AuthenticationResponse(
@@ -194,28 +228,37 @@ public class AuthServiceImpl implements AuthService {
     public void logout(String accessToken) {
         Claims claims = jwtService.parseAccessToken(accessToken);
         revokedTokenService.revoke(claims);
+        refreshTokenSessionService.revokeAll(parseUserId(claims));
     }
 
     @Override
     @Transactional(readOnly = true)
     public AccessTokenResponse refresh(RefreshTokenRequest request) {
         Claims claims = jwtService.parseRefreshToken(request.refreshToken());
-        UUID userId;
-        try {
-            userId = UUID.fromString(claims.getSubject());
-        } catch (IllegalArgumentException | NullPointerException exception) {
-            throw new AuthenticationFailedException("Refresh token subject is invalid");
-        }
+        UUID userId = parseUserId(claims);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AuthenticationFailedException("Refresh token user was not found"));
         if (user.getStatus() != UserStatus.ACTIVE) {
             throw new AuthenticationFailedException("Account is not active");
         }
+        refreshTokenSessionService.consume(userId, claims.getId());
         IssuedToken accessToken = jwtService.generateAccessToken(user);
+        IssuedToken refreshToken = jwtService.generateRefreshToken(user);
+        refreshTokenSessionService.register(userId, refreshToken);
         return new AccessTokenResponse(
                 accessToken.value(),
+                refreshToken.value(),
                 "Bearer",
-                secondsUntil(accessToken.expiresAt()));
+                secondsUntil(accessToken.expiresAt()),
+                secondsUntil(refreshToken.expiresAt()));
+    }
+
+    private UUID parseUserId(Claims claims) {
+        try {
+            return UUID.fromString(claims.getSubject());
+        } catch (IllegalArgumentException | NullPointerException exception) {
+            throw new AuthenticationFailedException("Token subject is invalid");
+        }
     }
 
     private User findUserByEmail(String email) {
