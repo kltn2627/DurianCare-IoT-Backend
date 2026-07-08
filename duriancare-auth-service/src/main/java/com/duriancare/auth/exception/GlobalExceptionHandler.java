@@ -1,5 +1,6 @@
 package com.duriancare.auth.exception;
 
+import com.duriancare.auth.service.AvatarStorageException;
 import java.time.Instant;
 import java.util.stream.Collectors;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -38,6 +39,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({AuthenticationFailedException.class, InvalidTokenException.class})
     ResponseEntity<ApiError> handleUnauthorized(RuntimeException exception) {
         return response(HttpStatus.UNAUTHORIZED, exception.getMessage());
+    }
+
+    @ExceptionHandler(AvatarStorageException.class)
+    ResponseEntity<ApiError> handleAvatarStorage(AvatarStorageException exception) {
+        return response(HttpStatus.SERVICE_UNAVAILABLE, exception.getMessage());
     }
 
     @ExceptionHandler(EventPublicationException.class)

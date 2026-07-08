@@ -53,6 +53,7 @@ duriancare:
       from-address: ${MAIL_FROM_ADDRESS}
       from-name: ${MAIL_FROM_NAME}
     auth-events-topic: ${AUTH_EVENTS_TOPIC:duriancare.auth.events}
+    events-topic: ${KAFKA_ALERT_TOPIC:${NOTIFICATION_EVENTS_TOPIC:duriancare.notification.events}}
 
 management:
   endpoints:

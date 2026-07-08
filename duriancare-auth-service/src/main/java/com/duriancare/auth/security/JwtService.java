@@ -61,18 +61,19 @@ public class JwtService {
     private IssuedToken generateToken(User user, String type, java.time.Duration ttl) {
         Instant issuedAt = Instant.now();
         Instant expiresAt = issuedAt.plus(ttl);
+        String tokenId = UUID.randomUUID().toString();
         String token = Jwts.builder()
                 .issuer(properties.issuer())
                 .subject(user.getId().toString())
-                .id(UUID.randomUUID().toString())
+                .id(tokenId)
                 .issuedAt(Date.from(issuedAt))
                 .expiration(Date.from(expiresAt))
                 .claim("type", type)
                 .claim("email", user.getEmail())
                 .claim("role", user.getRole().name())
-                .signWith(signingKey)
+                .signWith(signingKey, Jwts.SIG.HS512)
                 .compact();
-        return new IssuedToken(token, expiresAt);
+        return new IssuedToken(token, tokenId, expiresAt);
     }
 
     private Claims parse(String token) {

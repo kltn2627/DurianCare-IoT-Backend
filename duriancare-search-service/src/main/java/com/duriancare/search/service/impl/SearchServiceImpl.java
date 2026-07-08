@@ -5,7 +5,9 @@ import com.duriancare.search.entity.SearchDocument;
 import com.duriancare.search.repository.SearchDocumentRepository;
 import com.duriancare.search.service.SearchService;
 import java.time.Instant;
-import java.util.List;
+import java.util.Locale;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -30,13 +32,35 @@ public class SearchServiceImpl implements SearchService {
     }
 
     @Override
-    public List<SearchDocument> search(String query) {
+    public Page<SearchDocument> search(String query, String type, Pageable pageable) {
         String normalizedQuery = query == null ? "" : query.trim();
         if (normalizedQuery.isEmpty()) {
-            return List.of();
+            return Page.empty(pageable);
         }
-        return repository.findTop50ByTitleContainingOrContentContaining(
+
+        String normalizedType = normalizeType(type);
+        if (normalizedType == null) {
+            return repository.findByTitleContainingOrContentContaining(
+                    normalizedQuery,
+                    normalizedQuery,
+                    pageable);
+        }
+        return repository.findByTypeAndTitleContainingOrTypeAndContentContaining(
+                normalizedType,
                 normalizedQuery,
-                normalizedQuery);
+                normalizedType,
+                normalizedQuery,
+                pageable);
+    }
+
+    private String normalizeType(String type) {
+        if (type == null) {
+            return null;
+        }
+        String normalizedType = type.trim();
+        if (normalizedType.isEmpty()) {
+            return null;
+        }
+        return normalizedType.toUpperCase(Locale.ROOT);
     }
 }

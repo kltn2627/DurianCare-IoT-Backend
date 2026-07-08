@@ -8,6 +8,7 @@ from app.api.predict import router as prediction_router
 from app.core.config import settings
 from app.services.disease_classifier import DoubleModelDiseaseClassifier
 from app.services.rag_service import RagService
+from app.services.s3_storage import S3ImageStorage
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +20,9 @@ async def lifespan(app: FastAPI):
     app.state.model_load_error = None
     app.state.rag_service = None
     app.state.rag_load_error = None
+    app.state.settings = settings
+    app.state.s3_storage = None
+    app.state.s3_load_error = None
     try:
         classifier.load_models()
         app.state.disease_classifier = classifier
@@ -34,9 +38,16 @@ async def lifespan(app: FastAPI):
         logger.exception("Failed to initialize RAG service")
         app.state.rag_load_error = str(exception)
 
+    try:
+        app.state.s3_storage = S3ImageStorage(settings)
+    except Exception as exception:
+        logger.exception("Failed to initialize S3 image storage")
+        app.state.s3_load_error = str(exception)
+
     yield
     app.state.disease_classifier = None
     app.state.rag_service = None
+    app.state.s3_storage = None
 
 
 app = FastAPI(
@@ -65,6 +76,10 @@ def health() -> dict[str, str | bool]:
         "modelsLoaded": classifier is not None,
         "device": classifier.device.type if classifier is not None else "unavailable",
         "ragReady": rag_service is not None,
+        "s3StorageEnabled": bool(
+            getattr(app.state, "s3_storage", None)
+            and app.state.s3_storage.enabled
+        ),
     }
     model_load_error = getattr(app.state, "model_load_error", None)
     if model_load_error:
@@ -72,4 +87,7 @@ def health() -> dict[str, str | bool]:
     rag_load_error = getattr(app.state, "rag_load_error", None)
     if rag_load_error:
         response["ragLoadError"] = rag_load_error
+    s3_load_error = getattr(app.state, "s3_load_error", None)
+    if s3_load_error:
+        response["s3LoadError"] = s3_load_error
     return response

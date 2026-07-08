@@ -7,6 +7,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.UUID;
@@ -37,6 +38,16 @@ public class OtpVerification {
     @Column(name = "pending_phone_number", length = 30)
     private String pendingPhoneNumber;
 
+    @Column(name = "failed_attempts", nullable = false)
+    private int failedAttempts;
+
+    @Column(name = "last_sent_at", nullable = false)
+    private LocalDateTime lastSentAt;
+
+    @Version
+    @Column(nullable = false)
+    private long version;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -58,16 +69,24 @@ public class OtpVerification {
         this.verified = false;
         this.pendingFullName = pendingFullName;
         this.pendingPhoneNumber = pendingPhoneNumber;
+        this.failedAttempts = 0;
+        this.lastSentAt = LocalDateTime.now(ZoneOffset.UTC);
     }
 
     public void renew(String otpCode, LocalDateTime expiredAt) {
         this.otpCode = otpCode;
         this.expiredAt = expiredAt;
         this.verified = false;
+        this.failedAttempts = 0;
+        this.lastSentAt = LocalDateTime.now(ZoneOffset.UTC);
     }
 
     public void markVerified() {
         this.verified = true;
+    }
+
+    public void recordFailedAttempt() {
+        failedAttempts++;
     }
 
     @PrePersist
@@ -104,5 +123,13 @@ public class OtpVerification {
 
     public String getPendingPhoneNumber() {
         return pendingPhoneNumber;
+    }
+
+    public int getFailedAttempts() {
+        return failedAttempts;
+    }
+
+    public LocalDateTime getLastSentAt() {
+        return lastSentAt;
     }
 }

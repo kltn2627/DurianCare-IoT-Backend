@@ -6,6 +6,8 @@ import com.duriancare.auth.dto.LoginRequest;
 import com.duriancare.auth.dto.RefreshTokenRequest;
 import com.duriancare.auth.dto.RegisterRequest;
 import com.duriancare.auth.dto.VerifyOtpRequest;
+import com.duriancare.auth.domain.UserStatus;
+import java.util.UUID;
 
 public interface AuthService {
 
@@ -13,7 +15,9 @@ public interface AuthService {
 
     void resendRegistrationOtp(String email);
 
-    void verifyRegistrationOtp(VerifyOtpRequest request);
+    UserStatus verifyRegistrationOtp(VerifyOtpRequest request);
+
+    void approveExpert(UUID userId);
 
     AuthenticationResponse login(LoginRequest request);
 
