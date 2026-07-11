@@ -35,10 +35,10 @@ public class SmtpEmailService implements EmailService {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(
-                    message, false, StandardCharsets.UTF_8.name());
+                    message, true, StandardCharsets.UTF_8.name());
             helper.setFrom(properties.fromAddress(), properties.fromName());
             helper.setTo(recipient);
-            helper.setSubject("DurianCare - Ma xac nhan dang nhap");
+            helper.setSubject("DurianCare - Mã xác nhận đăng nhập");
             helper.setText(buildPlainTextBody(otp, ttlMinutes), buildHtmlBody(otp, ttlMinutes));
             mailSender.send(message);
             historyService.recordOtpSent(recipient);
@@ -50,20 +50,20 @@ public class SmtpEmailService implements EmailService {
 
     private String buildPlainTextBody(String otp, long ttlMinutes) {
         return """
-                DurianCare - Ma xac nhan dang nhap
+                DurianCare - Mã xác nhận đăng nhập
 
-                Xin chao,
+                Xin chào,
 
-                Day la ma OTP de xac nhan tai khoan DurianCare cua ban:
+                Đây là mã OTP để xác nhận tài khoản DurianCare của bạn:
 
                 %s
 
-                Ma nay co hieu luc trong %d phut.
+                Mã này có hiệu lực trong %d phút.
 
-                Neu ban khong yeu cau ma nay, vui long bo qua email nay.
+                Nếu bạn không yêu cầu mã này, vui lòng bỏ qua email này.
 
-                Tran trong,
-                Doi ngu DurianCare
+                Trân trọng,
+                Đội ngũ DurianCare
                 """
                 .formatted(otp, ttlMinutes);
     }
@@ -78,7 +78,7 @@ public class SmtpEmailService implements EmailService {
                   <meta name="viewport" content="width=device-width, initial-scale=1.0">
                   <title>DurianCare OTP</title>
                 </head>
-                <body style="margin:0;padding:0;background-color:#f4f7fb;font-family:Arial,Helvetica,sans-serif;color:#1f2937;">
+                <body style="margin:0;padding:0;background-color:#f4f7fb;font-family:'Segoe UI',Tahoma,Arial,'Helvetica Neue',sans-serif;color:#1f2937;">
                   <table role="presentation" width="100%%" cellspacing="0" cellpadding="0" style="background-color:#f4f7fb;padding:32px 12px;">
                     <tr>
                       <td align="center">
@@ -86,18 +86,18 @@ public class SmtpEmailService implements EmailService {
                           <tr>
                             <td style="background:linear-gradient(135deg,#15803d 0%%,#22c55e 100%%);padding:28px 32px;color:#ffffff;">
                               <div style="font-size:13px;letter-spacing:1.2px;text-transform:uppercase;opacity:0.95;">DurianCare SmartFarm</div>
-                              <div style="font-size:28px;font-weight:700;line-height:1.2;margin-top:8px;">Ma xac nhan dang nhap</div>
+                              <div style="font-size:28px;font-weight:700;line-height:1.2;margin-top:8px;">Mã xác nhận đăng nhập</div>
                               <div style="font-size:15px;line-height:1.6;margin-top:10px;max-width:520px;">
-                                Hoan thanh xac thuc tai khoan va tiep tuc truy cap he sinh thai quan ly sau rieng thong minh.
+                                Hoàn thành xác thực tài khoản và tiếp tục truy cập hệ sinh thái quản lý sầu riêng thông minh.
                               </div>
                             </td>
                           </tr>
                           <tr>
                             <td style="padding:32px;">
                               <div style="font-size:16px;line-height:1.7;margin-bottom:20px;">
-                                Xin chao,
+                                Xin chào,
                                 <br><br>
-                                Chung toi da nhan duoc yeu cau xac nhan tai khoan cua ban. Su dung ma OTP ben duoi de hoan tat dang nhap hoac xac thuc:
+                                Chúng tôi đã nhận được yêu cầu xác nhận tài khoản của bạn. Sử dụng mã OTP bên dưới để hoàn tất đăng nhập hoặc xác thực:
                               </div>
                               <div style="text-align:center;margin:28px 0;">
                                 <div style="display:inline-block;background:#ecfdf5;border:1px solid #86efac;border-radius:14px;padding:18px 28px;font-size:34px;font-weight:800;letter-spacing:6px;color:#166534;min-width:220px;">
@@ -106,21 +106,21 @@ public class SmtpEmailService implements EmailService {
                               </div>
                               <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:18px 20px;margin:24px 0;">
                                 <div style="font-size:14px;line-height:1.7;color:#334155;">
-                                  <strong>Hieu luc:</strong> %d phut<br>
-                                  <strong>Bao mat:</strong> Tuyet doi khong chia se ma nay voi bat ky ai<br>
-                                  <strong>Luu y:</strong> Neu ban khong yeu cau thao tac nay, co the bo qua email
+                                  <strong>Hiệu lực:</strong> %d phút<br>
+                                  <strong>Bảo mật:</strong> Tuyệt đối không chia sẻ mã này với bất kỳ ai<br>
+                                  <strong>Lưu ý:</strong> Nếu bạn không yêu cầu thao tác này, có thể bỏ qua email
                                 </div>
                               </div>
                               <div style="font-size:14px;line-height:1.8;color:#475569;">
-                                Email nay duoc gui tu he thong DurianCare de bao ve tai khoan cua ban.
-                                Neu can ho tro, vui long lien he doi ngu ki thuat hoac ki su nong nghiep phu trach.
+                                Email này được gửi từ hệ thống DurianCare để bảo vệ tài khoản của bạn.
+                                Nếu cần hỗ trợ, vui lòng liên hệ đội ngũ kỹ thuật hoặc kỹ sư nông nghiệp phụ trách.
                               </div>
                             </td>
                           </tr>
                           <tr>
                             <td style="padding:0 32px 28px 32px;">
                               <div style="border-top:1px solid #e2e8f0;padding-top:18px;font-size:12px;line-height:1.7;color:#94a3b8;text-align:center;">
-                                <div style="margin-bottom:4px;">DurianCare SmartFarm - He sinh thai quan ly va phat hien benh sau rieng</div>
+                                <div style="margin-bottom:4px;">DurianCare SmartFarm - Hệ sinh thái quản lý và phát hiện bệnh sầu riêng</div>
                                 <div>&copy; %s DurianCare. All rights reserved.</div>
                               </div>
                             </td>
