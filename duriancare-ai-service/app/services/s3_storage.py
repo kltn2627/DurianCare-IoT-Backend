@@ -1,10 +1,16 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 
-import boto3
-from botocore.exceptions import BotoCoreError, ClientError
+try:
+    import boto3
+    from botocore.exceptions import BotoCoreError, ClientError
+except ImportError:  # pragma: no cover - optional runtime dependency
+    boto3 = None
+    BotoCoreError = ClientError = Exception  # type: ignore[assignment]
 
 from app.core.config import Settings
 
@@ -30,6 +36,10 @@ class S3ImageStorage:
 
         if self.enabled and not self.bucket_name:
             raise ValueError("AWS_S3_BUCKET is required when S3_ENABLED=true")
+        if self.enabled and boto3 is None and self.client is None:
+            raise StorageError(
+                "S3 storage is enabled but boto3 is not installed"
+            )
         if self.enabled and self.client is None:
             self.client = boto3.client("s3", region_name=settings.aws_region)
 

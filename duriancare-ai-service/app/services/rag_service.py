@@ -1,26 +1,10 @@
+from __future__ import annotations
+
 import hashlib
 import json
 import logging
 from pathlib import Path
 from typing import Any
-
-from langchain_chroma import Chroma
-from langchain_classic.chains import create_retrieval_chain
-from langchain_classic.chains.combine_documents import (
-    create_stuff_documents_chain,
-)
-from langchain_community.document_loaders import (
-    DirectoryLoader,
-    PyPDFDirectoryLoader,
-    TextLoader,
-)
-from langchain_core.documents import Document
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_google_genai import (
-    ChatGoogleGenerativeAI,
-    GoogleGenerativeAIEmbeddings,
-)
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from app.core.config import Settings
 
@@ -58,6 +42,26 @@ class RagService:
     def initialize(self) -> None:
         if not self.settings.gemini_api_key:
             raise RagInitializationError("GEMINI_API_KEY is not configured")
+
+        try:
+            from langchain_chroma import Chroma
+            from langchain_classic.chains import create_retrieval_chain
+            from langchain_classic.chains.combine_documents import (
+                create_stuff_documents_chain,
+            )
+            from langchain_core.prompts import ChatPromptTemplate
+            from langchain_google_genai import (
+                ChatGoogleGenerativeAI,
+                GoogleGenerativeAIEmbeddings,
+            )
+            from langchain_text_splitters import RecursiveCharacterTextSplitter
+        except ImportError as exception:
+            raise RagInitializationError(
+                "RAG dependencies are not installed. Install chromadb, "
+                "langchain-chroma, langchain-google-genai, "
+                "langchain-classic, langchain-community, and "
+                "langchain-text-splitters."
+            ) from exception
 
         documents, fingerprint = self._load_documents()
         if not documents:
@@ -118,6 +122,19 @@ class RagService:
         return answer, sources
 
     def _load_documents(self) -> tuple[list[Document], str]:
+        try:
+            from langchain_community.document_loaders import (
+                DirectoryLoader,
+                PyPDFDirectoryLoader,
+                TextLoader,
+            )
+            from langchain_core.documents import Document
+        except ImportError as exception:
+            raise RagInitializationError(
+                "RAG document loaders are not installed. Install "
+                "langchain-community and langchain-core."
+            ) from exception
+
         knowledge_base = self.settings.knowledge_base_path
         knowledge_base.mkdir(parents=True, exist_ok=True)
         source_files = sorted(
@@ -159,8 +176,11 @@ class RagService:
         self,
         documents: list[Document],
         fingerprint: str,
-        embeddings: GoogleGenerativeAIEmbeddings,
-    ) -> Chroma:
+        embeddings: Any,
+    ) -> Any:
+        from langchain_chroma import Chroma
+        from langchain_text_splitters import RecursiveCharacterTextSplitter
+
         vector_store = Chroma(
             collection_name=self.settings.rag_collection_name,
             embedding_function=embeddings,

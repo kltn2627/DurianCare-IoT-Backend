@@ -1,13 +1,23 @@
+from __future__ import annotations
+
 from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping
 
-import torch
-from PIL import Image
-from torch import nn
-from torchvision import models, transforms
-from ultralytics import YOLO
+try:
+    import torch
+    from PIL import Image
+    from torch import nn
+    from torchvision import models, transforms
+    from ultralytics import YOLO
+except ImportError:  # pragma: no cover - optional runtime dependency
+    torch = None
+    Image = None
+    nn = None
+    models = None
+    transforms = None
+    YOLO = None
 
 from app.core.config import Settings
 
@@ -35,23 +45,32 @@ class DiseasePrediction:
 class DoubleModelDiseaseClassifier:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
-        self.device = torch.device(
-            "cuda" if torch.cuda.is_available() else "cpu"
-        )
+        self.device = None
+        self.device_name = "cpu"
+        if torch is not None:
+            self.device_name = "cuda" if torch.cuda.is_available() else "cpu"
+            self.device = torch.device(self.device_name)
         self.detector: YOLO | None = None
         self.classifier: nn.Module | None = None
-        self.transform = transforms.Compose(
-            [
-                transforms.Resize((224, 224)),
-                transforms.ToTensor(),
-                transforms.Normalize(
-                    mean=[0.485, 0.456, 0.406],
-                    std=[0.229, 0.224, 0.225],
-                ),
-            ]
-        )
+        self.transform = None
+        if transforms is not None:
+            self.transform = transforms.Compose(
+                [
+                    transforms.Resize((224, 224)),
+                    transforms.ToTensor(),
+                    transforms.Normalize(
+                        mean=[0.485, 0.456, 0.406],
+                        std=[0.229, 0.224, 0.225],
+                    ),
+                ]
+            )
 
     def load_models(self) -> None:
+        if any(dep is None for dep in (torch, Image, nn, models, transforms, YOLO)):
+            raise RuntimeError(
+                "AI runtime dependencies are not installed. Install torch, "
+                "torchvision, ultralytics, and pillow."
+            )
         try:
             if self.settings.yolo_crop_enabled:
                 self.detector = YOLO(self.settings.yolo_model)
@@ -67,6 +86,8 @@ class DoubleModelDiseaseClassifier:
     def predict(self, image: Image.Image) -> DiseasePrediction:
         if self.classifier is None:
             raise RuntimeError("MobileNetV2 classifier has not been loaded")
+        if torch is None or self.transform is None:
+            raise RuntimeError("AI runtime dependencies are not installed")
 
         try:
             leaf_image, bounding_box = self._crop_first_detection(image)
@@ -93,7 +114,7 @@ class DoubleModelDiseaseClassifier:
         self,
         image: Image.Image,
     ) -> tuple[Image.Image, tuple[int, int, int, int] | None]:
-        if self.detector is None:
+        if self.detector is None or torch is None:
             return image, None
 
         results = self.detector.predict(
@@ -117,6 +138,8 @@ class DoubleModelDiseaseClassifier:
         return image.crop(bounding_box), bounding_box
 
     def _load_classifier(self, weights_path: Path) -> nn.Module:
+        if torch is None or models is None or nn is None:
+            raise RuntimeError("AI runtime dependencies are not installed")
         if not weights_path.is_file():
             raise FileNotFoundError(
                 f"MobileNetV2 weights not found: {weights_path}"

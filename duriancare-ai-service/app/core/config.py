@@ -1,11 +1,36 @@
 import os
 from dataclasses import dataclass
 from pathlib import Path
-
-from dotenv import load_dotenv
+from urllib.parse import quote_plus
 
 SERVICE_ROOT = Path(__file__).resolve().parents[2]
-load_dotenv(SERVICE_ROOT / ".env")
+REPO_ROOT = Path(__file__).resolve().parents[3]
+
+
+def load_environment_file(dotenv_path: Path) -> None:
+    if not dotenv_path.is_file():
+        return
+
+    for raw_line in dotenv_path.read_text(encoding="utf-8-sig").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip()
+        if not key or key in os.environ:
+            continue
+        if (
+            len(value) >= 2
+            and value[0] == value[-1]
+            and value[0] in {'"', "'"}
+        ):
+            value = value[1:-1]
+        os.environ[key] = value
+
+
+for dotenv_path in (SERVICE_ROOT / ".env", REPO_ROOT / ".env"):
+    load_environment_file(dotenv_path)
 
 
 @dataclass(frozen=True)
@@ -26,6 +51,8 @@ class Settings:
     s3_image_prefix: str
     s3_presigned_url_expiration_seconds: int
     max_image_size_bytes: int
+    postgres_url: str
+    knowledge_db_schema: str
 
 
 def resolve_service_path(environment_name: str, default_relative_path: str) -> Path:
@@ -35,6 +62,22 @@ def resolve_service_path(environment_name: str, default_relative_path: str) -> P
     if configured_path.is_absolute():
         return configured_path.resolve()
     return (SERVICE_ROOT / configured_path).resolve()
+
+
+def resolve_postgres_url() -> str:
+    configured_url = os.getenv("POSTGRES_URL") or os.getenv("AI_POSTGRES_URL")
+    if configured_url:
+        return configured_url.removeprefix("jdbc:")
+
+    host = os.getenv("POSTGRES_HOST", "localhost")
+    port = os.getenv("POSTGRES_PORT", "5432")
+    database = os.getenv("POSTGRES_DB", "duriancare")
+    username = os.getenv("POSTGRES_USER", "duriancare")
+    password = os.getenv("POSTGRES_PASSWORD", "")
+    return (
+        "postgresql://"
+        f"{quote_plus(username)}:{quote_plus(password)}@{host}:{port}/{database}"
+    )
 
 
 settings = Settings(
@@ -75,4 +118,6 @@ settings = Settings(
         os.getenv("AWS_S3_PRESIGNED_URL_EXPIRATION_SECONDS", "3600")
     ),
     max_image_size_bytes=int(os.getenv("MAX_IMAGE_SIZE_BYTES", "10485760")),
+    postgres_url=resolve_postgres_url(),
+    knowledge_db_schema=os.getenv("KNOWLEDGE_DB_SCHEMA", "public"),
 )
