@@ -4,7 +4,7 @@ server:
 spring:
   data:
     mongodb:
-      uri: ${MONGODB_URI:mongodb://localhost:27017/duriancare_notification}
+      uri: ${NOTIFICATION_MONGODB_URI:${MONGODB_URI:mongodb://localhost:27017/duriancare_notification}}
       auto-index-creation: true
     redis:
       host: ${SPRING_REDIS_HOST:localhost}

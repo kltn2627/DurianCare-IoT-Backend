@@ -1,5 +1,6 @@
 from io import BytesIO
 from pathlib import Path
+import logging
 
 from fastapi import (
     APIRouter,
@@ -22,13 +23,16 @@ from app.schemas.prediction import (
     S3PredictionRequest,
     StoredImageInfo,
 )
+from app.decision.decision_service import DecisionSupportService
 from app.services.s3_storage import S3ImageStorage, StorageError, StoredImage
 from app.services.disease_classifier import (
     DoubleModelDiseaseClassifier,
     PredictionError,
 )
+from app.services.recommendation_service import RecommendationService
 
 router = APIRouter(tags=["Disease Prediction"])
+logger = logging.getLogger(__name__)
 
 
 def get_classifier(request: Request) -> DoubleModelDiseaseClassifier:
@@ -50,6 +54,17 @@ def get_storage(request: Request) -> S3ImageStorage:
             detail="S3 image storage is not configured",
         )
     return storage
+
+
+def get_recommendation_service(request: Request) -> RecommendationService | None:
+    return getattr(request.app.state, "recommendation_service", None)
+
+
+def get_decision_service(request: Request) -> DecisionSupportService:
+    decision_service = getattr(request.app.state, "decision_service", None)
+    if decision_service is None:
+        decision_service = DecisionSupportService()
+    return decision_service
 
 
 def decode_image(content: bytes) -> Image.Image:
@@ -110,6 +125,39 @@ async def execute_prediction(
             detail=str(exception),
         ) from exception
 
+    recommendation = None
+    recommendation_service = get_recommendation_service(request)
+    if recommendation_service is not None:
+        try:
+            recommendation = await run_in_threadpool(
+                recommendation_service.build_recommendation,
+                prediction.label,
+            )
+        except Exception as exception:
+            logger.warning(
+                "Failed to build recommendation for %s: %s",
+                prediction.label,
+                exception,
+                exc_info=True,
+            )
+
+    decision_service = get_decision_service(request)
+    try:
+        decision_support = await run_in_threadpool(
+            decision_service.build_decision_support,
+            prediction.label,
+            float(prediction.confidence),
+            recommendation,
+        )
+    except Exception as exception:
+        logger.warning(
+            "Failed to build decision support for %s: %s",
+            prediction.label,
+            exception,
+            exc_info=True,
+        )
+        decision_support = None
+
     storage = getattr(request.app.state, "s3_storage", None)
     if stored_image is None and storage is not None and storage.enabled:
         try:
@@ -151,6 +199,8 @@ async def execute_prediction(
                 if stored_image is not None
                 else None
             ),
+            recommendation=recommendation,
+            decision_support=decision_support,
         ),
     )
 

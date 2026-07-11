@@ -5,10 +5,10 @@ spring:
   application:
     name: duriancare-traceability-service
   config:
-    import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
+    import: optional:file:../.env[.properties],optional:file:.env[.properties],optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
   data:
     mongodb:
-      uri: ${MONGODB_URI:mongodb://localhost:27017/duriancare_traceability}
+      uri: ${TRACEABILITY_MONGODB_URI:${MONGODB_URI:mongodb://localhost:27017/duriancare_traceability}}
       auto-index-creation: true
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}

@@ -1,7 +1,10 @@
 from enum import Enum
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
+
+from app.schemas.decision_support import DecisionSupport
+from app.schemas.recommendation import DiseaseRecommendation
 
 
 class PredictionSource(str, Enum):
@@ -29,6 +32,8 @@ class S3PredictionRequest(BaseModel):
 
 
 class PredictionData(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     predicted_disease: str
     confidence: str
     source: PredictionSource
@@ -36,6 +41,11 @@ class PredictionData(BaseModel):
     used_detection_crop: bool
     bounding_box: BoundingBox | None = None
     image: StoredImageInfo | None = None
+    recommendation: DiseaseRecommendation | None = None
+    decision_support: DecisionSupport | None = Field(
+        default=None,
+        alias="decisionSupport",
+    )
 
 
 class PredictionResponse(BaseModel):

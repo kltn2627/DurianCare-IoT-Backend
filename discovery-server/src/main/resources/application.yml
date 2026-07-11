@@ -4,6 +4,8 @@ server:
 spring:
   application:
     name: discovery-server
+  config:
+    import: optional:file:../.env[.properties],optional:file:.env[.properties]
 
 eureka:
   client:

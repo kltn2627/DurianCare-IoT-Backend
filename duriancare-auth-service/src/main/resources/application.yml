@@ -5,7 +5,7 @@ spring:
   application:
     name: duriancare-auth-service
   config:
-    import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
+    import: optional:file:../.env[.properties],optional:file:.env[.properties],optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/duriancare}
     username: ${SPRING_DATASOURCE_USERNAME:duriancare}
