@@ -8,12 +8,22 @@ import {
 import { WsException } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
 import { ChatMessageService } from "../persistence/chat-message.service";
+import { TreatmentRegimenPayload } from "../persistence/chat-message.schema";
 
 type ChatMessage = {
+  content?: string;
+  messageType?: "TEXT" | "IMAGE" | "TREATMENT_REGIMEN";
+  payload?: TreatmentRegimenPayload;
   roomId: string;
   senderId: string;
-  content: string;
   sentAt?: string;
+};
+
+type TreatmentStepUpdate = {
+  completed: boolean;
+  day: number;
+  messageId: string;
+  roomId: string;
 };
 
 @WebSocketGateway({
@@ -36,8 +46,16 @@ export class ChatGateway {
 
   @SubscribeMessage("message.send")
   async publishMessage(@MessageBody() message: ChatMessage): Promise<void> {
-    if (!message.roomId?.trim() || !message.senderId?.trim() || !message.content?.trim()) {
-      throw new WsException("roomId, senderId and content are required");
+    const messageType = message.messageType ?? "TEXT";
+    const hasText = Boolean(message.content?.trim());
+    const hasRegimen =
+      messageType === "TREATMENT_REGIMEN" &&
+      Boolean(message.payload?.title?.trim()) &&
+      Array.isArray(message.payload?.steps) &&
+      message.payload.steps.length > 0;
+
+    if (!message.roomId?.trim() || !message.senderId?.trim() || (!hasText && !hasRegimen)) {
+      throw new WsException("roomId, senderId and message content are required");
     }
 
     try {
@@ -47,10 +65,38 @@ export class ChatGateway {
         roomId: persistedMessage.roomId,
         senderId: persistedMessage.senderId,
         content: persistedMessage.content,
+        messageType: persistedMessage.messageType,
+        payload: persistedMessage.payload,
         sentAt: persistedMessage.sentAt.toISOString()
       });
     } catch {
       throw new WsException("Unable to persist chat message");
     }
+  }
+
+  @SubscribeMessage("regimen.step.update")
+  async updateTreatmentStep(
+    @MessageBody() update: TreatmentStepUpdate
+  ): Promise<void> {
+    if (!update.roomId?.trim() || !update.messageId?.trim() || !Number.isInteger(update.day)) {
+      throw new WsException("roomId, messageId and day are required");
+    }
+
+    const message = await this.chatMessageService.updateRegimenStep(
+      update.messageId,
+      update.day,
+      Boolean(update.completed)
+    );
+
+    if (!message) {
+      throw new WsException("Treatment regimen message was not found");
+    }
+
+    this.server.to(update.roomId).emit("regimen.step.updated", {
+      id: message.id,
+      payload: message.payload,
+      roomId: message.roomId,
+      sentAt: message.sentAt.toISOString()
+    });
   }
 }
