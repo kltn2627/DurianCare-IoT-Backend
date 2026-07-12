@@ -4,6 +4,20 @@ import { HydratedDocument } from "mongoose";
 export type ChatMessageMongoDocument =
   HydratedDocument<ChatMessageDocument>;
 
+export type TreatmentStepPayload = {
+  completed: boolean;
+  day: number;
+  task: string;
+};
+
+export type TreatmentRegimenPayload = {
+  diagnosis?: string;
+  expectedOutcome?: string;
+  followUpDate?: string;
+  steps: TreatmentStepPayload[];
+  title: string;
+};
+
 @Schema({
   collection: "messages",
   timestamps: { createdAt: "createdAt", updatedAt: "updatedAt" }
@@ -20,6 +34,9 @@ export class ChatMessageDocument {
 
   @Prop({ required: true, default: "TEXT" })
   messageType!: string;
+
+  @Prop({ type: Object, default: null })
+  payload?: TreatmentRegimenPayload | null;
 
   @Prop({ required: true, default: Date.now, index: true })
   sentAt!: Date;

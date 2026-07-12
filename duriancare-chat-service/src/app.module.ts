@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { MongooseModule } from "@nestjs/mongoose";
 import { ScheduleModule } from "@nestjs/schedule";
+import { ChatController } from "./chat.controller";
 import { HealthController } from "./health.controller";
 import {
   ChatMessageDocument,
@@ -20,7 +21,7 @@ import { RegimenReminderScheduler } from "./scheduler/regimen-reminder.scheduler
       { name: ChatMessageDocument.name, schema: ChatMessageSchema }
     ])
   ],
-  controllers: [HealthController],
+  controllers: [HealthController, ChatController],
   providers: [ChatGateway, ChatMessageService, RegimenReminderScheduler]
 })
 export class AppModule {}
