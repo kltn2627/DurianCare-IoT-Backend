@@ -13,6 +13,7 @@ public class JwtTokenValidator {
 
     private static final Set<String> ALLOWED_ROLES = Set.of(
             "ADMIN",
+            "ENGINEER",
             "EXPERT",
             "FARMER",
             "GUEST");

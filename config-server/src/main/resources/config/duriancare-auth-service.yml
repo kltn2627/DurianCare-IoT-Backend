@@ -36,10 +36,16 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
       acks: all
+  servlet:
+    multipart:
+      max-file-size: ${MAX_IMAGE_SIZE_BYTES:10485760B}
+      max-request-size: ${ENGINEER_DOCUMENT_MAX_REQUEST_SIZE_BYTES:20971520B}
 
 duriancare:
   auth:
     otp-ttl: ${AUTH_OTP_TTL:5m}
+    otp-max-attempts: ${AUTH_OTP_MAX_ATTEMPTS:5}
+    otp-resend-cooldown: ${AUTH_OTP_RESEND_COOLDOWN:60s}
     events-topic: ${AUTH_EVENTS_TOPIC:duriancare.auth.events}
   security:
     jwt:
@@ -47,3 +53,34 @@ duriancare:
       issuer: ${JWT_ISSUER:duriancare-auth-service}
       access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:1h}
       refresh-token-ttl: ${JWT_REFRESH_TOKEN_TTL:7d}
+  profile:
+    avatar:
+      enabled: ${S3_ENABLED:false}
+      bucket: ${AWS_S3_BUCKET:}
+      region: ${AWS_REGION:}
+      access-key-id: ${AWS_ACCESS_KEY_ID:}
+      secret-access-key: ${AWS_SECRET_ACCESS_KEY:}
+      prefix: ${AWS_S3_AVATAR_PREFIX:avatars}
+      max-upload-size-bytes: ${MAX_IMAGE_SIZE_BYTES:10485760}
+      allowed-content-types:
+        - image/jpeg
+        - image/png
+    engineer-documents:
+      enabled: ${S3_ENABLED:false}
+      bucket: ${AWS_S3_BUCKET:}
+      region: ${AWS_REGION:}
+      access-key-id: ${AWS_ACCESS_KEY_ID:}
+      secret-access-key: ${AWS_SECRET_ACCESS_KEY:}
+      prefix: ${AWS_S3_ENGINEER_DOCUMENTS_PREFIX:engineer-documents}
+      max-upload-size-bytes: ${ENGINEER_DOCUMENT_MAX_UPLOAD_SIZE_BYTES:10485760}
+      allowed-content-types:
+        - application/pdf
+        - image/jpeg
+        - image/png
+  bootstrap:
+    admin:
+      enabled: ${DEFAULT_ADMIN_ENABLED:true}
+      email: ${DEFAULT_ADMIN_EMAIL:admin@duriancare.local}
+      password: ${DEFAULT_ADMIN_PASSWORD:Admin@12345}
+      full-name: ${DEFAULT_ADMIN_FULL_NAME:DurianCare Administrator}
+      phone-number: ${DEFAULT_ADMIN_PHONE_NUMBER:0900000000}

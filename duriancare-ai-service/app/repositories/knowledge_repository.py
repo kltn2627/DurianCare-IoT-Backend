@@ -20,6 +20,7 @@ class KnowledgeBundle:
     recommended_chemicals: list[dict[str, Any]]
     active_ingredients: list[dict[str, Any]]
     harvest_intervals: list[dict[str, Any]]
+    maximum_residue_limits: list[dict[str, Any]]
     export_requirements: list[dict[str, Any]]
     reference_sources: dict[str, dict[str, Any]]
 
@@ -222,6 +223,38 @@ class KnowledgeRepository:
                 ),
                 (recommended_chemical_ids or [None],),
             ) if recommended_chemical_ids else []
+            active_ingredient_ids = [row["id"] for row in active_ingredients]
+            maximum_residue_limits = self._fetch_all(
+                sql.SQL(
+                    """
+                    SELECT
+                        mrl.id,
+                        mrl.active_ingredient_id,
+                        ai.ingredient_name,
+                        ai.chemical_group,
+                        mrl.market_code,
+                        em.market_name,
+                        mrl.commodity_name,
+                        mrl.mrl_value,
+                        mrl.unit,
+                        mrl.notes,
+                        mrl.source_code,
+                        mrl.confidence_level
+                    FROM {mrl_table} AS mrl
+                    INNER JOIN {ingredient_table} AS ai
+                        ON ai.id = mrl.active_ingredient_id
+                    INNER JOIN {market_table} AS em
+                        ON em.market_code = mrl.market_code
+                    WHERE mrl.active_ingredient_id = ANY(%s)
+                    ORDER BY ai.ingredient_name ASC, em.market_code ASC, mrl.commodity_name ASC
+                    """
+                ).format(
+                    mrl_table=self._qualified("kb_maximum_residue_limits"),
+                    ingredient_table=self._qualified("kb_active_ingredients"),
+                    market_table=self._qualified("kb_export_markets"),
+                ),
+                (active_ingredient_ids or [None],),
+            ) if active_ingredient_ids else []
             export_requirements = self._fetch_all(
                 sql.SQL(
                     """
@@ -257,6 +290,7 @@ class KnowledgeRepository:
                 recommended_chemicals,
                 active_ingredients,
                 harvest_intervals,
+                maximum_residue_limits,
                 export_requirements,
             )
             reference_sources = self._fetch_reference_sources(source_codes)
@@ -271,6 +305,7 @@ class KnowledgeRepository:
                 recommended_chemicals=recommended_chemicals,
                 active_ingredients=active_ingredients,
                 harvest_intervals=harvest_intervals,
+                maximum_residue_limits=maximum_residue_limits,
                 export_requirements=export_requirements,
                 reference_sources=reference_sources,
             )

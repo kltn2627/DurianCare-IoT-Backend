@@ -1,6 +1,6 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
-CREATE TABLE disease_catalog (
+CREATE TABLE IF NOT EXISTS disease_catalog (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     code VARCHAR(50) NOT NULL,
     vietnamese_name VARCHAR(150) NOT NULL,
@@ -16,7 +16,7 @@ CREATE TABLE disease_catalog (
         CHECK (default_severity IN ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL'))
 );
 
-CREATE TABLE disease_records (
+CREATE TABLE IF NOT EXISTS disease_records (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     requested_by_user_id UUID NOT NULL,
     farm_id UUID NOT NULL,
@@ -57,11 +57,12 @@ INSERT INTO disease_catalog (
     ('ANTHRACNOSE', 'Bệnh thán thư', 'Vết bệnh nâu đen lan rộng trên lá.', 'HIGH'),
     ('LEAF_BLIGHT', 'Bệnh cháy lá', 'Mép lá cháy khô và lan vào phiến lá.', 'HIGH'),
     ('ALGAL_LEAF_SPOT', 'Bệnh đốm mắt cua', 'Đốm tròn màu nâu hoặc cam trên lá.', 'MEDIUM'),
-    ('HEALTHY', 'Lá khỏe mạnh', 'Không phát hiện dấu hiệu bệnh.', 'LOW');
+    ('HEALTHY', 'Lá khỏe mạnh', 'Không phát hiện dấu hiệu bệnh.', 'LOW')
+ON CONFLICT (code) DO NOTHING;
 
-CREATE INDEX idx_disease_records_zone_detected_at
+CREATE INDEX IF NOT EXISTS idx_disease_records_zone_detected_at
     ON disease_records (farm_zone_id, detected_at DESC);
-CREATE INDEX idx_disease_records_tree_detected_at
+CREATE INDEX IF NOT EXISTS idx_disease_records_tree_detected_at
     ON disease_records (durian_tree_id, detected_at DESC);
-CREATE INDEX idx_disease_records_disease_severity
+CREATE INDEX IF NOT EXISTS idx_disease_records_disease_severity
     ON disease_records (disease_code, severity);

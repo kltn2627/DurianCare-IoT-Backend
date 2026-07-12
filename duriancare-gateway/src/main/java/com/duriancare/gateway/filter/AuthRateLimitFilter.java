@@ -40,6 +40,7 @@ public class AuthRateLimitFilter implements GlobalFilter, Ordered {
         this.rules = Map.of(
                 "/api/auth/login", new RateLimitRule(loginLimit, 60),
                 "/api/auth/register", new RateLimitRule(registrationLimit, 600),
+                "/api/auth/register/engineer", new RateLimitRule(registrationLimit, 600),
                 "/api/auth/otp/verify", new RateLimitRule(otpVerificationLimit, 300),
                 "/api/auth/otp/resend", new RateLimitRule(otpResendLimit, 600),
                 "/api/auth/refresh", new RateLimitRule(refreshLimit, 60));

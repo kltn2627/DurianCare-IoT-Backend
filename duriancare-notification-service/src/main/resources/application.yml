@@ -26,6 +26,9 @@ spring:
       mail:
         smtp:
           auth: true
+          ssl:
+            trust: ${SPRING_MAIL_HOST}
+            protocols: TLSv1.2
           starttls:
             enable: true
             required: true

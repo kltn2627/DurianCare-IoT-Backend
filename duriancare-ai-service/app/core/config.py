@@ -39,12 +39,23 @@ class Settings:
     classifier_weights: Path
     yolo_confidence: float
     yolo_crop_enabled: bool
+    rag_enabled: bool
     gemini_api_key: str | None
     gemini_chat_model: str
     gemini_embedding_model: str
     knowledge_base_path: Path
     chroma_path: Path
     rag_collection_name: str
+    rag_chunk_size: int
+    rag_chunk_overlap: int
+    rag_top_k: int
+    rag_max_context_tokens: int
+    rag_cache_ttl_seconds: int
+    rag_memory_enabled: bool
+    rag_memory_ttl_seconds: int
+    rag_memory_max_turns: int
+    rag_embedding_fallback_model: str
+    rag_embedding_secondary_model: str
     s3_enabled: bool
     aws_region: str
     s3_bucket_name: str | None
@@ -53,6 +64,10 @@ class Settings:
     max_image_size_bytes: int
     postgres_url: str
     knowledge_db_schema: str
+    redis_host: str
+    redis_port: int
+    redis_password: str
+    redis_db: int
 
 
 def resolve_service_path(environment_name: str, default_relative_path: str) -> Path:
@@ -89,13 +104,14 @@ settings = Settings(
     yolo_confidence=float(os.getenv("YOLO_CONFIDENCE", "0.25")),
     yolo_crop_enabled=os.getenv(
         "ENABLE_YOLO_CROP",
-        "false",
+        "true",
     ).lower() in {"1", "true", "yes"},
+    rag_enabled=os.getenv("RAG_ENABLED", "true").lower() in {"1", "true", "yes"},
     gemini_api_key=os.getenv("GEMINI_API_KEY"),
     gemini_chat_model=os.getenv("GEMINI_CHAT_MODEL", "gemini-2.5-flash"),
     gemini_embedding_model=os.getenv(
         "GEMINI_EMBEDDING_MODEL",
-        "gemini-embedding-001",
+        "text-embedding-004",
     ),
     knowledge_base_path=resolve_service_path(
         "KNOWLEDGE_BASE_PATH",
@@ -109,6 +125,23 @@ settings = Settings(
         "RAG_COLLECTION_NAME",
         "duriancare_knowledge",
     ),
+    rag_chunk_size=int(os.getenv("RAG_CHUNK_SIZE", "800")),
+    rag_chunk_overlap=int(os.getenv("RAG_CHUNK_OVERLAP", "100")),
+    rag_top_k=int(os.getenv("RAG_TOP_K", "4")),
+    rag_max_context_tokens=int(os.getenv("RAG_MAX_CONTEXT_TOKENS", "3000")),
+    rag_cache_ttl_seconds=int(os.getenv("RAG_CACHE_TTL_SECONDS", "3600")),
+    rag_memory_enabled=os.getenv("RAG_MEMORY_ENABLED", "true").lower()
+    in {"1", "true", "yes"},
+    rag_memory_ttl_seconds=int(os.getenv("RAG_MEMORY_TTL_SECONDS", "86400")),
+    rag_memory_max_turns=int(os.getenv("RAG_MEMORY_MAX_TURNS", "6")),
+    rag_embedding_fallback_model=os.getenv(
+        "RAG_EMBEDDING_FALLBACK_MODEL",
+        "BAAI/bge-m3",
+    ),
+    rag_embedding_secondary_model=os.getenv(
+        "RAG_EMBEDDING_SECONDARY_MODEL",
+        "intfloat/multilingual-e5-large",
+    ),
     s3_enabled=os.getenv("S3_ENABLED", "false").lower()
     in {"1", "true", "yes"},
     aws_region=os.getenv("AWS_REGION", "ap-southeast-1"),
@@ -120,4 +153,8 @@ settings = Settings(
     max_image_size_bytes=int(os.getenv("MAX_IMAGE_SIZE_BYTES", "10485760")),
     postgres_url=resolve_postgres_url(),
     knowledge_db_schema=os.getenv("KNOWLEDGE_DB_SCHEMA", "public"),
+    redis_host=os.getenv("REDIS_HOST", "localhost"),
+    redis_port=int(os.getenv("REDIS_PORT", "6379")),
+    redis_password=os.getenv("REDIS_PASSWORD", ""),
+    redis_db=int(os.getenv("REDIS_DB", "0")),
 )

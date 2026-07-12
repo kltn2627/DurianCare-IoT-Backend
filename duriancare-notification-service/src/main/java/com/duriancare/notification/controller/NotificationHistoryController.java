@@ -10,9 +10,12 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 @Validated
 @RestController
+@Tag(name = "Notification History", description = "Historical email and notification delivery records")
 @RequestMapping("/api/v1/notification/history")
 public class NotificationHistoryController {
 
@@ -23,6 +26,7 @@ public class NotificationHistoryController {
     }
 
     @GetMapping
+    @Operation(summary = "Get recent notification history", description = "Return recent delivery history for the specified recipient email.")
     public List<NotificationHistoryResponse> findRecent(
             @RequestParam @NotBlank String recipient) {
         return historyService.findRecentByRecipient(recipient.trim().toLowerCase(Locale.ROOT))
