@@ -31,6 +31,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/auth/register",
+                                "/api/auth/register/engineer",
                                 "/api/auth/otp/resend",
                                 "/api/auth/otp/verify",
                                 "/api/auth/login",

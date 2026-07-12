@@ -22,9 +22,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
 @RequestMapping("/api/users")
+@Tag(name = "User Profile")
 public class UserProfileController {
 
     private final UserProfileService userProfileService;
@@ -34,11 +37,13 @@ public class UserProfileController {
     }
 
     @GetMapping("/me")
+    @Operation(summary = "Get the authenticated user's profile")
     ProfileResponse getMyProfile(Principal principal) {
         return userProfileService.getProfile(resolveUserId(principal));
     }
 
     @PutMapping("/me")
+    @Operation(summary = "Update the authenticated user's profile")
     ProfileResponse updateMyProfile(
             Principal principal,
             @Valid @RequestBody UpdateProfileRequest request) {
@@ -46,6 +51,7 @@ public class UserProfileController {
     }
 
     @PostMapping(value = "/me/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Upload or replace the authenticated user's avatar")
     AvatarUploadResponse uploadAvatar(
             Principal principal,
             @RequestPart("avatar") MultipartFile avatar) {
@@ -53,6 +59,7 @@ public class UserProfileController {
     }
 
     @DeleteMapping("/me/avatar")
+    @Operation(summary = "Delete the authenticated user's avatar")
     ResponseEntity<MessageResponse> deleteAvatar(Principal principal) {
         userProfileService.deleteAvatar(resolveUserId(principal));
         return ResponseEntity.ok(new MessageResponse("Avatar removed."));

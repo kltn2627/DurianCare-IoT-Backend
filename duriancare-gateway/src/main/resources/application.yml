@@ -6,6 +6,12 @@ spring:
     name: duriancare-gateway
   config:
     import: optional:file:../.env[.properties],optional:file:.env[.properties],optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
+  codec:
+    max-in-memory-size: 12MB
+  webflux:
+    multipart:
+      max-in-memory-size: 12MB
+      max-disk-usage-per-part: 12MB
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -13,6 +19,9 @@ spring:
       password: ${REDIS_PASSWORD:}
   cloud:
     gateway:
+      httpclient:
+        connect-timeout: 5000
+        response-timeout: 120s
       server:
         webflux:
           routes:
@@ -35,7 +44,9 @@ spring:
             - id: ai-service
               uri: ${AI_SERVICE_URL:http://localhost:8000}
               predicates:
-                - Path=/api/v1/predict,/api/v1/predict/**,/api/v1/chat/**,/api/ai/**
+                - Path=/api/v1/predict,/api/v1/predict/**,/api/v1/chat/**,/api/ai/**,/admin/rag/**,/api/v1/rag/**
+              filters:
+                - RequestSize=12MB
             - id: chat-service
               uri: ${CHAT_SERVICE_URL:http://localhost:3002}
               predicates:

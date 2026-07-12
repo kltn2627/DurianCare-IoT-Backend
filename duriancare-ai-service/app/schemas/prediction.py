@@ -1,9 +1,9 @@
 from enum import Enum
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, Field
 
-from app.schemas.decision_support import DecisionSupport
+from app.schemas.decision_support import CamelModel, DecisionSupport
 from app.schemas.recommendation import DiseaseRecommendation
 
 
@@ -13,14 +13,14 @@ class PredictionSource(str, Enum):
     IOT_CAMERA = "IOT_CAMERA"
 
 
-class BoundingBox(BaseModel):
+class BoundingBox(CamelModel):
     left: int
     top: int
     right: int
     bottom: int
 
 
-class StoredImageInfo(BaseModel):
+class StoredImageInfo(CamelModel):
     object_key: str
     url: str
 
@@ -31,9 +31,7 @@ class S3PredictionRequest(BaseModel):
     device_id: str | None = Field(default=None, max_length=150)
 
 
-class PredictionData(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-
+class PredictionData(CamelModel):
     predicted_disease: str
     confidence: str
     source: PredictionSource
@@ -48,6 +46,6 @@ class PredictionData(BaseModel):
     )
 
 
-class PredictionResponse(BaseModel):
+class PredictionResponse(CamelModel):
     status: Literal["success"]
     data: PredictionData

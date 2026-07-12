@@ -10,7 +10,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
 @Configuration
-@EnableConfigurationProperties(AvatarStorageProperties.class)
+@EnableConfigurationProperties({
+        AvatarStorageProperties.class,
+        EngineerDocumentStorageProperties.class
+})
 public class AvatarStorageConfig {
 
     @Bean

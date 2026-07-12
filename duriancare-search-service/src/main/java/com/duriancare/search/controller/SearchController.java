@@ -22,9 +22,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 @Validated
 @RestController
+@Tag(name = "Search", description = "Search resources exposed through the API gateway")
 @RequestMapping("/api/search")
 public class SearchController {
 
@@ -37,6 +40,7 @@ public class SearchController {
     }
 
     @GetMapping
+    @Operation(summary = "Search indexed resources", description = "Supports keyword search with optional type filtering, pagination, and sorting.")
     public SearchResponse search(
             @RequestParam("q")
             @NotBlank
@@ -71,6 +75,7 @@ public class SearchController {
 
     @PostMapping("/internal/index")
     @ResponseStatus(HttpStatus.ACCEPTED)
+    @Operation(summary = "Index a document internally", description = "Internal endpoint used by backend services to publish search documents.")
     public SearchDocument index(@Valid @RequestBody SearchIndexRequest request) {
         return searchService.index(request);
     }

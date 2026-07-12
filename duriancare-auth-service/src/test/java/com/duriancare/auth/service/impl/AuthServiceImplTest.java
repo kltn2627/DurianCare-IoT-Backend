@@ -8,11 +8,15 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.duriancare.auth.config.AuthProperties;
+import com.duriancare.auth.domain.EngineerApplicationStatus;
 import com.duriancare.auth.domain.UserRole;
 import com.duriancare.auth.domain.UserStatus;
+import com.duriancare.auth.dto.EngineerRegistrationRequest;
 import com.duriancare.auth.dto.RegisterRequest;
 import com.duriancare.auth.dto.RefreshTokenRequest;
 import com.duriancare.auth.dto.VerifyOtpRequest;
+import com.duriancare.auth.entity.EngineerApplication;
+import com.duriancare.auth.entity.EngineerApplicationDocument;
 import com.duriancare.auth.entity.OtpVerification;
 import com.duriancare.auth.entity.User;
 import com.duriancare.auth.entity.UserPreference;
@@ -20,6 +24,8 @@ import com.duriancare.auth.entity.UserProfile;
 import com.duriancare.auth.event.UserRegisteredEvent;
 import com.duriancare.auth.event.publisher.AuthEventPublisher;
 import com.duriancare.auth.exception.InvalidRequestException;
+import com.duriancare.auth.repository.EngineerApplicationDocumentRepository;
+import com.duriancare.auth.repository.EngineerApplicationRepository;
 import com.duriancare.auth.repository.OtpVerificationRepository;
 import com.duriancare.auth.repository.UserPreferenceRepository;
 import com.duriancare.auth.repository.UserProfileRepository;
@@ -28,10 +34,13 @@ import com.duriancare.auth.security.JwtService;
 import com.duriancare.auth.security.IssuedToken;
 import com.duriancare.auth.security.RefreshTokenSessionService;
 import com.duriancare.auth.security.RevokedTokenService;
+import com.duriancare.auth.service.EngineerDocumentStorageService;
+import com.duriancare.auth.service.StoredEngineerDocument;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import io.jsonwebtoken.Claims;
@@ -56,6 +65,10 @@ class AuthServiceImplTest {
     @Mock
     private OtpVerificationRepository otpRepository;
     @Mock
+    private EngineerApplicationRepository engineerApplicationRepository;
+    @Mock
+    private EngineerApplicationDocumentRepository engineerApplicationDocumentRepository;
+    @Mock
     private PasswordEncoder passwordEncoder;
     @Mock
     private JwtService jwtService;
@@ -65,6 +78,8 @@ class AuthServiceImplTest {
     private RevokedTokenService revokedTokenService;
     @Mock
     private AuthEventPublisher eventPublisher;
+    @Mock
+    private EngineerDocumentStorageService engineerDocumentStorageService;
 
     private AuthServiceImpl authService;
 
@@ -75,11 +90,14 @@ class AuthServiceImplTest {
                 profileRepository,
                 preferenceRepository,
                 otpRepository,
+                engineerApplicationRepository,
+                engineerApplicationDocumentRepository,
                 passwordEncoder,
                 jwtService,
                 refreshTokenSessionService,
                 revokedTokenService,
                 eventPublisher,
+                engineerDocumentStorageService,
                 new AuthProperties(
                         Duration.ofMinutes(5),
                         5,
@@ -199,6 +217,39 @@ class AuthServiceImplTest {
         authService.approveExpert(userId);
 
         assertThat(user.getStatus()).isEqualTo(UserStatus.ACTIVE);
+    }
+
+    @Test
+    void registerEngineerStoresApplicationAndQualificationDocuments() {
+        when(userRepository.existsByEmailIgnoreCase("engineer@example.com")).thenReturn(false);
+        when(passwordEncoder.encode(anyString()))
+                .thenAnswer(invocation -> "hash-" + invocation.getArgument(0, String.class));
+        when(engineerDocumentStorageService.upload(any(), any())).thenReturn(List.of(
+                new StoredEngineerDocument(
+                        "engineer-documents/2026/07/11/doc-1.pdf",
+                        "https://bucket.s3.ap-southeast-1.amazonaws.com/engineer-documents/2026/07/11/doc-1.pdf",
+                        "qualification.pdf",
+                        "application/pdf",
+                        1024L)));
+
+        authService.registerEngineer(new EngineerRegistrationRequest(
+                        "engineer@example.com",
+                        "Password123!",
+                        "Engineer A",
+                        "0901234567",
+                        "Durian Research Institute",
+                        "Plant pathology",
+                        5,
+                        "Experienced durian specialist"),
+                List.of(new org.springframework.mock.web.MockMultipartFile(
+                        "qualificationFiles",
+                        "qualification.pdf",
+                        "application/pdf",
+                        "%PDF-1.7 test".getBytes())));
+
+        verify(engineerApplicationRepository).save(any(EngineerApplication.class));
+        verify(engineerApplicationDocumentRepository).save(any(EngineerApplicationDocument.class));
+        verify(eventPublisher).publish(any(UserRegisteredEvent.class));
     }
 
     @Test

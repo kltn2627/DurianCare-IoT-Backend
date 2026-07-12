@@ -24,6 +24,9 @@ def build_reference() -> ReferenceSourceSummary:
         source_code="SRC",
         source_name="Source",
         source_type="OFFICIAL",
+        title="Source title",
+        organization="MAE",
+        year=2024,
         publication_title="Source title",
         publisher="MAE",
         publication_year=2024,
@@ -244,6 +247,14 @@ class DecisionSupportServiceTest(unittest.TestCase):
 
         self.assertIn("decisionSupport", dumped["data"])
         self.assertIn("riskLevel", dumped["data"]["decisionSupport"])
+        self.assertEqual(
+            "Tóm tắt bệnh",
+            dumped["data"]["recommendation"]["diseaseSummary"],
+        )
+        self.assertEqual(
+            "Source",
+            dumped["data"]["recommendation"]["references"][0]["sourceName"],
+        )
 
 
 if __name__ == "__main__":

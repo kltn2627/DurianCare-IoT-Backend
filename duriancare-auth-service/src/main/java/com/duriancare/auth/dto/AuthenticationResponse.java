@@ -1,6 +1,7 @@
 package com.duriancare.auth.dto;
 
 import com.duriancare.auth.domain.UserRole;
+import com.duriancare.auth.domain.UserStatus;
 import java.util.UUID;
 
 public record AuthenticationResponse(
@@ -11,5 +12,6 @@ public record AuthenticationResponse(
         UUID userId,
         String email,
         UserRole role,
+        UserStatus accountStatus,
         UserProfileResponse profile) {
 }

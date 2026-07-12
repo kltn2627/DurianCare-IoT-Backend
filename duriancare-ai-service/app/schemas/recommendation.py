@@ -1,12 +1,17 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+
+from app.schemas.decision_support import CamelModel
 
 
-class ReferenceSourceSummary(BaseModel):
+class ReferenceSourceSummary(CamelModel):
     source_code: str
     source_name: str
     source_type: str
+    title: str
+    organization: str
+    year: int
     publication_title: str | None = None
     publisher: str | None = None
     publication_year: int | None = None
@@ -15,21 +20,21 @@ class ReferenceSourceSummary(BaseModel):
     notes: str | None = None
 
 
-class KnowledgeLineItem(BaseModel):
+class KnowledgeLineItem(CamelModel):
     order: int
     text: str
     source: ReferenceSourceSummary | None = None
     confidence_level: float = Field(ge=0.0, le=1.0)
 
 
-class ActiveIngredientSummary(BaseModel):
+class ActiveIngredientSummary(CamelModel):
     ingredient_name: str
     chemical_group: str | None = None
     source: ReferenceSourceSummary | None = None
     confidence_level: float = Field(ge=0.0, le=1.0)
 
 
-class HarvestIntervalSummary(BaseModel):
+class HarvestIntervalSummary(CamelModel):
     market_code: str
     market_name: str
     phi_days: int | None = None
@@ -38,7 +43,18 @@ class HarvestIntervalSummary(BaseModel):
     confidence_level: float = Field(ge=0.0, le=1.0)
 
 
-class RecommendedChemicalSummary(BaseModel):
+class MaximumResidueLimitSummary(CamelModel):
+    market_code: str
+    market_name: str
+    commodity_name: str
+    mrl_value: float | None = None
+    unit: str
+    notes: str | None = None
+    source: ReferenceSourceSummary | None = None
+    confidence_level: float = Field(ge=0.0, le=1.0)
+
+
+class RecommendedChemicalSummary(CamelModel):
     recommendation_order: int
     product_name: str
     active_ingredient_summary: str
@@ -49,7 +65,7 @@ class RecommendedChemicalSummary(BaseModel):
     harvest_intervals: list[HarvestIntervalSummary] = Field(default_factory=list)
 
 
-class ChemicalTreatmentSummary(BaseModel):
+class ChemicalTreatmentSummary(CamelModel):
     treatment_order: int
     treatment_text: str
     safe_usage_note: str
@@ -58,7 +74,7 @@ class ChemicalTreatmentSummary(BaseModel):
     recommended_products: list[RecommendedChemicalSummary] = Field(default_factory=list)
 
 
-class ExportRequirementSummary(BaseModel):
+class ExportRequirementSummary(CamelModel):
     market_code: str
     market_name: str
     requirement_order: int
@@ -68,7 +84,7 @@ class ExportRequirementSummary(BaseModel):
     confidence_level: float = Field(ge=0.0, le=1.0)
 
 
-class DiseaseRecommendation(BaseModel):
+class DiseaseRecommendation(CamelModel):
     disease_code: str
     vietnamese_name: str
     english_name: str
@@ -84,5 +100,8 @@ class DiseaseRecommendation(BaseModel):
     biological_treatments: list[KnowledgeLineItem] = Field(default_factory=list)
     organic_treatments: list[KnowledgeLineItem] = Field(default_factory=list)
     chemical_treatments: list[ChemicalTreatmentSummary] = Field(default_factory=list)
+    maximum_residue_limits: list[MaximumResidueLimitSummary] = Field(
+        default_factory=list
+    )
     export_considerations: list[ExportRequirementSummary] = Field(default_factory=list)
     references: list[ReferenceSourceSummary] = Field(default_factory=list)

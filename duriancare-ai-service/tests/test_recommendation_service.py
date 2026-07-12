@@ -110,6 +110,18 @@ def build_bundle() -> KnowledgeBundle:
                 "updated_at": "2026-07-10T00:00:00Z",
             }
         ],
+        maximum_residue_limits=[
+            {
+                "market_code": "EU",
+                "market_name": "European Union",
+                "commodity_name": "Durian",
+                "mrl_value": 0.1,
+                "unit": "mg/kg",
+                "notes": "Xác minh theo database trước khi xuất khẩu.",
+                "source_code": "SRC_MRL",
+                "confidence_level": 0.91,
+            }
+        ],
         export_requirements=[
             {
                 "disease_code": "ALLOCARIDARA_ATTACK",
@@ -127,6 +139,9 @@ def build_bundle() -> KnowledgeBundle:
                 "source_code": "SRC_DISEASE",
                 "source_name": "Disease source",
                 "source_type": "OFFICIAL",
+                "title": "Disease source",
+                "organization": "MAE",
+                "year": 2024,
                 "publication_title": "Disease source",
                 "publisher": "MAE",
                 "publication_year": 2024,
@@ -138,6 +153,9 @@ def build_bundle() -> KnowledgeBundle:
                 "source_code": "SRC_SYMPTOM",
                 "source_name": "Symptom source",
                 "source_type": "PEER_REVIEWED",
+                "title": "Symptom source",
+                "organization": "Journal",
+                "year": 2024,
                 "publication_title": "Symptom source",
                 "publisher": "Journal",
                 "publication_year": 2024,
@@ -149,6 +167,9 @@ def build_bundle() -> KnowledgeBundle:
                 "source_code": "SRC_CAUSE",
                 "source_name": "Cause source",
                 "source_type": "PEER_REVIEWED",
+                "title": "Cause source",
+                "organization": "Journal",
+                "year": 2024,
                 "publication_title": "Cause source",
                 "publisher": "Journal",
                 "publication_year": 2024,
@@ -160,6 +181,9 @@ def build_bundle() -> KnowledgeBundle:
                 "source_code": "SRC_BIO",
                 "source_name": "Bio source",
                 "source_type": "STANDARD",
+                "title": "IPM guidance",
+                "organization": "FAO",
+                "year": 2025,
                 "publication_title": "IPM guidance",
                 "publisher": "FAO",
                 "publication_year": 2025,
@@ -171,6 +195,9 @@ def build_bundle() -> KnowledgeBundle:
                 "source_code": "SRC_ORG",
                 "source_name": "Organic source",
                 "source_type": "OFFICIAL",
+                "title": "Canopy management",
+                "organization": "MAE",
+                "year": 2025,
                 "publication_title": "Canopy management",
                 "publisher": "MAE",
                 "publication_year": 2025,
@@ -182,6 +209,9 @@ def build_bundle() -> KnowledgeBundle:
                 "source_code": "SRC_CHEM",
                 "source_name": "Chemical source",
                 "source_type": "EXTENSION",
+                "title": "Conservative fungicide advice",
+                "organization": "Extension",
+                "year": 2024,
                 "publication_title": "Conservative fungicide advice",
                 "publisher": "Extension",
                 "publication_year": 2024,
@@ -193,6 +223,9 @@ def build_bundle() -> KnowledgeBundle:
                 "source_code": "SRC_RC",
                 "source_name": "Recommendation source",
                 "source_type": "DATABASE",
+                "title": "Recommended products",
+                "organization": "Database",
+                "year": 2024,
                 "publication_title": "Recommended products",
                 "publisher": "Database",
                 "publication_year": 2024,
@@ -204,6 +237,9 @@ def build_bundle() -> KnowledgeBundle:
                 "source_code": "SRC_AI",
                 "source_name": "Ingredient source",
                 "source_type": "DATABASE",
+                "title": "Active ingredient registry",
+                "organization": "Database",
+                "year": 2024,
                 "publication_title": "Active ingredient registry",
                 "publisher": "Database",
                 "publication_year": 2024,
@@ -215,6 +251,9 @@ def build_bundle() -> KnowledgeBundle:
                 "source_code": "SRC_PHI",
                 "source_name": "PHI source",
                 "source_type": "OFFICIAL",
+                "title": "Label verification",
+                "organization": "Vietnam MAE",
+                "year": 2024,
                 "publication_title": "Label verification",
                 "publisher": "Vietnam MAE",
                 "publication_year": 2024,
@@ -226,11 +265,28 @@ def build_bundle() -> KnowledgeBundle:
                 "source_code": "SRC_EXPORT",
                 "source_name": "Export source",
                 "source_type": "DATABASE",
+                "title": "Residue rules",
+                "organization": "EU",
+                "year": 2026,
                 "publication_title": "Residue rules",
                 "publisher": "EU",
                 "publication_year": 2026,
                 "url": "https://example.com/export",
                 "confidence_level": 0.93,
+                "notes": None,
+            },
+            "SRC_MRL": {
+                "source_code": "SRC_MRL",
+                "source_name": "MRL source",
+                "source_type": "DATABASE",
+                "title": "MRL reference",
+                "organization": "Database",
+                "year": 2024,
+                "publication_title": "MRL reference",
+                "publisher": "Database",
+                "publication_year": 2024,
+                "url": "https://example.com/mrl",
+                "confidence_level": 0.9,
                 "notes": None,
             },
         },
@@ -242,10 +298,17 @@ class RecommendationServiceTest(unittest.TestCase):
         recommendation = map_knowledge_bundle_to_recommendation(build_bundle())
 
         self.assertEqual("ALLOCARIDARA_ATTACK", recommendation.disease_code)
+        self.assertTrue(recommendation.disease_summary.startswith("Bọ chích hút"))
+        self.assertTrue(recommendation.favorable_conditions.startswith("Ra lộc"))
         self.assertEqual(1, len(recommendation.symptoms))
-        self.assertEqual(1, len(recommendation.prevention))
+        self.assertEqual(4, len(recommendation.prevention))
+        self.assertEqual(
+            len({item.text for item in recommendation.prevention}),
+            len(recommendation.prevention),
+        )
         self.assertEqual(1, len(recommendation.chemical_treatments))
         self.assertEqual(1, len(recommendation.chemical_treatments[0].recommended_products))
+        self.assertEqual(1, len(recommendation.maximum_residue_limits))
         self.assertEqual(
             "Cypermethrin",
             recommendation.chemical_treatments[0].recommended_products[0]
@@ -253,7 +316,16 @@ class RecommendationServiceTest(unittest.TestCase):
             .ingredient_name,
         )
         self.assertEqual("EU", recommendation.export_considerations[0].market_code)
-        self.assertEqual(10, len(recommendation.references))
+        self.assertEqual(11, len(recommendation.references))
+        payload = recommendation.model_dump(by_alias=True)
+        disease_reference = next(
+            item
+            for item in payload["references"]
+            if item["sourceCode"] == "SRC_DISEASE"
+        )
+        self.assertEqual("Disease source", disease_reference["sourceName"])
+        self.assertEqual("MAE", disease_reference["sourceType"])
+        self.assertEqual("Disease source", disease_reference["title"])
 
     def test_service_caches_lookup_results(self) -> None:
         repository = FakeRepository(build_bundle())

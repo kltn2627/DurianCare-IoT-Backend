@@ -23,9 +23,12 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 @Validated
 @RestController
+@Tag(name = "Notification Inbox", description = "Authenticated notification inbox for mobile and web clients")
 @RequestMapping({"/api/v1/notification/notifications", "/api/notifications"})
 public class NotificationInboxController {
 
@@ -38,6 +41,7 @@ public class NotificationInboxController {
     }
 
     @GetMapping
+    @Operation(summary = "List notifications", description = "Return the current user's notifications with pagination and sorting.")
     public NotificationPageResponse findNotifications(
             @RequestHeader("X-Auth-User-Id") @NotBlank String currentUserId,
             @RequestParam(value = "page", defaultValue = "0") @Min(0) int page,
@@ -52,6 +56,7 @@ public class NotificationInboxController {
     }
 
     @GetMapping("/unread")
+    @Operation(summary = "List unread notifications", description = "Return unread notifications for the current user.")
     public NotificationPageResponse findUnreadNotifications(
             @RequestHeader("X-Auth-User-Id") @NotBlank String currentUserId,
             @RequestParam(value = "page", defaultValue = "0") @Min(0) int page,
@@ -66,6 +71,7 @@ public class NotificationInboxController {
     }
 
     @PatchMapping("/{id}/read")
+    @Operation(summary = "Mark notification as read", description = "Mark a single notification as read for the current user.")
     public NotificationResponse markAsRead(
             @RequestHeader("X-Auth-User-Id") @NotBlank String currentUserId,
             @PathVariable @NotBlank String id) {
@@ -73,6 +79,7 @@ public class NotificationInboxController {
     }
 
     @PatchMapping("/read-all")
+    @Operation(summary = "Mark all notifications as read", description = "Mark all notifications as read for the current user.")
     public NotificationBulkUpdateResponse markAllAsRead(
             @RequestHeader("X-Auth-User-Id") @NotBlank String currentUserId) {
         return notificationService.markAllAsRead(currentUserId);
@@ -80,6 +87,7 @@ public class NotificationInboxController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Delete notification", description = "Delete a notification for the current user.")
     public void delete(
             @RequestHeader("X-Auth-User-Id") @NotBlank String currentUserId,
             @PathVariable @NotBlank String id) {
@@ -87,6 +95,7 @@ public class NotificationInboxController {
     }
 
     @GetMapping("/count")
+    @Operation(summary = "Count unread notifications", description = "Return the unread notification count for the current user.")
     public NotificationCountResponse countUnread(
             @RequestHeader("X-Auth-User-Id") @NotBlank String currentUserId) {
         return notificationService.countUnread(currentUserId);
