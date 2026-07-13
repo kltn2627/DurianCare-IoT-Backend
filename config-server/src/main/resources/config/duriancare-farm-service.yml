@@ -4,5 +4,5 @@ server:
 spring:
   data:
     mongodb:
-      uri: ${FARM_MONGODB_URI:${MONGODB_URI:mongodb://localhost:27017/duriancare_farm}}
+      uri: ${FARM_MONGODB_URI:${MONGODB_URI:mongodb://localhost:27018/duriancare_farm}}
       auto-index-creation: true

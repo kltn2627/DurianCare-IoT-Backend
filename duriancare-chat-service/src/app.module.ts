@@ -15,7 +15,7 @@ import { RegimenReminderScheduler } from "./scheduler/regimen-reminder.scheduler
   imports: [
     ScheduleModule.forRoot(),
     MongooseModule.forRoot(
-      process.env.MONGO_URL || "mongodb://localhost:27017/duriancare_chat"
+      process.env.MONGO_URL || "mongodb://localhost:27018/duriancare_chat"
     ),
     MongooseModule.forFeature([
       { name: ChatMessageDocument.name, schema: ChatMessageSchema }

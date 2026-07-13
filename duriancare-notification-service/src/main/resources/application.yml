@@ -8,7 +8,7 @@ spring:
     import: optional:file:../.env[.properties],optional:file:.env[.properties],optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
   data:
     mongodb:
-      uri: ${NOTIFICATION_MONGODB_URI:${MONGODB_URI:mongodb://localhost:27017/duriancare_notification}}
+      uri: ${NOTIFICATION_MONGODB_URI:${MONGODB_URI:mongodb://localhost:27018/duriancare_notification}}
       auto-index-creation: true
     redis:
       host: ${SPRING_REDIS_HOST}
