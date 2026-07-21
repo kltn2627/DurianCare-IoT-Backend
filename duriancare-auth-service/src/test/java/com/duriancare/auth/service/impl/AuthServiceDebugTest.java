@@ -9,11 +9,13 @@ import com.duriancare.auth.repository.OtpVerificationRepository;
 import com.duriancare.auth.service.AuthService;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Disabled;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @SpringBootTest
+@Disabled("Local debug helper that requires a live PostgreSQL/Flyway-backed context")
 class AuthServiceDebugTest {
 
     @Autowired

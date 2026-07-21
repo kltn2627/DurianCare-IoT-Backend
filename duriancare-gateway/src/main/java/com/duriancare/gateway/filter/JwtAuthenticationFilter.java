@@ -70,6 +70,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                     headers.remove("X-Auth-User-Id");
                     headers.remove("X-Auth-Email");
                     headers.remove("X-Auth-Role");
+                    headers.remove("X-Internal-Token");
                     headers.set("X-Auth-User-Id", claims.getSubject());
                     headers.set("X-Auth-Email", valueOrEmpty(claims.get("email", String.class)));
                     headers.set("X-Auth-Role", valueOrEmpty(claims.get("role", String.class)));
