@@ -1,0 +1,16 @@
+package com.duriancare.cultivation.domain;
+
+public enum InputCategory {
+    ORGANIC_FERTILIZER,
+    MICROBIAL_FERTILIZER,
+    CHEMICAL_FERTILIZER,
+    SOIL_CONDITIONER,
+    BIOLOGICAL_CONTROL,
+    BOTANICAL_PRODUCT,
+    BENEFICIAL_ORGANISM,
+    PHEROMONE,
+    TRAP,
+    MINERAL_OIL,
+    CHEMICAL_PESTICIDE,
+    OTHER
+}
