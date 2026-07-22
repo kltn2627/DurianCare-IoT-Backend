@@ -32,11 +32,11 @@ spring:
             - id: farm-service
               uri: ${FARM_SERVICE_URL:lb://duriancare-farm-service}
               predicates:
-                - Path=/api/farms/**,/api/zones/**,/api/trees/**,/api/regimens/**
+                - Path=/api/farms/**,/api/zones/**,/api/trees/**,/api/regimens/**,/api/v1/agronomists,/api/v1/agronomists/**,/api/v1/farms/*/agronomist-invitations,/api/v1/farms/*/agronomist-invitations/**,/api/v1/farms/*/agronomist-authorizations,/api/v1/farms/*/agronomist-authorizations/**,/api/v1/agronomist-invitations/**,/api/v1/farm-authorizations/**,/api/v1/me/agronomist-invitations,/api/v1/me/agronomist-invitations/**,/api/v1/me/authorized-farms,/api/v1/me/authorized-farms/**
             - id: cultivation-service
               uri: ${CULTIVATION_SERVICE_URL:lb://duriancare-cultivation-service}
               predicates:
-                - Path=/api/cultivation-schedules/**
+                - Path=/api/cultivation-schedules/**,/api/v1/cultivation-plans/**,/api/v1/cultivation-activities/**,/api/v1/activity-executions/**,/api/v1/agricultural-inputs/**,/api/v1/residue-standards/**,/api/v1/lab-samples/**,/api/v1/lab-results/**,/api/v1/harvest-batches/**,/api/v1/export-releases/**,/api/v1/compliance-assessments/**,/api/v1/cultivation-seasons/**
             - id: iot-service
               uri: ${IOT_SERVICE_URL:http://localhost:3001}
               predicates:

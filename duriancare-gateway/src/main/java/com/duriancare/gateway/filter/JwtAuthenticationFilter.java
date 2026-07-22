@@ -4,6 +4,7 @@ import com.duriancare.gateway.security.JwtTokenValidator;
 import com.duriancare.gateway.security.PublicEndpointMatcher;
 import io.jsonwebtoken.Claims;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.time.Instant;
 import org.springframework.core.Ordered;
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
@@ -19,6 +20,15 @@ import reactor.core.publisher.Mono;
 
 @Component
 public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
+
+    private static final List<String> INTERNAL_IDENTITY_HEADERS = List.of(
+            "X-Auth-User-Id",
+            "X-Auth-Email",
+            "X-Auth-Role",
+            "X-Internal-Token",
+            "X-Internal-User-Id",
+            "X-Internal-Email",
+            "X-Internal-Role");
 
     private final JwtTokenValidator tokenValidator;
     private final PublicEndpointMatcher publicEndpointMatcher;
@@ -67,9 +77,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     private Mono<Void> forward(ServerWebExchange exchange, GatewayFilterChain chain, Claims claims) {
         ServerHttpRequest request = exchange.getRequest().mutate()
                 .headers(headers -> {
-                    headers.remove("X-Auth-User-Id");
-                    headers.remove("X-Auth-Email");
-                    headers.remove("X-Auth-Role");
+                    INTERNAL_IDENTITY_HEADERS.forEach(headers::remove);
                     headers.set("X-Auth-User-Id", claims.getSubject());
                     headers.set("X-Auth-Email", valueOrEmpty(claims.get("email", String.class)));
                     headers.set("X-Auth-Role", valueOrEmpty(claims.get("role", String.class)));

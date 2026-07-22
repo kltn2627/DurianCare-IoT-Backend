@@ -24,7 +24,12 @@ public class NotificationEventListener {
             "DISEASE_DETECTED",
             "WEATHER_WARNING",
             "DEVICE_OFFLINE",
-            "SYSTEM_ALERT");
+            "SYSTEM_ALERT",
+            "AGRONOMIST_INVITATION_CREATED",
+            "AGRONOMIST_INVITATION_ACCEPTED",
+            "AGRONOMIST_INVITATION_REJECTED",
+            "FARM_AUTHORIZATION_UPDATED",
+            "FARM_AUTHORIZATION_REVOKED");
 
     private final ObjectMapper objectMapper;
     private final NotificationService notificationService;
@@ -93,6 +98,11 @@ public class NotificationEventListener {
             case "WEATHER_WARNING" -> NotificationType.WEATHER;
             case "DEVICE_OFFLINE" -> NotificationType.DEVICE;
             case "SYSTEM_ALERT" -> NotificationType.SYSTEM;
+            case "AGRONOMIST_INVITATION_CREATED",
+                    "AGRONOMIST_INVITATION_ACCEPTED",
+                    "AGRONOMIST_INVITATION_REJECTED",
+                    "FARM_AUTHORIZATION_UPDATED",
+                    "FARM_AUTHORIZATION_REVOKED" -> NotificationType.EXPERT;
             default -> NotificationType.GENERAL;
         };
     }
