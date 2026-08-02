@@ -4,8 +4,10 @@ import com.duriancare.gateway.security.JwtTokenValidator;
 import com.duriancare.gateway.security.PublicEndpointMatcher;
 import io.jsonwebtoken.Claims;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.time.Instant;
+import java.util.List;
+import org.springframework.cloud.gateway.filter.GatewayFilterChain;
+import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.http.HttpHeaders;
@@ -14,8 +16,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
-import org.springframework.cloud.gateway.filter.GatewayFilterChain;
-import org.springframework.cloud.gateway.filter.GlobalFilter;
 import reactor.core.publisher.Mono;
 
 @Component

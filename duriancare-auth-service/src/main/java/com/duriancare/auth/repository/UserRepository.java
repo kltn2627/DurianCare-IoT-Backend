@@ -1,8 +1,8 @@
 package com.duriancare.auth.repository;
 
-import com.duriancare.auth.entity.User;
 import com.duriancare.auth.domain.UserRole;
 import com.duriancare.auth.domain.UserStatus;
+import com.duriancare.auth.entity.User;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
