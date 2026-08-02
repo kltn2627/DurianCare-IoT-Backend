@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -30,7 +31,8 @@ public record FarmAuthorization(
         Instant approvedAt,
         Instant revokedAt,
         Instant createdAt,
-        Instant updatedAt) {
+        Instant updatedAt,
+        @Version Long version) {
 
     public FarmAuthorization(
             String id,
@@ -62,7 +64,8 @@ public record FarmAuthorization(
                 blocksNewAuthorization ? null : grantedAt,
                 revokedAt,
                 createdAt,
-                updatedAt);
+                updatedAt,
+                version);
     }
 
     public String ownerId() {
@@ -87,10 +90,6 @@ public record FarmAuthorization(
 
     public boolean blocksNewAuthorization() {
         return status != AuthorizationStatus.ACTIVE;
-    }
-
-    public Long version() {
-        return updatedAt == null ? null : 0L;
     }
 
     private static String encodeAllowedCultivationAreaIds(List<String> allowedCultivationAreaIds) {

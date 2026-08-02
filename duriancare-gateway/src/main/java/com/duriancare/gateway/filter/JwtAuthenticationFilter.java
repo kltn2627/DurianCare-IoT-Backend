@@ -5,6 +5,9 @@ import com.duriancare.gateway.security.PublicEndpointMatcher;
 import io.jsonwebtoken.Claims;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.List;
+import org.springframework.cloud.gateway.filter.GatewayFilterChain;
+import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.http.HttpHeaders;
@@ -13,12 +16,19 @@ import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
-import org.springframework.cloud.gateway.filter.GatewayFilterChain;
-import org.springframework.cloud.gateway.filter.GlobalFilter;
 import reactor.core.publisher.Mono;
 
 @Component
 public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
+
+    private static final List<String> INTERNAL_IDENTITY_HEADERS = List.of(
+            "X-Auth-User-Id",
+            "X-Auth-Email",
+            "X-Auth-Role",
+            "X-Internal-Token",
+            "X-Internal-User-Id",
+            "X-Internal-Email",
+            "X-Internal-Role");
 
     private final JwtTokenValidator tokenValidator;
     private final PublicEndpointMatcher publicEndpointMatcher;
@@ -67,10 +77,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     private Mono<Void> forward(ServerWebExchange exchange, GatewayFilterChain chain, Claims claims) {
         ServerHttpRequest request = exchange.getRequest().mutate()
                 .headers(headers -> {
-                    headers.remove("X-Auth-User-Id");
-                    headers.remove("X-Auth-Email");
-                    headers.remove("X-Auth-Role");
-                    headers.remove("X-Internal-Token");
+                    INTERNAL_IDENTITY_HEADERS.forEach(headers::remove);
                     headers.set("X-Auth-User-Id", claims.getSubject());
                     headers.set("X-Auth-Email", valueOrEmpty(claims.get("email", String.class)));
                     headers.set("X-Auth-Role", valueOrEmpty(claims.get("role", String.class)));

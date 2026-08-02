@@ -36,6 +36,7 @@ public class SecurityConfig {
                                 "/api/auth/otp/verify",
                                 "/api/auth/login",
                                 "/api/auth/refresh").permitAll()
+                        .requestMatchers("/internal/**").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(authenticationEntryPoint))
