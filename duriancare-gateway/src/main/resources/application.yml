@@ -26,17 +26,17 @@ spring:
         webflux:
           routes:
             - id: auth-service
-              uri: ${AUTH_SERVICE_URL:lb://duriancare-auth-service}
+              uri: ${AUTH_SERVICE_URL:http://localhost:8081}
               predicates:
                 - Path=/api/auth/**,/api/users/**
             - id: farm-service
-              uri: ${FARM_SERVICE_URL:lb://duriancare-farm-service}
+              uri: ${FARM_SERVICE_URL:http://localhost:8082}
               predicates:
-                - Path=/api/farms/**,/api/zones/**,/api/trees/**,/api/regimens/**
+                - Path=/api/farms/**,/api/zones/**,/api/trees/**,/api/regimens/**,/api/v1/agronomists,/api/v1/agronomists/**,/api/v1/farms/*/agronomist-invitations,/api/v1/farms/*/agronomist-invitations/**,/api/v1/farms/*/agronomist-authorizations,/api/v1/farms/*/agronomist-authorizations/**,/api/v1/agronomist-invitations/**,/api/v1/farm-authorizations/**,/api/v1/me/agronomist-invitations,/api/v1/me/agronomist-invitations/**,/api/v1/me/authorized-farms,/api/v1/me/authorized-farms/**
             - id: cultivation-service
-              uri: ${CULTIVATION_SERVICE_URL:lb://duriancare-cultivation-service}
+              uri: ${CULTIVATION_SERVICE_URL:http://localhost:8084}
               predicates:
-                - Path=/api/cultivation-schedules/**
+                - Path=/api/cultivation-schedules/**,/api/v1/cultivation-plans/**,/api/v1/cultivation-activities/**,/api/v1/activity-executions/**,/api/v1/agricultural-inputs/**,/api/v1/residue-standards/**,/api/v1/lab-samples/**,/api/v1/lab-results/**,/api/v1/harvest-batches/**,/api/v1/export-releases/**,/api/v1/compliance-assessments/**,/api/v1/cultivation-seasons/**
             - id: iot-service
               uri: ${IOT_SERVICE_URL:http://localhost:3001}
               predicates:
@@ -52,15 +52,15 @@ spring:
               predicates:
                 - Path=/api/chat/**,/socket.io/**
             - id: traceability-service
-              uri: ${TRACEABILITY_SERVICE_URL:lb://duriancare-traceability-service}
+              uri: ${TRACEABILITY_SERVICE_URL:http://localhost:8083}
               predicates:
                 - Path=/api/traceability/**
             - id: notification-service
-              uri: ${NOTIFICATION_SERVICE_URL:lb://duriancare-notification-service}
+              uri: ${NOTIFICATION_SERVICE_URL:http://localhost:8085}
               predicates:
                 - Path=/api/v1/notification/**
             - id: search-service
-              uri: ${SEARCH_SERVICE_URL:lb://duriancare-search-service}
+              uri: ${SEARCH_SERVICE_URL:http://localhost:8086}
               predicates:
                 - Path=/api/search/**
 
