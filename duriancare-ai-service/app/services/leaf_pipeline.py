@@ -11,6 +11,12 @@ from typing import Any, Callable
 
 from PIL import Image, ImageChops, ImageDraw, ImageEnhance, ImageFilter, ImageOps, ImageStat
 
+from app.services.image_enhancement import (
+    analyze_image_quality,
+    build_detection_variants,
+    estimate_esp32_profile,
+)
+
 
 @dataclass(frozen=True)
 class ImageVariant:
@@ -94,6 +100,16 @@ class AdaptiveLeafPipeline:
         self.hard_example_root = Path(
             os.getenv("AI_HARD_EXAMPLES_DIR", "datasets/hard_examples")
         )
+        self.pipeline_mode = os.getenv("AI_PIPELINE_MODE", "production").lower()
+        self.max_detection_variants = max(
+            3,
+            int(os.getenv("AI_PIPELINE_MAX_VARIANTS", "4")),
+        )
+        self.rescue_variant_limit = max(
+            1,
+            int(os.getenv("AI_PIPELINE_RESCUE_VARIANTS", "2")),
+        )
+        self.esp32_quality_floor = float(os.getenv("AI_ESP32_QUALITY_FLOOR", "0.28"))
 
     def run_detection_search(
         self,
@@ -109,7 +125,23 @@ class AdaptiveLeafPipeline:
         detections: list[DetectionBox] = []
 
         detection_parameters = self._build_detection_parameters(base_confidence)
-        for variant in variants:
+        image_profile = estimate_esp32_profile(image)
+        selected_variants = variants[: self.max_detection_variants]
+        rescue_variants = variants[
+            self.max_detection_variants : self.max_detection_variants + self.rescue_variant_limit
+        ]
+        if image_profile.get("mode") == "esp32":
+            selected_variants = sorted(
+                selected_variants,
+                key=lambda variant: (
+                    variant.metrics.get("sharpness", 0.0),
+                    variant.metrics.get("entropy", 0.0),
+                    variant.metrics.get("brightness", 0.0),
+                ),
+                reverse=True,
+            )
+
+        for variant in selected_variants:
             for confidence_threshold, iou_threshold in detection_parameters:
                 attempt, attempt_detections = self._run_detector(
                     image=image,
@@ -121,10 +153,21 @@ class AdaptiveLeafPipeline:
                 )
                 attempts.append(attempt)
                 detections.extend(attempt_detections)
-                if self._has_strong_candidates(detections):
-                    break
-            if self._has_strong_candidates(detections):
-                break
+
+        if not self._has_strong_candidates(detections) and rescue_variants:
+            rescue_parameters = self._build_rescue_parameters(base_confidence)
+            for variant in rescue_variants:
+                for confidence_threshold, iou_threshold in rescue_parameters:
+                    attempt, attempt_detections = self._run_detector(
+                        image=image,
+                        variant=variant,
+                        detector=detector,
+                        device_name=device_name,
+                        confidence_threshold=confidence_threshold,
+                        iou_threshold=iou_threshold,
+                    )
+                    attempts.append(attempt)
+                    detections.extend(attempt_detections)
 
         deduplicated_detections = self._deduplicate_detections(detections)
         selected_crops = self._select_crops(image, deduplicated_detections)
@@ -182,6 +225,8 @@ class AdaptiveLeafPipeline:
 
         gray = crop.convert("L")
         edge_image = gray.filter(ImageFilter.FIND_EDGES)
+        rgb_crop = crop.convert("RGB")
+        color_stat = ImageStat.Stat(rgb_crop)
         gray_stat = ImageStat.Stat(gray)
         edge_stat = ImageStat.Stat(edge_image)
 
@@ -189,16 +234,29 @@ class AdaptiveLeafPipeline:
         contrast = _clamp01(gray_stat.stddev[0] / 64.0)
         focus = _clamp01(edge_stat.var[0] / 1200.0)
         edge_density = _clamp01(edge_stat.mean[0] / 255.0)
-        area_score = _clamp01(
-            1.0 - abs(area_ratio - 0.22) / 0.22
+        area_score = _clamp01(1.0 - abs(area_ratio - 0.22) / 0.22)
+        center_score = self._center_score(bbox, image_size)
+        shape_score = self._shape_score(width, height)
+        green_score = self._green_ratio(rgb_crop)
+        entropy_score = self._entropy_score(rgb_crop)
+        saturation = _clamp01(ImageStat.Stat(rgb_crop.convert("HSV")).mean[1] / 255.0)
+        channel_balance = _clamp01(
+            1.0
+            - abs(color_stat.mean[1] - max(color_stat.mean[0], color_stat.mean[2])) / 255.0
         )
 
         score = (
-            0.38 * focus
-            + 0.22 * contrast
-            + 0.18 * brightness
-            + 0.12 * edge_density
-            + 0.10 * area_score
+            0.21 * focus
+            + 0.14 * contrast
+            + 0.09 * brightness
+            + 0.10 * edge_density
+            + 0.09 * area_score
+            + 0.10 * center_score
+            + 0.10 * shape_score
+            + 0.11 * green_score
+            + 0.05 * entropy_score
+            + 0.01 * saturation
+            + 0.00 * channel_balance
         )
         return round(_clamp01(score), 4)
 
@@ -248,12 +306,25 @@ class AdaptiveLeafPipeline:
         self,
         base_confidence: float,
     ) -> list[tuple[float, float]]:
-        thresholds = [
-            base_confidence,
-            max(0.12, round(base_confidence * 0.8, 3)),
-            max(0.08, round(base_confidence * 0.65, 3)),
-        ]
-        ious = [0.55, 0.65, 0.75]
+        if self.pipeline_mode == "fast":
+            thresholds = [
+                base_confidence,
+                max(0.08, round(base_confidence * 0.7, 3)),
+            ]
+            ious = [0.55, 0.70]
+        elif self.pipeline_mode == "production":
+            thresholds = [
+                base_confidence,
+                max(0.10, round(base_confidence * 0.78, 3)),
+            ]
+            ious = [0.55, 0.70]
+        else:
+            thresholds = [
+                base_confidence,
+                max(0.12, round(base_confidence * 0.8, 3)),
+                max(0.08, round(base_confidence * 0.65, 3)),
+            ]
+            ious = [0.55, 0.65, 0.75]
         combinations: list[tuple[float, float]] = []
         for confidence_threshold in thresholds:
             for iou_threshold in ious:
@@ -269,48 +340,52 @@ class AdaptiveLeafPipeline:
                 unique.append(item)
         return unique
 
-    def _build_variants(self, image: Image.Image) -> list[ImageVariant]:
-        metrics = self._measure_image(image)
-        variants: list[ImageVariant] = [
-            ImageVariant("original", image, 1.0, metrics)
+    def _build_rescue_parameters(
+        self,
+        base_confidence: float,
+    ) -> list[tuple[float, float]]:
+        if self.pipeline_mode == "fast":
+            factors = (0.55, 0.40)
+            ious = [0.45, 0.60]
+        elif self.pipeline_mode == "production":
+            factors = (0.55, 0.45)
+            ious = [0.45, 0.60]
+        else:
+            factors = (0.55, 0.45, 0.35)
+            ious = [0.45, 0.55, 0.65]
+        thresholds = [
+            max(0.04, round(base_confidence * factor, 3))
+            for factor in factors
         ]
+        combinations: list[tuple[float, float]] = []
+        for confidence_threshold in thresholds:
+            for iou_threshold in ious:
+                candidate = (
+                    round(_clamp01(confidence_threshold), 3),
+                    round(_clamp01(iou_threshold), 3),
+                )
+                if candidate not in combinations:
+                    combinations.append(candidate)
+        return combinations
 
-        brightness = metrics["brightness"]
-        contrast = metrics["contrast"]
-        focus = metrics["focus"]
-        resolution = min(image.size)
-
-        if brightness < 96:
-            variants.append(ImageVariant("autocontrast", ImageOps.autocontrast(image), 1.0, self._measure_image(ImageOps.autocontrast(image))))
-            variants.append(ImageVariant("gamma_up_1_2", self._adjust_gamma(image, 1.2), 1.0, self._measure_image(self._adjust_gamma(image, 1.2))))
-        elif brightness > 165:
-            variants.append(ImageVariant("gamma_down_0_85", self._adjust_gamma(image, 0.85), 1.0, self._measure_image(self._adjust_gamma(image, 0.85))))
-
-        if contrast < 42:
-            equalized = ImageOps.equalize(image)
-            variants.append(ImageVariant("equalize", equalized, 1.0, self._measure_image(equalized)))
-
-        if focus < 14:
-            sharpened = image.filter(ImageFilter.SHARPEN)
-            variants.append(ImageVariant("sharpen", sharpened, 1.0, self._measure_image(sharpened)))
-            denoised = image.filter(ImageFilter.MedianFilter(size=3))
-            variants.append(ImageVariant("denoise", denoised, 1.0, self._measure_image(denoised)))
-
-        if resolution < 900:
-            upscale = self._resize_with_scale(image, 1.25)
-            variants.append(ImageVariant("upscale_1_25", upscale, 1.25, self._measure_image(upscale)))
-        elif resolution > 1600:
-            downscale = self._resize_with_scale(image, 0.85)
-            variants.append(ImageVariant("downscale_0_85", downscale, 0.85, self._measure_image(downscale)))
-
-        deduplicated: list[ImageVariant] = []
-        seen = set()
-        for variant in variants:
-            if variant.name in seen:
-                continue
-            seen.add(variant.name)
-            deduplicated.append(variant)
-        return deduplicated
+    def _build_variants(self, image: Image.Image) -> list[ImageVariant]:
+        ranked_variants = build_detection_variants(
+            image,
+            mode=self.pipeline_mode,
+        )
+        variants: list[ImageVariant] = [
+            ImageVariant(
+                name=variant.name,
+                image=variant.image,
+                scale=1.0,
+                metrics=variant.metrics,
+            )
+            for variant in ranked_variants
+        ]
+        if not variants:
+            metrics = self._measure_image(image)
+            variants = [ImageVariant("original", image.convert("RGB"), 1.0, metrics)]
+        return variants
 
     def _run_detector(
         self,
@@ -435,9 +510,17 @@ class AdaptiveLeafPipeline:
                 continue
             score = round(
                 _clamp01(
-                    detection.confidence * 0.58
-                    + quality * 0.34
+                    detection.confidence * 0.38
+                    + quality * 0.24
                     + detection.area_ratio * 0.08
+                    + self._center_score(
+                        (detection.left, detection.top, detection.right, detection.bottom),
+                        original_image.size,
+                    )
+                    * 0.12
+                    + self._shape_score(width, height) * 0.08
+                    + self._green_ratio(crop) * 0.06
+                    + self._entropy_score(crop) * 0.04
                 ),
                 4,
             )
@@ -683,6 +766,50 @@ class AdaptiveLeafPipeline:
             "edge_density": float(edge_stat.mean[0]),
             "saturation": float(ImageStat.Stat(image.convert("HSV")).mean[1]),
         }
+
+    @staticmethod
+    def _center_score(
+        bbox: tuple[int, int, int, int],
+        image_size: tuple[int, int],
+    ) -> float:
+        image_width, image_height = image_size
+        left, top, right, bottom = bbox
+        center_x = (left + right) / 2.0
+        center_y = (top + bottom) / 2.0
+        offset_x = abs(center_x - image_width / 2.0) / max(1.0, image_width / 2.0)
+        offset_y = abs(center_y - image_height / 2.0) / max(1.0, image_height / 2.0)
+        return _clamp01(1.0 - min(1.0, (offset_x + offset_y) / 2.0))
+
+    @staticmethod
+    def _shape_score(width: int, height: int) -> float:
+        if width <= 0 or height <= 0:
+            return 0.0
+        ratio = max(width, height) / max(1.0, min(width, height))
+        return _clamp01(1.0 - min(1.0, abs(ratio - 2.2) / 2.2))
+
+    @staticmethod
+    def _green_ratio(image: Image.Image) -> float:
+        red_channel, green_channel, blue_channel = image.convert("RGB").split()
+        red_mean = ImageStat.Stat(red_channel).mean[0]
+        green_mean = ImageStat.Stat(green_channel).mean[0]
+        blue_mean = ImageStat.Stat(blue_channel).mean[0]
+        numerator = max(0.0, green_mean - ((red_mean + blue_mean) / 2.0))
+        denominator = max(1.0, green_mean + red_mean + blue_mean)
+        return _clamp01((numerator / denominator) * 3.0)
+
+    @staticmethod
+    def _entropy_score(image: Image.Image) -> float:
+        histogram = image.convert("L").histogram()
+        total = float(sum(histogram))
+        if total <= 0:
+            return 0.0
+        entropy = 0.0
+        for count in histogram:
+            if count <= 0:
+                continue
+            probability = count / total
+            entropy -= probability * math.log2(probability)
+        return _clamp01(entropy / 8.0)
 
     @staticmethod
     def _scale_box_back(

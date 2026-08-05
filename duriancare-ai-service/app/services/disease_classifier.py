@@ -3,6 +3,7 @@
 from collections import OrderedDict
 from dataclasses import dataclass
 import json
+import math
 import os
 from pathlib import Path
 from typing import Any, Mapping
@@ -22,9 +23,9 @@ except ImportError:  # pragma: no cover - optional runtime dependency
     YOLO = None
 
 from app.core.config import Settings
-from app.services.esp32_preprocessing import (
+from app.services.image_enhancement import (
     analyze_image_quality,
-    prepare_classifier_view,
+    build_classifier_views,
     resize_for_classifier,
 )
 from app.services.leaf_pipeline import (
@@ -350,28 +351,40 @@ class DoubleModelDiseaseClassifier:
         records: list[dict[str, Any]] = []
         for candidate in crop_candidates:
             quality = analyze_image_quality(candidate.image)
-            raw_view = candidate.image
-            enhanced_view = prepare_classifier_view(candidate.image)
-
+            view_variants = build_classifier_views(
+                candidate.image,
+                mode=os.getenv("AI_PIPELINE_MODE", "balanced").lower(),
+                max_views=4,
+            )
             view_tensors = [
-                self.transform(raw_view).to(self.device),
-                self.transform(enhanced_view).to(self.device),
+                self.transform(variant.image).to(self.device)
+                for variant in view_variants
             ]
+            if not view_tensors:
+                view_tensors = [self.transform(candidate.image).to(self.device)]
             view_batch = torch.stack(view_tensors, dim=0)
             with torch.inference_mode():
                 view_logits = self.classifier(view_batch)
                 scaled_logits = view_logits / self.temperature
                 view_probabilities = torch.softmax(scaled_logits, dim=1)
 
-            if (
-                quality.brightness < 0.35
-                or quality.contrast < 0.10
-                or quality.blur < 35.0
-                or quality.saturation < 0.20
-            ):
-                view_weights = torch.tensor([0.40, 0.60], dtype=torch.float32, device=self.device)
-            else:
-                view_weights = torch.tensor([0.60, 0.40], dtype=torch.float32, device=self.device)
+            quality_weights = []
+            for variant in view_variants:
+                view_quality = float(getattr(variant, "score", 1.0))
+                if (
+                    quality.brightness < 0.35
+                    or quality.contrast < 0.10
+                    or quality.blur < 35.0
+                    or quality.saturation < 0.20
+                ):
+                    view_quality *= 1.10
+                quality_weights.append(max(0.05, view_quality))
+
+            view_weights = torch.tensor(
+                quality_weights or [1.0],
+                dtype=torch.float32,
+                device=self.device,
+            )
 
             view_weights = view_weights / view_weights.sum().clamp_min(1e-6)
             probability_vector = (
@@ -395,13 +408,25 @@ class DoubleModelDiseaseClassifier:
                         "contrast": quality.contrast,
                         "blur": quality.blur,
                         "saturation": quality.saturation,
+                        "sharpness": quality.sharpness,
+                        "greenRatio": quality.green_ratio,
+                        "entropy": quality.entropy,
+                        "dynamicRange": quality.dynamic_range,
                         "width": quality.width,
                         "height": quality.height,
                     },
                     "viewWeights": {
-                        "raw": float(view_weights[0].item()),
-                        "enhanced": float(view_weights[1].item()),
+                        view_variants[index].name: float(view_weights[index].item())
+                        for index in range(len(view_variants))
                     },
+                    "viewVariants": [
+                        {
+                            "name": getattr(variant, "name", "unknown"),
+                            "score": float(getattr(variant, "score", 1.0)),
+                            "metrics": dict(getattr(variant, "metrics", {})),
+                        }
+                        for variant in view_variants
+                    ],
                     "weight": self._crop_weight(candidate),
                     "predictedIndex": int(predicted_index.item()),
                     "predictedLabel": CLASS_LABELS[int(predicted_index.item())],
@@ -432,15 +457,24 @@ class DoubleModelDiseaseClassifier:
                 status_code=422,
             )
 
-        weights = torch.tensor(
-            [max(0.05, float(record["weight"])) for record in crop_predictions],
-            dtype=torch.float32,
-        )
         probability_stack = torch.tensor(
             [record["softmax"] for record in crop_predictions],
             dtype=torch.float32,
         )
-        normalized_weights = weights / weights.sum().clamp_min(1e-6)
+        base_weights = torch.tensor(
+            [max(0.05, float(record["weight"])) for record in crop_predictions],
+            dtype=torch.float32,
+        )
+        entropy_scores = []
+        for record in crop_predictions:
+            probabilities = torch.tensor(record["softmax"], dtype=torch.float32)
+            entropy_scores.append(float(self._normalized_entropy(probabilities)))
+        entropy_tensor = torch.tensor(
+            [max(0.05, 1.0 - score) for score in entropy_scores],
+            dtype=torch.float32,
+        )
+        normalized_weights = base_weights * entropy_tensor
+        normalized_weights = normalized_weights / normalized_weights.sum().clamp_min(1e-6)
         ensemble_probabilities = (
             probability_stack * normalized_weights.unsqueeze(1)
         ).sum(dim=0)
@@ -469,12 +503,34 @@ class DoubleModelDiseaseClassifier:
             min(
                 1.0,
                 (
-                    candidate.detection.confidence * 0.55
-                    + candidate.quality_score * 0.35
+                    candidate.detection.confidence * 0.42
+                    + candidate.quality_score * 0.38
                     + candidate.detection.area_ratio * 0.10
+                    + self._center_score(candidate.bbox, candidate.image.size) * 0.05
+                    + self._shape_score(*candidate.image.size) * 0.05
                 ),
             ),
         )
+
+    @staticmethod
+    def _center_score(
+        bbox: tuple[int, int, int, int],
+        image_size: tuple[int, int],
+    ) -> float:
+        image_width, image_height = image_size
+        left, top, right, bottom = bbox
+        center_x = (left + right) / 2.0
+        center_y = (top + bottom) / 2.0
+        offset_x = abs(center_x - image_width / 2.0) / max(1.0, image_width / 2.0)
+        offset_y = abs(center_y - image_height / 2.0) / max(1.0, image_height / 2.0)
+        return max(0.0, min(1.0, 1.0 - min(1.0, (offset_x + offset_y) / 2.0)))
+
+    @staticmethod
+    def _shape_score(width: int, height: int) -> float:
+        if width <= 0 or height <= 0:
+            return 0.0
+        ratio = max(width, height) / max(1.0, min(width, height))
+        return max(0.0, min(1.0, 1.0 - min(1.0, abs(ratio - 2.2) / 2.2)))
 
     @staticmethod
     def _top_predictions_from_probabilities(
@@ -493,6 +549,14 @@ class DoubleModelDiseaseClassifier:
             }
             for i in range(len(top_values))
         ]
+
+    @staticmethod
+    def _normalized_entropy(probabilities: "torch.Tensor") -> float:
+        assert torch is not None
+        clipped = probabilities.clamp_min(1e-8)
+        entropy = -(clipped * clipped.log()).sum()
+        normalized = entropy / math.log(len(CLASS_LABELS))
+        return float(max(0.0, min(1.0, normalized.item())))
 
     def _write_success_or_failure_debug(
         self,
