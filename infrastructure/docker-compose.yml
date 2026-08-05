@@ -321,10 +321,10 @@ services:
     ports:
       - "8000:8000"
     environment:
-      YOLO_MODEL_PATH: yolov8m.pt
+      YOLO_MODEL_PATH: ${YOLO_MODEL_PATH:-yolov8m.pt}
       MOBILENET_WEIGHTS_PATH: models/mobilenetv2_classifier_high_acc.pth
       YOLO_CONFIDENCE: 0.25
-      ENABLE_YOLO_CROP: ${ENABLE_YOLO_CROP:-false}
+      ENABLE_YOLO_CROP: ${ENABLE_YOLO_CROP:-true}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       GEMINI_CHAT_MODEL: ${GEMINI_CHAT_MODEL}
       GEMINI_EMBEDDING_MODEL: ${GEMINI_EMBEDDING_MODEL}

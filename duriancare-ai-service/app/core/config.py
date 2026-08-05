@@ -36,6 +36,7 @@ for dotenv_path in (SERVICE_ROOT / ".env", REPO_ROOT / ".env"):
 @dataclass(frozen=True)
 class Settings:
     yolo_model: str
+    yolo_fallback_model: str
     classifier_weights: Path
     yolo_confidence: float
     yolo_crop_enabled: bool
@@ -96,7 +97,12 @@ def resolve_postgres_url() -> str:
 
 
 settings = Settings(
-    yolo_model=os.getenv("YOLO_MODEL_PATH", "yolov8m.pt"),
+    yolo_model=str(
+        resolve_service_path("YOLO_MODEL_PATH", "models/leaf_detector_best.pt")
+    ),
+    yolo_fallback_model=str(
+        resolve_service_path("YOLO_FALLBACK_MODEL_PATH", "yolov8s.pt")
+    ),
     classifier_weights=resolve_service_path(
         "MOBILENET_WEIGHTS_PATH",
         "models/mobilenetv2_classifier_high_acc.pth",
