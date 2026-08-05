@@ -4,6 +4,7 @@ import { Model } from "mongoose";
 import {
   ChatMessageDocument,
   ChatMessageMongoDocument,
+  ChatMessagePayload,
   TreatmentRegimenPayload,
   TreatmentStepPayload
 } from "./chat-message.schema";
@@ -11,9 +12,10 @@ import {
 export type PersistChatMessage = {
   content?: string;
   messageType?: "TEXT" | "IMAGE" | "TREATMENT_REGIMEN";
-  payload?: TreatmentRegimenPayload | null;
+  payload?: ChatMessagePayload;
   roomId: string;
   senderId: string;
+  senderRole: "FARMER" | "ENGINEER";
 };
 
 @Injectable()
@@ -30,6 +32,7 @@ export class ChatMessageService {
     return this.messageModel.create({
       roomId: message.roomId.trim(),
       senderId: message.senderId.trim(),
+      senderRole: message.senderRole,
       content,
       messageType,
       payload: message.payload ?? null,
@@ -48,13 +51,31 @@ export class ChatMessageService {
       .exec();
   }
 
+  async countUnreadForRole(
+    roomId: string,
+    readerRole: "FARMER" | "ENGINEER",
+    since: Date | null
+  ): Promise<number> {
+    return this.messageModel
+      .countDocuments({
+        roomId: roomId.trim(),
+        senderRole: { $ne: readerRole },
+        ...(since ? { sentAt: { $gt: since } } : {})
+      })
+      .exec();
+  }
+
+  async deleteRoomMessages(roomId: string): Promise<void> {
+    await this.messageModel.deleteMany({ roomId: roomId.trim() }).exec();
+  }
+
   async updateRegimenStep(
     messageId: string,
     day: number,
     completed: boolean
   ): Promise<ChatMessageMongoDocument | null> {
     const message = await this.messageModel.findById(messageId).exec();
-    if (!message?.payload?.steps) return null;
+    if (!message?.payload || !("steps" in message.payload) || !message.payload.steps) return null;
 
     message.payload.steps = message.payload.steps.map((step: TreatmentStepPayload) =>
       step.day === day ? { ...step, completed } : step

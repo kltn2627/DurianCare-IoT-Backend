@@ -7,7 +7,7 @@ spring:
   config:
     import: optional:file:../.env[.properties],optional:file:.env[.properties],optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/duriancare}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://127.0.0.1:5432/duriancare?sslmode=disable}
     username: ${SPRING_DATASOURCE_USERNAME:duriancare}
     password: ${SPRING_DATASOURCE_PASSWORD:}
     hikari:
@@ -40,6 +40,8 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
       acks: all
+      properties:
+        max.block.ms: ${KAFKA_PRODUCER_MAX_BLOCK_MS:1000}
   servlet:
     multipart:
       max-file-size: ${MAX_IMAGE_SIZE_BYTES:10485760B}
@@ -64,7 +66,7 @@ duriancare:
     events-topic: ${AUTH_EVENTS_TOPIC:duriancare.auth.events}
   security:
     jwt:
-      secret: ${JWT_SECRET:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
+      secret: ${JWT_SECRET:duriancare-local-development-jwt-secret-2026-change-before-production-9f4c2b7a8e1d}
       issuer: ${JWT_ISSUER:duriancare-auth-service}
       access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:1h}
       refresh-token-ttl: ${JWT_REFRESH_TOKEN_TTL:7d}
@@ -87,11 +89,21 @@ duriancare:
       access-key-id: ${AWS_ACCESS_KEY_ID:}
       secret-access-key: ${AWS_SECRET_ACCESS_KEY:}
       prefix: ${AWS_S3_ENGINEER_DOCUMENTS_PREFIX:engineer-documents}
+      local-directory: ${ENGINEER_DOCUMENT_LOCAL_DIRECTORY:uploads/engineer-documents}
+      public-base-url: ${ENGINEER_DOCUMENT_PUBLIC_BASE_URL:}
       max-upload-size-bytes: ${ENGINEER_DOCUMENT_MAX_UPLOAD_SIZE_BYTES:10485760}
       allowed-content-types:
         - application/pdf
         - image/jpeg
         - image/png
+  knowledge:
+    images:
+      local-directory: ${KNOWLEDGE_IMAGE_LOCAL_DIRECTORY:uploads/knowledge-covers}
+      max-upload-size-bytes: ${KNOWLEDGE_IMAGE_MAX_UPLOAD_SIZE_BYTES:5242880}
+      allowed-content-types:
+        - image/jpeg
+        - image/png
+        - image/webp
   bootstrap:
     admin:
       enabled: ${DEFAULT_ADMIN_ENABLED:true}

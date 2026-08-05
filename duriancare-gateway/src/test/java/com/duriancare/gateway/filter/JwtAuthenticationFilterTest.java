@@ -13,6 +13,7 @@ import com.duriancare.gateway.security.PublicEndpointMatcher;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
 import java.util.concurrent.atomic.AtomicReference;
@@ -98,6 +99,43 @@ class JwtAuthenticationFilterTest {
         StepVerifier.create(filter.filter(exchange, chain)).verifyComplete();
 
         assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        verify(chain, never()).filter(exchange);
+    }
+
+    @Test
+    void revocationStoreFailureDoesNotBlockAuthenticatedRequestsByDefault() {
+        when(redisTemplate.hasKey(anyString())).thenReturn(Mono.error(new IllegalStateException("redis unavailable")));
+        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/api/chat/conversations")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token("jwt-user", "FARMER", "jwt@example.com"))
+                .build());
+        AtomicReference<ServerWebExchange> forwarded = new AtomicReference<>();
+
+        StepVerifier.create(filter.filter(exchange, next -> {
+            forwarded.set(next);
+            return Mono.empty();
+        })).verifyComplete();
+
+        assertThat(forwarded.get()).isNotNull();
+        assertThat(exchange.getResponse().getStatusCode()).isNull();
+    }
+
+    @Test
+    void revocationStoreFailureCanFailClosedWhenConfigured() {
+        when(redisTemplate.hasKey(anyString())).thenReturn(Mono.error(new IllegalStateException("redis unavailable")));
+        JwtAuthenticationFilter failClosedFilter = new JwtAuthenticationFilter(
+                new JwtTokenValidator(new JwtProperties(SECRET, "duriancare-auth-service")),
+                new PublicEndpointMatcher(),
+                redisTemplate,
+                Duration.ofMillis(100),
+                false);
+        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/api/chat/conversations")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token("jwt-user", "FARMER", "jwt@example.com"))
+                .build());
+        GatewayFilterChain chain = mock(GatewayFilterChain.class);
+
+        StepVerifier.create(failClosedFilter.filter(exchange, chain)).verifyComplete();
+
+        assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
         verify(chain, never()).filter(exchange);
     }
 

@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -55,6 +56,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(EventPublicationException.class)
     ResponseEntity<ApiError> handleEventPublication(EventPublicationException exception) {
         return response(HttpStatus.SERVICE_UNAVAILABLE, exception.getMessage());
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    ResponseEntity<ApiError> handleResponseStatus(ResponseStatusException exception) {
+        HttpStatus status = HttpStatus.valueOf(exception.getStatusCode().value());
+        String message = exception.getReason() == null ? status.getReasonPhrase() : exception.getReason();
+        return response(status, message);
     }
 
     @ExceptionHandler(Exception.class)

@@ -16,6 +16,7 @@ type ChatMessage = {
   payload?: TreatmentRegimenPayload;
   roomId: string;
   senderId: string;
+  senderRole: "FARMER" | "ENGINEER";
   sentAt?: string;
 };
 
@@ -36,6 +37,16 @@ export class ChatGateway {
   @WebSocketServer()
   private readonly server!: Server;
 
+  emitConversationUpdated(roomId: string, conversation: unknown): void {
+    if (!roomId?.trim()) return;
+    this.server.to(roomId).emit("conversation.updated", conversation);
+  }
+
+  emitConversationDeleted(roomId: string, payload: unknown): void {
+    if (!roomId?.trim()) return;
+    this.server.to(roomId).emit("conversation.deleted", payload);
+  }
+
   @SubscribeMessage("room.join")
   async joinRoom(
     @MessageBody() roomId: string,
@@ -54,8 +65,8 @@ export class ChatGateway {
       Array.isArray(message.payload?.steps) &&
       message.payload.steps.length > 0;
 
-    if (!message.roomId?.trim() || !message.senderId?.trim() || (!hasText && !hasRegimen)) {
-      throw new WsException("roomId, senderId and message content are required");
+    if (!message.roomId?.trim() || !message.senderId?.trim() || !message.senderRole || (!hasText && !hasRegimen)) {
+      throw new WsException("roomId, senderId, senderRole and message content are required");
     }
 
     try {
@@ -64,6 +75,7 @@ export class ChatGateway {
         id: persistedMessage.id,
         roomId: persistedMessage.roomId,
         senderId: persistedMessage.senderId,
+        senderRole: persistedMessage.senderRole,
         content: persistedMessage.content,
         messageType: persistedMessage.messageType,
         payload: persistedMessage.payload,

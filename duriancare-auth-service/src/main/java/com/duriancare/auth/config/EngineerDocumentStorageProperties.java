@@ -11,6 +11,8 @@ public record EngineerDocumentStorageProperties(
         String accessKeyId,
         String secretAccessKey,
         String prefix,
+        String localDirectory,
+        String publicBaseUrl,
         long maxUploadSizeBytes,
         List<String> allowedContentTypes) {
 
@@ -22,6 +24,12 @@ public record EngineerDocumentStorageProperties(
         }
         if (maxUploadSizeBytes <= 0) {
             throw new IllegalArgumentException("Engineer document max upload size must be positive");
+        }
+        if (localDirectory == null || localDirectory.isBlank()) {
+            localDirectory = "uploads/engineer-documents";
+        }
+        if (publicBaseUrl != null && publicBaseUrl.isBlank()) {
+            publicBaseUrl = null;
         }
         if (enabled) {
             if (bucket == null || bucket.isBlank()) {
