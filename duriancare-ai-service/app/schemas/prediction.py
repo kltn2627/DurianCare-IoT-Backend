@@ -25,6 +25,11 @@ class StoredImageInfo(CamelModel):
     url: str
 
 
+class PredictionAlternative(CamelModel):
+    label: str
+    confidence: float
+
+
 class S3PredictionRequest(BaseModel):
     object_key: str = Field(min_length=1, max_length=1024)
     source: PredictionSource = PredictionSource.IOT_CAMERA
@@ -43,6 +48,10 @@ class PredictionData(CamelModel):
     decision_support: DecisionSupport | None = Field(
         default=None,
         alias="decisionSupport",
+    )
+    top_predictions: list[PredictionAlternative] = Field(
+        default_factory=list,
+        alias="topPredictions",
     )
 
 

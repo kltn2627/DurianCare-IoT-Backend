@@ -17,6 +17,7 @@ from starlette.datastructures import Headers
 
 from app.schemas.prediction import (
     BoundingBox,
+    PredictionAlternative,
     PredictionData,
     PredictionResponse,
     PredictionSource,
@@ -121,7 +122,11 @@ async def execute_prediction(
         )
     except PredictionError as exception:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=getattr(
+                exception,
+                "status_code",
+                status.HTTP_500_INTERNAL_SERVER_ERROR,
+            ),
             detail=str(exception),
         ) from exception
 
@@ -201,6 +206,13 @@ async def execute_prediction(
             ),
             recommendation=recommendation,
             decision_support=decision_support,
+            top_predictions=[
+                PredictionAlternative(
+                    label=item["label"],
+                    confidence=float(item["confidence"]),
+                )
+                for item in getattr(prediction, "top_predictions", [])
+            ],
         ),
     )
 
