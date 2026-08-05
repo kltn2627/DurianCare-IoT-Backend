@@ -18,6 +18,8 @@ export type TreatmentRegimenPayload = {
   title: string;
 };
 
+export type ChatMessagePayload = TreatmentRegimenPayload | { image: string } | null;
+
 @Schema({
   collection: "messages",
   timestamps: { createdAt: "createdAt", updatedAt: "updatedAt" }
@@ -29,6 +31,9 @@ export class ChatMessageDocument {
   @Prop({ required: true, index: true, trim: true })
   senderId!: string;
 
+  @Prop({ required: true, index: true, trim: true })
+  senderRole!: "FARMER" | "ENGINEER";
+
   @Prop({ required: true, trim: true })
   content!: string;
 
@@ -36,7 +41,7 @@ export class ChatMessageDocument {
   messageType!: string;
 
   @Prop({ type: Object, default: null })
-  payload?: TreatmentRegimenPayload | null;
+  payload?: ChatMessagePayload;
 
   @Prop({ required: true, default: Date.now, index: true })
   sentAt!: Date;

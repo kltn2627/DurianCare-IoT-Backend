@@ -29,7 +29,12 @@ public class NotificationEventListener {
             "AGRONOMIST_INVITATION_ACCEPTED",
             "AGRONOMIST_INVITATION_REJECTED",
             "FARM_AUTHORIZATION_UPDATED",
-            "FARM_AUTHORIZATION_REVOKED");
+            "FARM_AUTHORIZATION_REVOKED",
+            "CONNECTION_REQUEST_RECEIVED",
+            "CONNECTION_REQUEST_ACCEPTED",
+            "CONNECTION_REQUEST_REJECTED",
+            "CONNECTION_REQUEST_CANCELLED",
+            "CONNECTION_DISCONNECTED");
 
     private final ObjectMapper objectMapper;
     private final NotificationService notificationService;
@@ -102,7 +107,12 @@ public class NotificationEventListener {
                     "AGRONOMIST_INVITATION_ACCEPTED",
                     "AGRONOMIST_INVITATION_REJECTED",
                     "FARM_AUTHORIZATION_UPDATED",
-                    "FARM_AUTHORIZATION_REVOKED" -> NotificationType.EXPERT;
+                    "FARM_AUTHORIZATION_REVOKED",
+                    "CONNECTION_REQUEST_RECEIVED",
+                    "CONNECTION_REQUEST_ACCEPTED",
+                    "CONNECTION_REQUEST_REJECTED",
+                    "CONNECTION_REQUEST_CANCELLED",
+                    "CONNECTION_DISCONNECTED" -> NotificationType.EXPERT;
             default -> NotificationType.GENERAL;
         };
     }

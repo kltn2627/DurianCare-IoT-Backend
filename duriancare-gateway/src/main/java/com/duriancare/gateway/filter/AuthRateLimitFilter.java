@@ -2,6 +2,7 @@ package com.duriancare.gateway.filter;
 
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +29,7 @@ public class AuthRateLimitFilter implements GlobalFilter, Ordered {
 
     private final ReactiveStringRedisTemplate redisTemplate;
     private final Map<String, RateLimitRule> rules;
+    private final Duration redisTimeout;
 
     public AuthRateLimitFilter(
             ReactiveStringRedisTemplate redisTemplate,
@@ -35,8 +37,10 @@ public class AuthRateLimitFilter implements GlobalFilter, Ordered {
             @Value("${duriancare.security.rate-limit.registration-limit:5}") int registrationLimit,
             @Value("${duriancare.security.rate-limit.otp-verification-limit:10}") int otpVerificationLimit,
             @Value("${duriancare.security.rate-limit.otp-resend-limit:3}") int otpResendLimit,
-            @Value("${duriancare.security.rate-limit.refresh-limit:30}") int refreshLimit) {
+            @Value("${duriancare.security.rate-limit.refresh-limit:30}") int refreshLimit,
+            @Value("${duriancare.security.rate-limit.redis-timeout-ms:1500}") long redisTimeoutMillis) {
         this.redisTemplate = redisTemplate;
+        this.redisTimeout = Duration.ofMillis(Math.max(100, redisTimeoutMillis));
         this.rules = Map.of(
                 "/api/auth/login", new RateLimitRule(loginLimit, 60),
                 "/api/auth/register", new RateLimitRule(registrationLimit, 600),
@@ -66,6 +70,7 @@ public class AuthRateLimitFilter implements GlobalFilter, Ordered {
                         List.of(key),
                         String.valueOf(rule.windowSeconds()))
                 .next()
+                .timeout(redisTimeout)
                 .onErrorResume(exception -> serviceUnavailable(exchange).thenReturn(-1L))
                 .switchIfEmpty(serviceUnavailable(exchange).thenReturn(-1L))
                 .flatMap(count -> {

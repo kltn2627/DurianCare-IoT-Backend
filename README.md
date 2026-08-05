@@ -44,6 +44,23 @@ docker compose --env-file .env -f infrastructure/docker-compose.yml up -d postgr
 Applications running on the host use the `localhost` defaults from their
 `application.yml` or service `.env` files.
 
+If `duriancare-auth-service` crashes on Windows with `The paging file is too
+small` or `Native memory allocation (mmap) failed`, run it with a smaller JVM
+heap. In IntelliJ, use the shared run configuration
+`DurianCare Auth Service low memory`, or add these VM options to your existing
+auth service run configuration:
+
+```text
+-Xms128m -Xmx768m -XX:MaxMetaspaceSize=256m -XX:ReservedCodeCacheSize=128m -Xss512k -XX:ActiveProcessorCount=4
+```
+
+If Maven can resolve plugins in your environment, the equivalent PowerShell
+helper is:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\run-auth-service-low-memory.ps1
+```
+
 Infrastructure endpoints:
 
 - PostgreSQL: `localhost:5432`

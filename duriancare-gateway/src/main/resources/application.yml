@@ -6,8 +6,9 @@ spring:
     name: duriancare-gateway
   config:
     import: optional:file:../.env[.properties],optional:file:.env[.properties],optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
-  codec:
-    max-in-memory-size: 12MB
+  http:
+    codecs:
+      max-in-memory-size: 12MB
   webflux:
     multipart:
       max-in-memory-size: 12MB
@@ -16,19 +17,19 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:}
+      password: ${REDIS_PASSWORD:${SPRING_REDIS_PASSWORD:}}
   cloud:
     gateway:
-      httpclient:
-        connect-timeout: 5000
-        response-timeout: 120s
       server:
         webflux:
+          httpclient:
+            connect-timeout: 5000
+            response-timeout: 120s
           routes:
             - id: auth-service
               uri: ${AUTH_SERVICE_URL:http://localhost:8081}
               predicates:
-                - Path=/api/auth/**,/api/users/**
+                - Path=/api/auth/**,/api/users/**,/api/connections/**,/api/community/**,/api/knowledge/**
             - id: farm-service
               uri: ${FARM_SERVICE_URL:http://localhost:8082}
               predicates:
@@ -80,8 +81,10 @@ duriancare:
       otp-resend-limit: ${AUTH_OTP_RESEND_RATE_LIMIT:3}
       refresh-limit: ${AUTH_REFRESH_RATE_LIMIT:30}
     jwt:
-      secret: ${JWT_SECRET:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
+      secret: ${JWT_SECRET:duriancare-local-development-jwt-secret-2026-change-before-production-9f4c2b7a8e1d}
       issuer: ${JWT_ISSUER:duriancare-auth-service}
+      revocation-timeout-ms: ${JWT_REVOCATION_TIMEOUT_MS:1500}
+      revocation-fail-open: ${JWT_REVOCATION_FAIL_OPEN:true}
 
 management:
   endpoints:

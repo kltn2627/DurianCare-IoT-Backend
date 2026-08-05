@@ -4,10 +4,11 @@ import com.duriancare.gateway.security.JwtTokenValidator;
 import com.duriancare.gateway.security.PublicEndpointMatcher;
 import io.jsonwebtoken.Claims;
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
+import java.time.Duration;
 import java.util.List;
-import org.springframework.cloud.gateway.filter.GatewayFilterChain;
-import org.springframework.cloud.gateway.filter.GlobalFilter;
+import java.time.Instant;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.Ordered;
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.http.HttpHeaders;
@@ -16,6 +17,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
+import org.springframework.cloud.gateway.filter.GatewayFilterChain;
+import org.springframework.cloud.gateway.filter.GlobalFilter;
 import reactor.core.publisher.Mono;
 
 @Component
@@ -33,14 +36,44 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     private final JwtTokenValidator tokenValidator;
     private final PublicEndpointMatcher publicEndpointMatcher;
     private final ReactiveStringRedisTemplate redisTemplate;
+    private final Duration revocationTimeout;
+    private final boolean revocationFailOpen;
 
+    @Autowired
     public JwtAuthenticationFilter(
             JwtTokenValidator tokenValidator,
             PublicEndpointMatcher publicEndpointMatcher,
+            ReactiveStringRedisTemplate redisTemplate,
+            @Value("${duriancare.security.jwt.revocation-timeout-ms:1500}") long revocationTimeoutMs,
+            @Value("${duriancare.security.jwt.revocation-fail-open:true}") boolean revocationFailOpen) {
+        this(
+                tokenValidator,
+                publicEndpointMatcher,
+                redisTemplate,
+                Duration.ofMillis(Math.max(revocationTimeoutMs, 1)),
+                revocationFailOpen);
+    }
+
+    JwtAuthenticationFilter(
+            JwtTokenValidator tokenValidator,
+            PublicEndpointMatcher publicEndpointMatcher,
             ReactiveStringRedisTemplate redisTemplate) {
+        this(tokenValidator, publicEndpointMatcher, redisTemplate, Duration.ofMillis(1500), true);
+    }
+
+    JwtAuthenticationFilter(
+            JwtTokenValidator tokenValidator,
+            PublicEndpointMatcher publicEndpointMatcher,
+            ReactiveStringRedisTemplate redisTemplate,
+            Duration revocationTimeout,
+            boolean revocationFailOpen) {
         this.tokenValidator = tokenValidator;
         this.publicEndpointMatcher = publicEndpointMatcher;
         this.redisTemplate = redisTemplate;
+        this.revocationTimeout = revocationTimeout == null || revocationTimeout.isNegative() || revocationTimeout.isZero()
+                ? Duration.ofMillis(1500)
+                : revocationTimeout;
+        this.revocationFailOpen = revocationFailOpen;
     }
 
     @Override
@@ -68,10 +101,13 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         }
 
         return redisTemplate.hasKey("duriancare:jwt:revoked:" + tokenId)
+                .timeout(revocationTimeout)
                 .flatMap(revoked -> revoked
                         ? unauthorized(exchange, "Token has been revoked")
                         : forward(exchange, chain, claims))
-                .onErrorResume(exception -> serviceUnavailable(exchange));
+                .onErrorResume(exception -> revocationFailOpen
+                        ? forward(exchange, chain, claims)
+                        : serviceUnavailable(exchange));
     }
 
     private Mono<Void> forward(ServerWebExchange exchange, GatewayFilterChain chain, Claims claims) {
