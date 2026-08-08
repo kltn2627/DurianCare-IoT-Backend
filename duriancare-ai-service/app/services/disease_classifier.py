@@ -10,13 +10,14 @@ from typing import Any, Mapping
 
 try:
     import torch
-    from PIL import Image
+    from PIL import Image, ImageStat as _PilImageStat
     from torch import nn
     from torchvision import models, transforms
     from ultralytics import YOLO
 except ImportError:  # pragma: no cover - optional runtime dependency
     torch = None
     Image = None
+    _PilImageStat = None
     nn = None
     models = None
     transforms = None
@@ -137,6 +138,13 @@ class DoubleModelDiseaseClassifier:
             raise RuntimeError("YOLO detector has not been loaded")
 
         try:
+            if not self._image_has_leaf_color(image):
+                raise PredictionError(
+                    "No durian leaf detected.",
+                    reason="no_leaf_color",
+                    status_code=422,
+                )
+
             detection_run = self._run_detection_pipeline(image)
             if not detection_run.selected_crops:
                 self._write_success_or_failure_debug(
@@ -147,12 +155,27 @@ class DoubleModelDiseaseClassifier:
                     failure_reason=detection_run.failure_reason or "detector_no_bbox",
                 )
                 raise PredictionError(
-                    "No durian leaf detected after adaptive preprocessing",
+                    "No durian leaf detected.",
                     reason=detection_run.failure_reason or "detector_no_bbox",
                     status_code=422,
                 )
 
-            crop_predictions = self._classify_crops(detection_run.selected_crops)
+            validated_crops = self._assert_crops_valid(detection_run.selected_crops, image)
+            if not validated_crops:
+                self._write_success_or_failure_debug(
+                    detection_run=detection_run,
+                    prediction=None,
+                    crop_predictions=[],
+                    failure_stage="leaf_validator",
+                    failure_reason="leaf_validation_failed",
+                )
+                raise PredictionError(
+                    "No durian leaf detected.",
+                    reason="leaf_validation_failed",
+                    status_code=422,
+                )
+
+            crop_predictions = self._classify_crops(validated_crops)
             final_label, final_confidence, final_probabilities, top_predictions = self._ensemble_predictions(
                 crop_predictions,
             )
@@ -175,7 +198,7 @@ class DoubleModelDiseaseClassifier:
                 label=final_label,
                 confidence=float(final_confidence * 100.0),
                 used_detection_crop=True,
-                bounding_box=detection_run.selected_crops[0].bbox,
+                bounding_box=validated_crops[0].bbox,
                 top_predictions=top_predictions,
                 low_confidence=confidence_is_low,
             )
@@ -219,50 +242,49 @@ class DoubleModelDiseaseClassifier:
         if primary_run.selected_crops:
             return primary_run
 
+        primary_rescue_run = self.pipeline.run_detection_search(
+            image=image,
+            detector=self.detector,
+            device_name=self.device_name,
+            model_name=self.settings.yolo_model,
+            weights_path=str(self.settings.yolo_model),
+            base_confidence=self.settings.yolo_confidence,
+        )
+        if primary_rescue_run.selected_crops:
+            return primary_rescue_run
+        if len(primary_rescue_run.detections) > len(primary_run.detections):
+            primary_run = primary_rescue_run
+
         fallback_detector = self._load_fallback_detector()
-        if fallback_detector is None:
-            return primary_run
+        if fallback_detector is not None:
+            if self.pipeline.debug_enabled:
+                fallback_run = self.pipeline.run_detection_search(
+                    image=image,
+                    detector=fallback_detector,
+                    device_name=self.device_name,
+                    model_name=self.settings.yolo_fallback_model,
+                    weights_path=str(self.settings.yolo_fallback_model),
+                    base_confidence=self.settings.yolo_confidence,
+                )
+            else:
+                fallback_run = self._run_single_detector_pass(
+                    image=image,
+                    detector=fallback_detector,
+                    model_name=self.settings.yolo_fallback_model,
+                    weights_path=str(self.settings.yolo_fallback_model),
+                    confidence_threshold=self.settings.yolo_confidence,
+                )
+            if fallback_run.selected_crops:
+                return fallback_run
+            if len(fallback_run.detections) > len(primary_run.detections):
+                return fallback_run
 
-        if self.pipeline.debug_enabled:
-            fallback_run = self.pipeline.run_detection_search(
-                image=image,
-                detector=fallback_detector,
-                device_name=self.device_name,
-                model_name=self.settings.yolo_fallback_model,
-                weights_path=str(self.settings.yolo_fallback_model),
-                base_confidence=self.settings.yolo_confidence,
-            )
-        else:
-            fallback_run = self._run_single_detector_pass(
-                image=image,
-                detector=fallback_detector,
-                model_name=self.settings.yolo_fallback_model,
-                weights_path=str(self.settings.yolo_fallback_model),
-                confidence_threshold=self.settings.yolo_confidence,
-            )
-        if fallback_run.selected_crops:
-            return fallback_run
-        if len(fallback_run.detections) > len(primary_run.detections):
-            return fallback_run
-
-        rescue_detector = fallback_detector or self.detector
-        if rescue_detector is not None:
-            rescue_model_name = (
-                self.settings.yolo_fallback_model
-                if fallback_detector is not None
-                else self.settings.yolo_model
-            )
-            rescue_weights_path = (
-                str(self.settings.yolo_fallback_model)
-                if fallback_detector is not None
-                else str(self.settings.yolo_model)
-            )
             rescue_run = self.pipeline.run_detection_search(
                 image=image,
-                detector=rescue_detector,
+                detector=fallback_detector,
                 device_name=self.device_name,
-                model_name=rescue_model_name,
-                weights_path=rescue_weights_path,
+                model_name=self.settings.yolo_fallback_model,
+                weights_path=str(self.settings.yolo_fallback_model),
                 base_confidence=self.settings.yolo_confidence,
             )
             if rescue_run.selected_crops:
@@ -497,6 +519,97 @@ class DoubleModelDiseaseClassifier:
             top_predictions,
         )
 
+    def _image_has_leaf_color(self, image: Image.Image) -> bool:
+        min_ratio = max(
+            0.0,
+            min(1.0, float(os.getenv("AI_MIN_IMAGE_GREEN_RATIO", "0.012"))),
+        )
+        if min_ratio <= 0.0:
+            return True
+        if _PilImageStat is None:
+            return True
+        try:
+            rgb = image.convert("RGB")
+            r_ch, g_ch, b_ch = rgb.split()
+            rm = _PilImageStat.Stat(r_ch).mean[0]
+            gm = _PilImageStat.Stat(g_ch).mean[0]
+            bm = _PilImageStat.Stat(b_ch).mean[0]
+            green_excess = max(0.0, gm - (rm + bm) / 2.0)
+            denominator = max(1.0, rm + gm + bm)
+            image_green_ratio = min(1.0, (green_excess / denominator) * 3.0)
+            return image_green_ratio >= min_ratio
+        except Exception:
+            return True
+
+    def _assert_crops_valid(
+        self,
+        crops: list[CropCandidate],
+        original_image: Image.Image,
+    ) -> list[CropCandidate]:
+        min_confidence = max(
+            0.0,
+            min(1.0, float(os.getenv("AI_MIN_CLASSIFIER_CONFIDENCE", "0.20"))),
+        )
+        min_crop_green = max(
+            0.0,
+            min(1.0, float(os.getenv("AI_MIN_CROP_GREEN_RATIO", "0.0"))),
+        )
+        min_texture = max(
+            0.0,
+            float(os.getenv("AI_MIN_CROP_TEXTURE_ENERGY", "1.5")),
+        )
+        min_area_px = 64 * 64
+        original_area = original_image.width * original_image.height
+        valid: list[CropCandidate] = []
+        for candidate in crops:
+            w, h = candidate.image.size
+            if w <= 0 or h <= 0:
+                continue
+            crop_area = w * h
+            if crop_area < min_area_px:
+                continue
+            if crop_area >= original_area * 0.98:
+                continue
+            if candidate.detection.confidence < min_confidence:
+                continue
+            if min_crop_green > 0.0 and _PilImageStat is not None:
+                try:
+                    rgb = candidate.image.convert("RGB")
+                    r_ch, g_ch, b_ch = rgb.split()
+                    rm = _PilImageStat.Stat(r_ch).mean[0]
+                    gm = _PilImageStat.Stat(g_ch).mean[0]
+                    bm = _PilImageStat.Stat(b_ch).mean[0]
+                    green_excess = max(0.0, gm - (rm + bm) / 2.0)
+                    denominator = max(1.0, rm + gm + bm)
+                    crop_green_ratio = min(1.0, (green_excess / denominator) * 3.0)
+                    if crop_green_ratio < min_crop_green:
+                        continue
+                except Exception:
+                    pass
+            if min_texture > 0.0 and not self._crop_has_texture(candidate.image, min_texture):
+                continue
+            valid.append(candidate)
+        return valid
+
+    @staticmethod
+    def _crop_has_texture(crop_image: "Image.Image", min_energy: float) -> bool:
+        """Reject crops with near-zero Laplacian (smooth gradients, solid colors).
+        A linear gradient has Laplacian=0; real leaves have texture from veins/spots."""
+        try:
+            small = crop_image.convert("L").resize((32, 32), Image.BILINEAR)
+            pix = small.load()
+            total = 0.0
+            count = 0
+            for y in range(1, 31):
+                for x in range(1, 31):
+                    c = pix[x, y]
+                    lap = abs(4 * c - pix[x - 1, y] - pix[x + 1, y] - pix[x, y - 1] - pix[x, y + 1])
+                    total += lap
+                    count += 1
+            return (total / max(1, count)) >= min_energy
+        except Exception:
+            return True
+
     def _crop_weight(self, candidate: CropCandidate) -> float:
         return max(
             0.05,
@@ -579,6 +692,31 @@ class DoubleModelDiseaseClassifier:
             classifier_result["finalPrediction"] = prediction
         (debug_dir / "classifier_result.json").write_text(
             json.dumps(classifier_result, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+
+        pipeline_log_path = debug_dir / "pipeline_log.txt"
+        existing_lines = []
+        if pipeline_log_path.is_file():
+            existing_lines = pipeline_log_path.read_text(encoding="utf-8").splitlines()
+        existing_lines.extend(
+            [
+                f"classifier_temperature={self.temperature}",
+                f"classifier_crop_count={len(crop_predictions)}",
+                f"classifier_failure_stage={failure_stage or 'none'}",
+                f"classifier_failure_reason={failure_reason or 'passed_all_stages'}",
+            ]
+        )
+        if prediction is not None:
+            existing_lines.append(
+                "final_prediction={label} confidence={confidence:.4f} low_confidence={low_confidence}".format(
+                    label=prediction.get("label", "unknown"),
+                    confidence=float(prediction.get("confidence", 0.0)),
+                    low_confidence=bool(prediction.get("lowConfidence", False)),
+                )
+            )
+        pipeline_log_path.write_text(
+            "\n".join(existing_lines) + "\n",
             encoding="utf-8",
         )
 

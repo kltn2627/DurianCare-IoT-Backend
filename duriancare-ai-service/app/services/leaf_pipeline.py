@@ -85,6 +85,7 @@ class AdaptiveLeafPipeline:
         min_crop_side: int = 64,
         min_crop_area_ratio: float = 0.015,
         min_crop_quality: float = 0.26,
+        min_crop_confidence: float = 0.20,
     ) -> None:
         self.debug_root = debug_root or Path("artifacts/debug_runs")
         self.capture_hard_examples = capture_hard_examples
@@ -92,6 +93,10 @@ class AdaptiveLeafPipeline:
         self.min_crop_side = min_crop_side
         self.min_crop_area_ratio = min_crop_area_ratio
         self.min_crop_quality = min_crop_quality
+        self.min_crop_confidence = max(
+            0.0,
+            min(1.0, float(os.getenv("AI_MIN_CROP_CONFIDENCE", str(min_crop_confidence)))),
+        )
         self.debug_enabled = os.getenv("AI_DEBUG", "false").lower() in {
             "1",
             "true",
@@ -153,6 +158,10 @@ class AdaptiveLeafPipeline:
                 )
                 attempts.append(attempt)
                 detections.extend(attempt_detections)
+                if self._has_strong_candidates(detections):
+                    break
+            if self._has_strong_candidates(detections):
+                break
 
         if not self._has_strong_candidates(detections) and rescue_variants:
             rescue_parameters = self._build_rescue_parameters(base_confidence)
@@ -168,6 +177,10 @@ class AdaptiveLeafPipeline:
                     )
                     attempts.append(attempt)
                     detections.extend(attempt_detections)
+                    if self._has_strong_candidates(detections):
+                        break
+                if self._has_strong_candidates(detections):
+                    break
 
         deduplicated_detections = self._deduplicate_detections(detections)
         selected_crops = self._select_crops(image, deduplicated_detections)
@@ -311,13 +324,13 @@ class AdaptiveLeafPipeline:
                 base_confidence,
                 max(0.08, round(base_confidence * 0.7, 3)),
             ]
-            ious = [0.55, 0.70]
+            ious = [0.55]
         elif self.pipeline_mode == "production":
             thresholds = [
                 base_confidence,
                 max(0.10, round(base_confidence * 0.78, 3)),
             ]
-            ious = [0.55, 0.70]
+            ious = [0.55]
         else:
             thresholds = [
                 base_confidence,
@@ -346,10 +359,10 @@ class AdaptiveLeafPipeline:
     ) -> list[tuple[float, float]]:
         if self.pipeline_mode == "fast":
             factors = (0.55, 0.40)
-            ious = [0.45, 0.60]
+            ious = [0.45]
         elif self.pipeline_mode == "production":
             factors = (0.55, 0.45)
-            ious = [0.45, 0.60]
+            ious = [0.45]
         else:
             factors = (0.55, 0.45, 0.35)
             ious = [0.45, 0.55, 0.65]
@@ -506,7 +519,9 @@ class AdaptiveLeafPipeline:
                 (detection.left, detection.top, detection.right, detection.bottom),
                 original_image.size,
             )
-            if quality < self.min_crop_quality and detection.confidence < 0.30:
+            if detection.confidence < self.min_crop_confidence:
+                continue
+            if quality < self.min_crop_quality:
                 continue
             score = round(
                 _clamp01(
@@ -605,6 +620,11 @@ class AdaptiveLeafPipeline:
             attempts,
             debug_dir / "yolo_visualization.jpg",
         )
+        self._draw_detector_heatmap(
+            original_image,
+            attempts,
+            debug_dir / "detector_heatmap.jpg",
+        )
 
         crops_dir = debug_dir / "crops"
         crops_dir.mkdir(parents=True, exist_ok=True)
@@ -641,6 +661,29 @@ class AdaptiveLeafPipeline:
                 ensure_ascii=False,
                 indent=2,
             ),
+            encoding="utf-8",
+        )
+
+        pipeline_log_lines = [
+            f"pipeline_stage_failed={failure_stage or 'none'}",
+            f"failure_reason={failure_reason or 'passed_all_stages'}",
+            f"attempt_count={len(attempts)}",
+            f"selected_crop_count={len(selected_crops)}",
+        ]
+        for index, attempt in enumerate(attempts, start=1):
+            pipeline_log_lines.append(
+                "attempt[{index}] variant={variant} preprocessing={preprocessing} "
+                "conf={confidence:.3f} iou={iou:.3f} detections={detections}".format(
+                    index=index,
+                    variant=attempt.variant,
+                    preprocessing=attempt.preprocessing,
+                    confidence=attempt.confidence_threshold,
+                    iou=attempt.iou_threshold,
+                    detections=len(attempt.detections),
+                )
+            )
+        (debug_dir / "pipeline_log.txt").write_text(
+            "\n".join(pipeline_log_lines) + "\n",
             encoding="utf-8",
         )
 
@@ -729,6 +772,38 @@ class AdaptiveLeafPipeline:
             )
             draw.text((text_x + 4, text_y + 2), label, fill="white")
         self._save_image(annotated, output_path)
+
+    def _draw_detector_heatmap(
+        self,
+        original_image: Image.Image,
+        attempts: list[DetectorAttempt],
+        output_path: Path,
+    ) -> None:
+        heatmap = original_image.convert("RGBA")
+        overlay = Image.new("RGBA", heatmap.size, (0, 0, 0, 0))
+        draw = ImageDraw.Draw(overlay)
+        all_detections = [
+            detection
+            for attempt in attempts
+            for detection in attempt.detections
+        ]
+        if not all_detections:
+            self._save_image(heatmap.convert("RGB"), output_path)
+            return
+
+        for detection in all_detections:
+            confidence = max(0.1, min(1.0, detection.confidence))
+            alpha = int(round(40 + confidence * 120))
+            color = (255, 64, 0, alpha)
+            draw.rectangle(
+                [detection.left, detection.top, detection.right, detection.bottom],
+                fill=color,
+                outline=(255, 220, 64, min(255, alpha + 40)),
+                width=3,
+            )
+
+        blended = Image.alpha_composite(heatmap, overlay).convert("RGB")
+        self._save_image(blended, output_path)
 
     @staticmethod
     def _save_image(image: Image.Image, path: Path) -> None:
