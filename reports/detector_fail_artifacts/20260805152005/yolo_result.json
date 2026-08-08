@@ -1,0 +1,56 @@
+{
+  "model": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\duriancare-ai-service\\models\\leaf_detector_best.pt",
+  "weights": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\duriancare-ai-service\\models\\leaf_detector_best.pt",
+  "device": "cpu",
+  "attempts": [
+    {
+      "variant": "clahe",
+      "preprocessing": "clahe",
+      "confidenceThreshold": 0.25,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 240,
+      "imageHeight": 240,
+      "processingTimeMs": 472.418,
+      "detections": []
+    },
+    {
+      "variant": "clahe",
+      "preprocessing": "clahe",
+      "confidenceThreshold": 0.195,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 240,
+      "imageHeight": 240,
+      "processingTimeMs": 439.669,
+      "detections": []
+    },
+    {
+      "variant": "contrast_stretch",
+      "preprocessing": "contrast_stretch",
+      "confidenceThreshold": 0.25,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 240,
+      "imageHeight": 240,
+      "processingTimeMs": 424.349,
+      "detections": [
+        {
+          "left": 0,
+          "top": 0,
+          "right": 203,
+          "bottom": 233,
+          "confidence": 0.6456184387207031,
+          "class_id": 1,
+          "class_name": "Leaf Blight",
+          "source_variant": "contrast_stretch",
+          "confidence_threshold": 0.25,
+          "iou_threshold": 0.55,
+          "scale": 1.0,
+          "area_ratio": 0.821163,
+          "crop_quality": 0.4367
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,187 @@
+{
+  "model": "/workspace/duriancare-ai-service/yolov8s.pt",
+  "weights": "/workspace/duriancare-ai-service/yolov8s.pt",
+  "device": "cpu",
+  "attempts": [
+    {
+      "variant": "clahe",
+      "preprocessing": "clahe",
+      "confidenceThreshold": 0.25,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 1800,
+      "imageHeight": 1200,
+      "processingTimeMs": 161.559,
+      "detections": []
+    },
+    {
+      "variant": "clahe",
+      "preprocessing": "clahe",
+      "confidenceThreshold": 0.195,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 1800,
+      "imageHeight": 1200,
+      "processingTimeMs": 145.396,
+      "detections": []
+    },
+    {
+      "variant": "awb",
+      "preprocessing": "awb",
+      "confidenceThreshold": 0.25,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 1800,
+      "imageHeight": 1200,
+      "processingTimeMs": 155.452,
+      "detections": []
+    },
+    {
+      "variant": "awb",
+      "preprocessing": "awb",
+      "confidenceThreshold": 0.195,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 1800,
+      "imageHeight": 1200,
+      "processingTimeMs": 138.552,
+      "detections": []
+    },
+    {
+      "variant": "gray_world",
+      "preprocessing": "gray_world",
+      "confidenceThreshold": 0.25,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 1800,
+      "imageHeight": 1200,
+      "processingTimeMs": 130.96,
+      "detections": []
+    },
+    {
+      "variant": "gray_world",
+      "preprocessing": "gray_world",
+      "confidenceThreshold": 0.195,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 1800,
+      "imageHeight": 1200,
+      "processingTimeMs": 143.842,
+      "detections": []
+    },
+    {
+      "variant": "brightness_norm",
+      "preprocessing": "brightness_norm",
+      "confidenceThreshold": 0.25,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 1800,
+      "imageHeight": 1200,
+      "processingTimeMs": 147.829,
+      "detections": []
+    },
+    {
+      "variant": "brightness_norm",
+      "preprocessing": "brightness_norm",
+      "confidenceThreshold": 0.195,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 1800,
+      "imageHeight": 1200,
+      "processingTimeMs": 137.647,
+      "detections": []
+    },
+    {
+      "variant": "gamma_0_85",
+      "preprocessing": "gamma_0_85",
+      "confidenceThreshold": 0.138,
+      "iouThreshold": 0.45,
+      "scale": 1.0,
+      "imageWidth": 1800,
+      "imageHeight": 1200,
+      "processingTimeMs": 123.096,
+      "detections": [
+        {
+          "left": 3,
+          "top": 39,
+          "right": 206,
+          "bottom": 1130,
+          "confidence": 0.14505258202552795,
+          "class_id": 74,
+          "class_name": "clock",
+          "source_variant": "gamma_0_85",
+          "confidence_threshold": 0.138,
+          "iou_threshold": 0.45,
+          "scale": 1.0,
+          "area_ratio": 0.102534,
+          "crop_quality": 0.4326
+        }
+      ]
+    },
+    {
+      "variant": "gamma_0_85",
+      "preprocessing": "gamma_0_85",
+      "confidenceThreshold": 0.113,
+      "iouThreshold": 0.45,
+      "scale": 1.0,
+      "imageWidth": 1800,
+      "imageHeight": 1200,
+      "processingTimeMs": 127.415,
+      "detections": [
+        {
+          "left": 3,
+          "top": 39,
+          "right": 206,
+          "bottom": 1130,
+          "confidence": 0.14505258202552795,
+          "class_id": 74,
+          "class_name": "clock",
+          "source_variant": "gamma_0_85",
+          "confidence_threshold": 0.113,
+          "iou_threshold": 0.45,
+          "scale": 1.0,
+          "area_ratio": 0.102534,
+          "crop_quality": 0.4326
+        }
+      ]
+    },
+    {
+      "variant": "denoise",
+      "preprocessing": "denoise",
+      "confidenceThreshold": 0.138,
+      "iouThreshold": 0.45,
+      "scale": 1.0,
+      "imageWidth": 1800,
+      "imageHeight": 1200,
+      "processingTimeMs": 116.547,
+      "detections": []
+    },
+    {
+      "variant": "denoise",
+      "preprocessing": "denoise",
+      "confidenceThreshold": 0.113,
+      "iouThreshold": 0.45,
+      "scale": 1.0,
+      "imageWidth": 1800,
+      "imageHeight": 1200,
+      "processingTimeMs": 123.735,
+      "detections": [
+        {
+          "left": 3,
+          "top": 38,
+          "right": 206,
+          "bottom": 1133,
+          "confidence": 0.12438911944627762,
+          "class_id": 74,
+          "class_name": "clock",
+          "source_variant": "denoise",
+          "confidence_threshold": 0.113,
+          "iou_threshold": 0.45,
+          "scale": 1.0,
+          "area_ratio": 0.10291,
+          "crop_quality": 0.4326
+        }
+      ]
+    }
+  ]
+}

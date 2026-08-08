@@ -1,0 +1,67 @@
+{
+  "model": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\duriancare-ai-service\\yolov8s.pt",
+  "weights": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\duriancare-ai-service\\yolov8s.pt",
+  "device": "cpu",
+  "attempts": [
+    {
+      "variant": "clahe",
+      "preprocessing": "clahe",
+      "confidenceThreshold": 0.25,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 473,
+      "imageHeight": 448,
+      "processingTimeMs": 203.246,
+      "detections": []
+    },
+    {
+      "variant": "clahe",
+      "preprocessing": "clahe",
+      "confidenceThreshold": 0.195,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 473,
+      "imageHeight": 448,
+      "processingTimeMs": 190.338,
+      "detections": []
+    },
+    {
+      "variant": "contrast_stretch",
+      "preprocessing": "contrast_stretch",
+      "confidenceThreshold": 0.25,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 473,
+      "imageHeight": 448,
+      "processingTimeMs": 185.563,
+      "detections": []
+    },
+    {
+      "variant": "contrast_stretch",
+      "preprocessing": "contrast_stretch",
+      "confidenceThreshold": 0.195,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 473,
+      "imageHeight": 448,
+      "processingTimeMs": 197.193,
+      "detections": [
+        {
+          "left": 3,
+          "top": 64,
+          "right": 463,
+          "bottom": 439,
+          "confidence": 0.23058761656284332,
+          "class_id": 55,
+          "class_name": "cake",
+          "source_variant": "contrast_stretch",
+          "confidence_threshold": 0.195,
+          "iou_threshold": 0.55,
+          "scale": 1.0,
+          "area_ratio": 0.814048,
+          "crop_quality": 0.4565
+        }
+      ]
+    }
+  ]
+}
