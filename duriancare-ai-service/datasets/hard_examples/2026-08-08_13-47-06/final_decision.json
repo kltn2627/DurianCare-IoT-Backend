@@ -1,0 +1,4 @@
+{
+  "pipeline_stage_failed": "detector",
+  "failure_reason": "detector_no_bbox"
+}

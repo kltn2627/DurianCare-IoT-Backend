@@ -1,0 +1,88 @@
+{
+  "model": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\duriancare-ai-service\\yolov8s.pt",
+  "weights": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\duriancare-ai-service\\yolov8s.pt",
+  "device": "cpu",
+  "attempts": [
+    {
+      "variant": "clahe",
+      "preprocessing": "clahe",
+      "confidenceThreshold": 0.25,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 640,
+      "imageHeight": 480,
+      "processingTimeMs": 132.972,
+      "detections": [
+        {
+          "left": 496,
+          "top": 4,
+          "right": 555,
+          "bottom": 62,
+          "confidence": 0.46150270104408264,
+          "class_id": 74,
+          "class_name": "clock",
+          "source_variant": "clahe",
+          "confidence_threshold": 0.25,
+          "iou_threshold": 0.55,
+          "scale": 1.0,
+          "area_ratio": 0.011139,
+          "crop_quality": 0.0
+        }
+      ]
+    },
+    {
+      "variant": "clahe",
+      "preprocessing": "clahe",
+      "confidenceThreshold": 0.195,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 640,
+      "imageHeight": 480,
+      "processingTimeMs": 132.071,
+      "detections": [
+        {
+          "left": 496,
+          "top": 4,
+          "right": 555,
+          "bottom": 62,
+          "confidence": 0.46150270104408264,
+          "class_id": 74,
+          "class_name": "clock",
+          "source_variant": "clahe",
+          "confidence_threshold": 0.195,
+          "iou_threshold": 0.55,
+          "scale": 1.0,
+          "area_ratio": 0.011139,
+          "crop_quality": 0.0
+        }
+      ]
+    },
+    {
+      "variant": "brightness_norm",
+      "preprocessing": "brightness_norm",
+      "confidenceThreshold": 0.25,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 640,
+      "imageHeight": 480,
+      "processingTimeMs": 131.438,
+      "detections": [
+        {
+          "left": 64,
+          "top": 1,
+          "right": 638,
+          "bottom": 335,
+          "confidence": 0.3110584318637848,
+          "class_id": 62,
+          "class_name": "tv",
+          "source_variant": "brightness_norm",
+          "confidence_threshold": 0.25,
+          "iou_threshold": 0.55,
+          "scale": 1.0,
+          "area_ratio": 0.624076,
+          "crop_quality": 0.4627
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "model": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\duriancare-ai-service\\models\\leaf_detector_best.pt",
+  "weights": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\duriancare-ai-service\\models\\leaf_detector_best.pt",
+  "device": "cpu",
+  "attempts": [
+    {
+      "variant": "contrast_stretch",
+      "preprocessing": "contrast_stretch",
+      "confidenceThreshold": 0.25,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 286,
+      "imageHeight": 334,
+      "processingTimeMs": 487.794,
+      "detections": [
+        {
+          "left": 145,
+          "top": 0,
+          "right": 286,
+          "bottom": 120,
+          "confidence": 0.3132323622703552,
+          "class_id": 1,
+          "class_name": "Leaf Blight",
+          "source_variant": "contrast_stretch",
+          "confidence_threshold": 0.25,
+          "iou_threshold": 0.55,
+          "scale": 1.0,
+          "area_ratio": 0.177128,
+          "crop_quality": 0.6388
+        }
+      ]
+    }
+  ]
+}

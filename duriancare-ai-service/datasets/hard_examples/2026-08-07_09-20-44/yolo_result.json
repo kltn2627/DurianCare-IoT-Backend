@@ -1,0 +1,139 @@
+{
+  "model": "/workspace/duriancare-ai-service/yolov8s.pt",
+  "weights": "/workspace/duriancare-ai-service/yolov8s.pt",
+  "device": "cpu",
+  "attempts": [
+    {
+      "variant": "gamma_1_15",
+      "preprocessing": "gamma_1_15",
+      "confidenceThreshold": 0.25,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 640,
+      "imageHeight": 480,
+      "processingTimeMs": 124.143,
+      "detections": []
+    },
+    {
+      "variant": "gamma_1_15",
+      "preprocessing": "gamma_1_15",
+      "confidenceThreshold": 0.195,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 640,
+      "imageHeight": 480,
+      "processingTimeMs": 120.668,
+      "detections": []
+    },
+    {
+      "variant": "clahe",
+      "preprocessing": "clahe",
+      "confidenceThreshold": 0.25,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 640,
+      "imageHeight": 480,
+      "processingTimeMs": 120.089,
+      "detections": []
+    },
+    {
+      "variant": "clahe",
+      "preprocessing": "clahe",
+      "confidenceThreshold": 0.195,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 640,
+      "imageHeight": 480,
+      "processingTimeMs": 119.837,
+      "detections": []
+    },
+    {
+      "variant": "original",
+      "preprocessing": "original",
+      "confidenceThreshold": 0.25,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 640,
+      "imageHeight": 480,
+      "processingTimeMs": 178.966,
+      "detections": []
+    },
+    {
+      "variant": "original",
+      "preprocessing": "original",
+      "confidenceThreshold": 0.195,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 640,
+      "imageHeight": 480,
+      "processingTimeMs": 200.305,
+      "detections": []
+    },
+    {
+      "variant": "denoise",
+      "preprocessing": "denoise",
+      "confidenceThreshold": 0.25,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 640,
+      "imageHeight": 480,
+      "processingTimeMs": 134.061,
+      "detections": []
+    },
+    {
+      "variant": "denoise",
+      "preprocessing": "denoise",
+      "confidenceThreshold": 0.195,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 640,
+      "imageHeight": 480,
+      "processingTimeMs": 139.897,
+      "detections": []
+    },
+    {
+      "variant": "gamma_0_85",
+      "preprocessing": "gamma_0_85",
+      "confidenceThreshold": 0.138,
+      "iouThreshold": 0.45,
+      "scale": 1.0,
+      "imageWidth": 640,
+      "imageHeight": 480,
+      "processingTimeMs": 126.467,
+      "detections": []
+    },
+    {
+      "variant": "gamma_0_85",
+      "preprocessing": "gamma_0_85",
+      "confidenceThreshold": 0.113,
+      "iouThreshold": 0.45,
+      "scale": 1.0,
+      "imageWidth": 640,
+      "imageHeight": 480,
+      "processingTimeMs": 117.728,
+      "detections": []
+    },
+    {
+      "variant": "brightness_norm",
+      "preprocessing": "brightness_norm",
+      "confidenceThreshold": 0.138,
+      "iouThreshold": 0.45,
+      "scale": 1.0,
+      "imageWidth": 640,
+      "imageHeight": 480,
+      "processingTimeMs": 124.032,
+      "detections": []
+    },
+    {
+      "variant": "brightness_norm",
+      "preprocessing": "brightness_norm",
+      "confidenceThreshold": 0.113,
+      "iouThreshold": 0.45,
+      "scale": 1.0,
+      "imageWidth": 640,
+      "imageHeight": 480,
+      "processingTimeMs": 127.34,
+      "detections": []
+    }
+  ]
+}

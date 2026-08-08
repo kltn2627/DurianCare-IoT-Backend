@@ -1,0 +1,139 @@
+{
+  "model": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\duriancare-ai-service\\models\\leaf_detector_best.pt",
+  "weights": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\duriancare-ai-service\\models\\leaf_detector_best.pt",
+  "device": "cpu",
+  "attempts": [
+    {
+      "variant": "clahe",
+      "preprocessing": "clahe",
+      "confidenceThreshold": 0.25,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 640,
+      "imageHeight": 480,
+      "processingTimeMs": 341.581,
+      "detections": []
+    },
+    {
+      "variant": "clahe",
+      "preprocessing": "clahe",
+      "confidenceThreshold": 0.195,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 640,
+      "imageHeight": 480,
+      "processingTimeMs": 311.188,
+      "detections": []
+    },
+    {
+      "variant": "brightness_norm",
+      "preprocessing": "brightness_norm",
+      "confidenceThreshold": 0.25,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 640,
+      "imageHeight": 480,
+      "processingTimeMs": 272.869,
+      "detections": []
+    },
+    {
+      "variant": "brightness_norm",
+      "preprocessing": "brightness_norm",
+      "confidenceThreshold": 0.195,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 640,
+      "imageHeight": 480,
+      "processingTimeMs": 262.927,
+      "detections": []
+    },
+    {
+      "variant": "contrast_stretch",
+      "preprocessing": "contrast_stretch",
+      "confidenceThreshold": 0.25,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 640,
+      "imageHeight": 480,
+      "processingTimeMs": 258.757,
+      "detections": []
+    },
+    {
+      "variant": "contrast_stretch",
+      "preprocessing": "contrast_stretch",
+      "confidenceThreshold": 0.195,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 640,
+      "imageHeight": 480,
+      "processingTimeMs": 398.039,
+      "detections": []
+    },
+    {
+      "variant": "gamma_1_15",
+      "preprocessing": "gamma_1_15",
+      "confidenceThreshold": 0.25,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 640,
+      "imageHeight": 480,
+      "processingTimeMs": 457.108,
+      "detections": []
+    },
+    {
+      "variant": "gamma_1_15",
+      "preprocessing": "gamma_1_15",
+      "confidenceThreshold": 0.195,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 640,
+      "imageHeight": 480,
+      "processingTimeMs": 424.811,
+      "detections": []
+    },
+    {
+      "variant": "original",
+      "preprocessing": "original",
+      "confidenceThreshold": 0.138,
+      "iouThreshold": 0.45,
+      "scale": 1.0,
+      "imageWidth": 640,
+      "imageHeight": 480,
+      "processingTimeMs": 355.316,
+      "detections": []
+    },
+    {
+      "variant": "original",
+      "preprocessing": "original",
+      "confidenceThreshold": 0.113,
+      "iouThreshold": 0.45,
+      "scale": 1.0,
+      "imageWidth": 640,
+      "imageHeight": 480,
+      "processingTimeMs": 321.05,
+      "detections": []
+    },
+    {
+      "variant": "denoise",
+      "preprocessing": "denoise",
+      "confidenceThreshold": 0.138,
+      "iouThreshold": 0.45,
+      "scale": 1.0,
+      "imageWidth": 640,
+      "imageHeight": 480,
+      "processingTimeMs": 338.534,
+      "detections": []
+    },
+    {
+      "variant": "denoise",
+      "preprocessing": "denoise",
+      "confidenceThreshold": 0.113,
+      "iouThreshold": 0.45,
+      "scale": 1.0,
+      "imageWidth": 640,
+      "imageHeight": 480,
+      "processingTimeMs": 321.076,
+      "detections": []
+    }
+  ]
+}

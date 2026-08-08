@@ -320,8 +320,12 @@ services:
     restart: unless-stopped
     ports:
       - "8000:8000"
+    working_dir: /workspace/duriancare-ai-service
     environment:
-      YOLO_MODEL_PATH: ${YOLO_MODEL_PATH:-yolov8m.pt}
+      PYTHONPATH: /workspace/duriancare-ai-service
+      AI_DEBUG: ${AI_DEBUG:-true}
+      AI_GIT_COMMIT: ${AI_GIT_COMMIT:-}
+      YOLO_MODEL_PATH: ${YOLO_MODEL_PATH:-models/leaf_detector_best.pt}
       MOBILENET_WEIGHTS_PATH: models/mobilenetv2_classifier_high_acc.pth
       YOLO_CONFIDENCE: 0.25
       ENABLE_YOLO_CROP: ${ENABLE_YOLO_CROP:-true}
@@ -335,8 +339,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       KNOWLEDGE_DB_SCHEMA: ${KNOWLEDGE_DB_SCHEMA:-public}
-      KNOWLEDGE_BASE_PATH: /app/knowledge_base
-      CHROMA_PERSIST_PATH: /app/vector_store
+      KNOWLEDGE_BASE_PATH: knowledge_base
+      CHROMA_PERSIST_PATH: vector_store
       RAG_COLLECTION_NAME: duriancare_knowledge
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -351,7 +355,9 @@ services:
       AWS_S3_PRESIGNED_URL_EXPIRATION_SECONDS: ${AWS_S3_PRESIGNED_URL_EXPIRATION_SECONDS:-3600}
       MAX_IMAGE_SIZE_BYTES: ${MAX_IMAGE_SIZE_BYTES:-10485760}
     volumes:
-      - ai_vector_store:/app/vector_store
+      - ..:/workspace
+      - ai_vector_store:/workspace/duriancare-ai-service/vector_store
+      - ai_artifacts:/workspace/duriancare-ai-service/artifacts
     networks:
       - duriancare-network
 
@@ -528,4 +534,5 @@ volumes:
   emqx_data:
   emqx_log:
   ai_vector_store:
+  ai_artifacts:
   elasticsearch_data:

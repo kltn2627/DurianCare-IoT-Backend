@@ -1,0 +1,65 @@
+label,category,file,status_code,elapsed_ms,passed,reason
+T1_lol_wallpaper,non_leaf,T1.png,422,57.8,PASS,green_ratio=0.000 < 0.012 (no_leaf_color)
+blank_white,non_leaf,blank_white.jpg,422,7.5,PASS,green_ratio=0.000 < 0.012 (no_leaf_color)
+pure_black,non_leaf,pure_black.jpg,422,8.6,PASS,green_ratio=0.000 < 0.012 (no_leaf_color)
+solid_red,non_leaf,solid_red.jpg,422,8.2,PASS,green_ratio=0.000 < 0.012 (no_leaf_color)
+solid_blue,non_leaf,solid_blue.jpg,422,8.7,PASS,green_ratio=0.000 < 0.012 (no_leaf_color)
+gradient_rb,non_leaf,gradient_rb.jpg,422,9.1,PASS,green_ratio=0.000 < 0.012 (no_leaf_color)
+human_face_skin,non_leaf,human_face.jpg,422,9.0,PASS,green_ratio=0.000 < 0.012 (no_leaf_color)
+cat_grey_fur,non_leaf,cat_grey.jpg,422,7.8,PASS,green_ratio=0.000 < 0.012 (no_leaf_color)
+dog_brown_fur,non_leaf,dog_brown.jpg,422,22.4,PASS,green_ratio=0.000 < 0.012 (no_leaf_color)
+car_silver,non_leaf,car.jpg,422,19.5,PASS,green_ratio=0.000 < 0.012 (no_leaf_color)
+laptop_dark,non_leaf,laptop.jpg,422,8.4,PASS,green_ratio=0.000 < 0.012 (no_leaf_color)
+keyboard_dark,non_leaf,keyboard.jpg,422,21.9,PASS,green_ratio=0.000 < 0.012 (no_leaf_color)
+landscape_green,non_leaf,landscape_green.jpg,422,1370.8,PASS,texture_energy < 1.5 (leaf_validation_failed) — YOLO conf=0.290 area=0.876 but Laplacian≈0
+leaf_1,valid_leaf,1.jpg,200,902.6,PASS,disease=ALGAL_LEAF_SPOT conf=70.80%
+leaf_123,valid_leaf,123.jpg,200,2040.2,PASS,disease=PHOMOPSIS_LEAF_SPOT conf=99.44%
+leaf_1231,valid_leaf,1231.jpg,200,1140.7,PASS,disease=ALLOCARIDARA_ATTACK conf=99.33%
+leaf_12415,valid_leaf,12415.jpg,200,759.1,PASS,disease=PHOMOPSIS_LEAF_SPOT conf=99.99%
+leaf_125125,valid_leaf,125125.jpg,200,756.4,PASS,disease=LEAF_BLIGHT conf=100.00%
+leaf_125125634,valid_leaf,125125634.jpg,200,10873.4,PASS,disease=ALLOCARIDARA_ATTACK conf=99.79%
+leaf_125412,valid_leaf,125412.jpg,200,9944.2,PASS,disease=LEAF_BLIGHT conf=100.00%
+leaf_1561756,valid_leaf,1561756.jpg,422,10141.9,FAIL,yolo_zero_detections — 12 attempts (6 variants × 2 thresholds) all return 0 dets at min_conf=0.113
+leaf_1691221976-sau-rieng-bi-nam-la,valid_leaf,1691221976-sau-rieng-bi-nam-la.jpg,200,714.1,PASS,disease=ALGAL_LEAF_SPOT conf=100.00%
+leaf_2,valid_leaf,2.jpg,200,9950.5,PASS,disease=ALGAL_LEAF_SPOT conf=99.88%
+leaf_20260803212305,valid_leaf,20260803212305.jpg,200,672.6,PASS,disease=LEAF_BLIGHT conf=98.99%
+leaf_20260803212351,valid_leaf,20260803212351.jpg,200,1250.4,PASS,disease=LEAF_BLIGHT conf=50.53%
+leaf_20260803212427,valid_leaf,20260803212427.jpg,200,11383.8,PASS,disease=ALGAL_LEAF_SPOT conf=70.90%
+leaf_20260803213133,valid_leaf,20260803213133.jpg,200,1171.1,PASS,disease=HEALTHY_LEAF conf=47.16%
+leaf_20260803213401,valid_leaf,20260803213401.jpg,200,9369.2,PASS,disease=LEAF_BLIGHT conf=44.41%
+leaf_20260803215153,valid_leaf,20260803215153.jpg,200,1831.4,PASS,disease=ALGAL_LEAF_SPOT conf=82.34%
+leaf_20260805151406,valid_leaf,20260805151406.jpg,200,8890.7,PASS,disease=HEALTHY_LEAF conf=99.15%
+leaf_20260805151536,valid_leaf,20260805151536.jpg,200,9775.2,PASS,disease=HEALTHY_LEAF conf=29.64%
+leaf_20260805151618,valid_leaf,20260805151618.jpg,200,2048.1,PASS,disease=HEALTHY_LEAF conf=99.73%
+leaf_20260805151957,valid_leaf,20260805151957.jpg,200,2946.0,PASS,disease=HEALTHY_LEAF conf=99.98%
+leaf_20260805152001,valid_leaf,20260805152001.jpg,200,1423.6,PASS,disease=HEALTHY_LEAF conf=99.97%
+leaf_20260805152005,valid_leaf,20260805152005.jpg,200,1421.7,PASS,disease=HEALTHY_LEAF conf=99.94%
+leaf_20260805152315,valid_leaf,20260805152315.jpg,200,10060.9,PASS,disease=HEALTHY_LEAF conf=88.91%
+leaf_20260805155857,valid_leaf,20260805155857.jpg,200,12132.1,PASS,disease=ALGAL_LEAF_SPOT conf=53.84%
+leaf_213,valid_leaf,213.jpg,200,1455.5,PASS,disease=ALLOCARIDARA_ATTACK conf=99.90%
+leaf_2512,valid_leaf,2512.jpg,200,699.2,PASS,disease=ALLOCARIDARA_ATTACK conf=99.77%
+leaf_3,valid_leaf,3.jpg,200,1402.7,PASS,disease=ALGAL_LEAF_SPOT conf=99.98%
+leaf_4,valid_leaf,4.jpg,200,699.7,PASS,disease=ALLOCARIDARA_ATTACK conf=99.94%
+leaf_5,valid_leaf,5.jpg,200,1455.7,PASS,disease=ALLOCARIDARA_ATTACK conf=99.97%
+leaf_5124,valid_leaf,5124.jpg,200,646.9,PASS,disease=PHOMOPSIS_LEAF_SPOT conf=100.00%
+leaf_6,valid_leaf,6.jpg,200,699.1,PASS,disease=ALLOCARIDARA_ATTACK conf=90.27%
+leaf_61,valid_leaf,61.jpg,200,690.1,PASS,disease=PHOMOPSIS_LEAF_SPOT conf=99.99%
+leaf_7,valid_leaf,7.jpg,200,1020.3,PASS,disease=ALLOCARIDARA_ATTACK conf=95.22%
+leaf_8,valid_leaf,8.jpg,200,727.5,PASS,disease=HEALTHY_LEAF conf=99.99%
+leaf_88,valid_leaf,88.jpg,200,723.0,PASS,disease=HEALTHY_LEAF conf=100.00%
+leaf_9,valid_leaf,9.jpg,200,688.9,PASS,disease=HEALTHY_LEAF conf=100.00%
+leaf_90,valid_leaf,90.jpg,200,669.0,PASS,disease=HEALTHY_LEAF conf=95.38%
+leaf_benh-dom-la-cay-sau-rieng-02,valid_leaf,benh-dom-la-cay-sau-rieng-02.jpg,200,2041.9,PASS,disease=ALLOCARIDARA_ATTACK conf=80.77%
+leaf_benh-dom-la-sau-rieng-va-bien-phap-phong-tri-kimnonggolstar-vn-1,valid_leaf,benh-dom-la-sau-rieng-va-bien-phap-phong-tri-kimnonggolstar-vn-1.jpg,422,10347.6,FAIL,yolo_zero_detections — 12 attempts (6 variants × 2 thresholds) all return 0 dets at min_conf=0.113
+leaf_benh-sau-rieng,valid_leaf,benh-sau-rieng.jpg,200,705.0,PASS,disease=LEAF_BLIGHT conf=99.99%
+leaf_chay-la-tren-sau-rieng-1,valid_leaf,chay-la-tren-sau-rieng-1.jpg,200,962.3,PASS,disease=PHOMOPSIS_LEAF_SPOT conf=73.97%
+leaf_domphomosis,valid_leaf,domphomosis.jpg,200,1514.5,PASS,disease=PHOMOPSIS_LEAF_SPOT conf=77.27%
+leaf_e-1,valid_leaf,e-1.jpg,200,1655.2,PASS,disease=PHOMOPSIS_LEAF_SPOT conf=45.64%
+leaf_nguyen-nhan-sau-rieng-1,valid_leaf,nguyen-nhan-sau-rieng-1.jpg,200,11362.5,PASS,disease=ALLOCARIDARA_ATTACK conf=94.97%
+leaf_sau-rieng-bi-dom-la,valid_leaf,sau-rieng-bi-dom-la.jpg,200,1708.3,PASS,disease=PHOMOPSIS_LEAF_SPOT conf=74.43%
+leaf_sau-rieng-xi-dot-sau-chay-la,valid_leaf,sầu riêng xì đọt sau cháy lá.jpg,200,8606.0,PASS,disease=LEAF_BLIGHT conf=91.40%
+leaf_unnamed,valid_leaf,unnamed.jpg,200,643.6,PASS,disease=PHOMOPSIS_LEAF_SPOT conf=98.13%
+leaf_wao-chay-la-sau-rieng-do-nam-600x399,valid_leaf,wao-chay-la-sau-rieng-do-nam-600x399.jpg,200,8880.9,PASS,disease=HEALTHY_LEAF conf=96.96%
+leaf_nguyen-nhan-sau-rieng-bi-chay-la,valid_leaf,nguyen-nhan-sau-rieng-bi-chay-la.jpg,200,1138.6,PASS,disease=LEAF_BLIGHT conf=98.67%
+leaf_OIP,valid_leaf,OIP.webp,422,8626.1,FAIL,yolo_zero_detections — 12 attempts (6 variants × 2 thresholds) all return 0 dets at min_conf=0.113
+leaf_sau-rieng-bi-dom-rong,valid_leaf,sau-rieng-bi-dom-rong.jpg,200,1327.2,PASS,disease=ALGAL_LEAF_SPOT conf=98.12%

@@ -1,0 +1,45 @@
+{
+  "model": "/workspace/duriancare-ai-service/yolov8s.pt",
+  "weights": "/workspace/duriancare-ai-service/yolov8s.pt",
+  "device": "cpu",
+  "attempts": [
+    {
+      "variant": "clahe",
+      "preprocessing": "clahe",
+      "confidenceThreshold": 0.25,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 224,
+      "imageHeight": 224,
+      "processingTimeMs": 148.477,
+      "detections": []
+    },
+    {
+      "variant": "clahe",
+      "preprocessing": "clahe",
+      "confidenceThreshold": 0.195,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 224,
+      "imageHeight": 224,
+      "processingTimeMs": 151.121,
+      "detections": [
+        {
+          "left": 40,
+          "top": 0,
+          "right": 146,
+          "bottom": 221,
+          "confidence": 0.19537973403930664,
+          "class_id": 14,
+          "class_name": "bird",
+          "source_variant": "clahe",
+          "confidence_threshold": 0.195,
+          "iou_threshold": 0.55,
+          "scale": 1.0,
+          "area_ratio": 0.466877,
+          "crop_quality": 0.6752
+        }
+      ]
+    }
+  ]
+}

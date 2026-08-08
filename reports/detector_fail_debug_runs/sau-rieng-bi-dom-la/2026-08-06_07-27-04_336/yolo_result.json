@@ -1,0 +1,56 @@
+{
+  "model": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\duriancare-ai-service\\models\\leaf_detector_best.pt",
+  "weights": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\duriancare-ai-service\\models\\leaf_detector_best.pt",
+  "device": "cpu",
+  "attempts": [
+    {
+      "variant": "clahe",
+      "preprocessing": "clahe",
+      "confidenceThreshold": 0.25,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 700,
+      "imageHeight": 466,
+      "processingTimeMs": 302.352,
+      "detections": []
+    },
+    {
+      "variant": "clahe",
+      "preprocessing": "clahe",
+      "confidenceThreshold": 0.195,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 700,
+      "imageHeight": 466,
+      "processingTimeMs": 305.437,
+      "detections": []
+    },
+    {
+      "variant": "gamma_0_85",
+      "preprocessing": "gamma_0_85",
+      "confidenceThreshold": 0.25,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 700,
+      "imageHeight": 466,
+      "processingTimeMs": 320.32,
+      "detections": [
+        {
+          "left": 173,
+          "top": 68,
+          "right": 307,
+          "bottom": 428,
+          "confidence": 0.2711782455444336,
+          "class_id": 2,
+          "class_name": "Leaf Spot",
+          "source_variant": "gamma_0_85",
+          "confidence_threshold": 0.25,
+          "iou_threshold": 0.55,
+          "scale": 1.0,
+          "area_ratio": 0.147885,
+          "crop_quality": 0.755
+        }
+      ]
+    }
+  ]
+}

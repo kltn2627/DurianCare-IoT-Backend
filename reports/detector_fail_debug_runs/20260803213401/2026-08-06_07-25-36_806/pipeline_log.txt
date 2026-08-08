@@ -1,0 +1,16 @@
+pipeline_stage_failed=detector
+failure_reason=detector_no_bbox
+attempt_count=12
+selected_crop_count=0
+attempt[1] variant=clahe preprocessing=clahe conf=0.250 iou=0.550 detections=0
+attempt[2] variant=clahe preprocessing=clahe conf=0.195 iou=0.550 detections=0
+attempt[3] variant=brightness_norm preprocessing=brightness_norm conf=0.250 iou=0.550 detections=0
+attempt[4] variant=brightness_norm preprocessing=brightness_norm conf=0.195 iou=0.550 detections=0
+attempt[5] variant=contrast_stretch preprocessing=contrast_stretch conf=0.250 iou=0.550 detections=0
+attempt[6] variant=contrast_stretch preprocessing=contrast_stretch conf=0.195 iou=0.550 detections=0
+attempt[7] variant=gamma_1_15 preprocessing=gamma_1_15 conf=0.250 iou=0.550 detections=0
+attempt[8] variant=gamma_1_15 preprocessing=gamma_1_15 conf=0.195 iou=0.550 detections=0
+attempt[9] variant=original preprocessing=original conf=0.138 iou=0.450 detections=0
+attempt[10] variant=original preprocessing=original conf=0.113 iou=0.450 detections=0
+attempt[11] variant=denoise preprocessing=denoise conf=0.138 iou=0.450 detections=0
+attempt[12] variant=denoise preprocessing=denoise conf=0.113 iou=0.450 detections=0
