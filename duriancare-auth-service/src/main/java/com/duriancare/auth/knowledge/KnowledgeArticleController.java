@@ -96,6 +96,14 @@ public class KnowledgeArticleController {
         return articleService.approve(id, actor(principal));
     }
 
+    @PostMapping("/articles/{id}/reject")
+    KnowledgeArticleResponse rejectArticle(
+            Principal principal,
+            @PathVariable UUID id,
+            @RequestBody(required = false) RejectKnowledgeArticleRequest request) {
+        return articleService.reject(id, request == null ? null : request.reason(), actor(principal));
+    }
+
     @DeleteMapping("/articles/{id}")
     ResponseEntity<Void> deleteArticle(Principal principal, @PathVariable UUID id) {
         articleService.delete(id, actor(principal));
@@ -117,5 +125,8 @@ public class KnowledgeArticleController {
             return articleService.loadUser(authenticatedUser.userId());
         }
         throw new InvalidTokenException("Authenticated user is required");
+    }
+
+    record RejectKnowledgeArticleRequest(String reason) {
     }
 }

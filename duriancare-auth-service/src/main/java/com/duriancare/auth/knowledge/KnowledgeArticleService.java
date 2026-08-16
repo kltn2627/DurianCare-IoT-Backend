@@ -121,6 +121,19 @@ public class KnowledgeArticleService {
     }
 
     @Transactional
+    public KnowledgeArticleResponse reject(UUID id, String reason, User admin) {
+        validateAdmin(admin);
+        KnowledgeArticle article = articleRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Knowledge article was not found"));
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        article.setStatus(KnowledgeArticleStatus.REJECTED);
+        article.setReviewedAt(now);
+        article.setReviewedBy(admin);
+        article.setRejectionReason(reason == null || reason.isBlank() ? "Bài viết chưa đạt yêu cầu duyệt." : reason.trim());
+        return toResponse(articleRepository.save(article));
+    }
+
+    @Transactional
     public void delete(UUID id, User admin) {
         validateAdmin(admin);
         if (!articleRepository.existsById(id)) {
