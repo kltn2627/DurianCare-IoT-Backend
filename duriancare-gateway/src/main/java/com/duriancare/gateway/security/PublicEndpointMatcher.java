@@ -1,6 +1,7 @@
 package com.duriancare.gateway.security;
 
 import java.util.List;
+import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
 
@@ -21,9 +22,21 @@ public class PublicEndpointMatcher {
             "/**/v3/api-docs/**",
             "/swagger-ui/**");
 
+    private static final List<String> PUBLIC_GET_PATHS = List.of(
+            "/api/knowledge/articles",
+            "/api/knowledge/articles/*",
+            "/api/knowledge/articles/*/related",
+            "/api/knowledge/categories",
+            "/api/knowledge/category-options",
+            "/api/knowledge/images/*");
+
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
-    public boolean matches(String path) {
-        return PUBLIC_PATHS.stream().anyMatch(pattern -> pathMatcher.match(pattern, path));
+    public boolean matches(HttpMethod method, String path) {
+        if (PUBLIC_PATHS.stream().anyMatch(pattern -> pathMatcher.match(pattern, path))) {
+            return true;
+        }
+        return HttpMethod.GET.equals(method)
+                && PUBLIC_GET_PATHS.stream().anyMatch(pattern -> pathMatcher.match(pattern, path));
     }
 }

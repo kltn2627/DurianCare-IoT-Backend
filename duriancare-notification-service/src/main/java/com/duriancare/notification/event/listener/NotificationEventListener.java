@@ -34,7 +34,10 @@ public class NotificationEventListener {
             "CONNECTION_REQUEST_ACCEPTED",
             "CONNECTION_REQUEST_REJECTED",
             "CONNECTION_REQUEST_CANCELLED",
-            "CONNECTION_DISCONNECTED");
+            "CONNECTION_DISCONNECTED",
+            "KNOWLEDGE_SUBMITTED",
+            "KNOWLEDGE_APPROVED",
+            "KNOWLEDGE_REJECTED");
 
     private final ObjectMapper objectMapper;
     private final NotificationService notificationService;

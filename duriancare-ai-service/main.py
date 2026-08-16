@@ -16,6 +16,7 @@ from app.db.migration_runner import run_ai_database_migrations
 from app.decision.decision_service import DecisionSupportService
 from app.core.config import settings
 from app.repositories.knowledge_repository import KnowledgeRepository
+from app.repositories.prediction_history_repository import PredictionHistoryRepository
 from app.services.disease_classifier import DoubleModelDiseaseClassifier
 from app.services.recommendation_service import RecommendationService
 from app.services.rag_service import RagService
@@ -157,6 +158,8 @@ async def lifespan(app: FastAPI):
     app.state.recommendation_service = None
     app.state.recommendation_load_error = None
     app.state.recommendation_repository = None
+    app.state.prediction_history_repository = None
+    app.state.prediction_history_load_error = None
     app.state.decision_service = None
     app.state.decision_load_error = None
     app.state.s3_storage = None
@@ -207,6 +210,15 @@ async def lifespan(app: FastAPI):
     except Exception as exception:
         logger.exception("Failed to initialize recommendation service")
         app.state.recommendation_load_error = str(exception)
+
+    try:
+        app.state.prediction_history_repository = PredictionHistoryRepository(
+            settings.postgres_url,
+            settings.knowledge_db_schema,
+        )
+    except Exception as exception:
+        logger.exception("Failed to initialize prediction history repository")
+        app.state.prediction_history_load_error = str(exception)
 
     try:
         app.state.decision_service = DecisionSupportService()
@@ -268,8 +280,16 @@ async def lifespan(app: FastAPI):
     recommendation_repository = getattr(app.state, "recommendation_repository", None)
     if recommendation_repository is not None:
         recommendation_repository.close()
+    prediction_history_repository = getattr(
+        app.state,
+        "prediction_history_repository",
+        None,
+    )
+    if prediction_history_repository is not None:
+        prediction_history_repository.close()
     app.state.recommendation_repository = None
     app.state.recommendation_service = None
+    app.state.prediction_history_repository = None
     app.state.decision_service = None
     app.state.s3_storage = None
     app.state.runtime_info = None

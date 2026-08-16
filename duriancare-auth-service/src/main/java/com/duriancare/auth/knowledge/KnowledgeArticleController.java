@@ -5,6 +5,7 @@ import com.duriancare.auth.exception.InvalidTokenException;
 import com.duriancare.auth.security.AuthenticatedUser;
 import jakarta.validation.Valid;
 import java.security.Principal;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -36,24 +37,73 @@ public class KnowledgeArticleController {
 
     @GetMapping("/articles")
     KnowledgeArticlePageResponse listArticles(
-            @RequestParam(required = false) KnowledgeArticleStatus status,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String category,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "24") int size) {
-        return articleService.list(status, page, size);
+            @RequestParam(defaultValue = "24") int size,
+            @RequestParam(defaultValue = "publishedAt,desc") String sort) {
+        return articleService.listPublished(search, category, page, size, sort);
+    }
+
+    @GetMapping("/admin/articles")
+    KnowledgeArticlePageResponse listAdminArticles(
+            Principal principal,
+            @RequestParam(required = false) KnowledgeArticleStatus status,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String category,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "24") int size,
+            @RequestParam(defaultValue = "updatedAt,desc") String sort) {
+        return articleService.listForAdmin(actor(principal), status, search, category, page, size, sort);
     }
 
     @GetMapping("/articles/mine")
     KnowledgeArticlePageResponse listMyArticles(
             Principal principal,
             @RequestParam(required = false) KnowledgeArticleStatus status,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String category,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "24") int size) {
-        return articleService.listMine(actor(principal), status, page, size);
+            @RequestParam(defaultValue = "24") int size,
+            @RequestParam(defaultValue = "updatedAt,desc") String sort) {
+        return articleService.listMine(actor(principal), status, search, category, page, size, sort);
+    }
+
+    @GetMapping("/articles/recent")
+    KnowledgeArticlePageResponse listRecentArticles(@RequestParam(defaultValue = "5") int size) {
+        return articleService.listRecent(size);
+    }
+
+    @GetMapping("/articles/popular")
+    KnowledgeArticlePageResponse listPopularArticles(@RequestParam(defaultValue = "5") int size) {
+        return articleService.listPopular(size);
+    }
+
+    @GetMapping("/articles/featured")
+    KnowledgeArticlePageResponse listFeaturedArticles(@RequestParam(defaultValue = "5") int size) {
+        return articleService.listFeatured(size);
+    }
+
+    @GetMapping("/categories")
+    List<KnowledgeCategoryCountResponse> listCategories() {
+        return articleService.listPublishedCategoryCounts();
+    }
+
+    @GetMapping("/category-options")
+    List<KnowledgeCategoryOptionResponse> listCategoryOptions() {
+        return articleService.listCategoryOptions();
     }
 
     @GetMapping("/articles/{slug}")
     KnowledgeArticleResponse getPublishedArticle(@PathVariable String slug) {
         return articleService.getPublishedBySlug(slug);
+    }
+
+    @GetMapping("/articles/{slug}/related")
+    KnowledgeArticlePageResponse listRelatedArticles(
+            @PathVariable String slug,
+            @RequestParam(defaultValue = "4") int size) {
+        return articleService.listRelated(slug, size);
     }
 
     @PostMapping("/articles")
