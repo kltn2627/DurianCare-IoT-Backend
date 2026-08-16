@@ -95,6 +95,7 @@ export class ChatGateway {
     }
 
     const message = await this.chatMessageService.updateRegimenStep(
+      update.roomId,
       update.messageId,
       update.day,
       Boolean(update.completed)

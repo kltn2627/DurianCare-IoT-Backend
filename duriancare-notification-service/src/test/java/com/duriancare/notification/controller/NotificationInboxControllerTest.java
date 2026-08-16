@@ -18,6 +18,7 @@ import com.duriancare.notification.dto.NotificationResponse;
 import com.duriancare.notification.service.NotificationService;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -43,10 +44,10 @@ class NotificationInboxControllerTest {
     void listNotificationsReturnsPagedResponse() throws Exception {
         NotificationResponse first = new NotificationResponse(
                 "1", "Title A", "Message A", NotificationType.SYSTEM, false,
-                Instant.parse("2026-07-07T00:00:00Z"));
+                Instant.parse("2026-07-07T00:00:00Z"), Map.of("targetUrl", "/dashboard/admin/knowledge"));
         NotificationResponse second = new NotificationResponse(
                 "2", "Title B", "Message B", NotificationType.DEVICE, true,
-                Instant.parse("2026-07-07T00:00:00Z"));
+                Instant.parse("2026-07-07T00:00:00Z"), Map.of());
         when(notificationService.findNotifications(eq("user-1"), any()))
                 .thenReturn(new NotificationPageResponse(
                         1,
@@ -71,6 +72,7 @@ class NotificationInboxControllerTest {
                 .andExpect(jsonPath("$.size").value(5))
                 .andExpect(jsonPath("$.totalElements").value(12))
                 .andExpect(jsonPath("$.notifications[0].id").value("1"))
+                .andExpect(jsonPath("$.notifications[0].metadata.targetUrl").value("/dashboard/admin/knowledge"))
                 .andExpect(jsonPath("$.notifications[1].id").value("2"));
     }
 
@@ -93,7 +95,7 @@ class NotificationInboxControllerTest {
     void markAsReadDelegatesToService() throws Exception {
         NotificationResponse response = new NotificationResponse(
                 "1", "Title", "Body", NotificationType.GENERAL, true,
-                Instant.parse("2026-07-07T00:00:00Z"));
+                Instant.parse("2026-07-07T00:00:00Z"), Map.of());
         when(notificationService.markAsRead("user-1", "1")).thenReturn(response);
 
         mockMvc.perform(patch("/api/notifications/1/read")

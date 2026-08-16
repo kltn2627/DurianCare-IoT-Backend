@@ -79,7 +79,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String path = exchange.getRequest().getPath().value();
-        if (publicEndpointMatcher.matches(path)) {
+        if (publicEndpointMatcher.matches(exchange.getRequest().getMethod(), path)) {
             return chain.filter(exchange);
         }
 

@@ -38,6 +38,14 @@ public class SecurityConfig {
                                 "/api/auth/refresh").permitAll()
                         .requestMatchers("/internal/**").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/knowledge/articles",
+                                "/api/knowledge/articles/*",
+                                "/api/knowledge/articles/*/related",
+                                "/api/knowledge/categories",
+                                "/api/knowledge/category-options",
+                                "/api/knowledge/images/*").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(authenticationEntryPoint))
                 .httpBasic(httpBasic -> httpBasic.disable())

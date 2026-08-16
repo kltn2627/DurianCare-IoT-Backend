@@ -58,3 +58,32 @@ class PredictionData(CamelModel):
 class PredictionResponse(CamelModel):
     status: Literal["success"]
     data: PredictionData
+
+
+class PredictionHistoryImage(CamelModel):
+    url: str | None = None
+    path: str | None = None
+    object_key: str | None = Field(default=None, alias="objectKey")
+
+
+class PredictionHistoryItem(CamelModel):
+    id: str
+    diagnosed_at: str = Field(alias="diagnosedAt")
+    image: PredictionHistoryImage | None = None
+    predicted_disease: str = Field(alias="predictedDisease")
+    confidence: float
+    confidence_text: str = Field(alias="confidenceText")
+    severity: str | None = None
+    status: str
+    source: PredictionSource
+    device_id: str | None = Field(default=None, alias="deviceId")
+    used_detection_crop: bool = Field(alias="usedDetectionCrop")
+    original_filename: str | None = Field(default=None, alias="originalFilename")
+    data: PredictionData
+
+
+class PredictionHistoryResponse(CamelModel):
+    items: list[PredictionHistoryItem]
+    total: int
+    page: int
+    page_size: int = Field(alias="pageSize")

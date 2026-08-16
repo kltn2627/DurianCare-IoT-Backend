@@ -40,7 +40,7 @@ class NotificationEventListenerTest {
                     CreateNotificationRequest request = invocation.getArgument(0, CreateNotificationRequest.class);
                     return new com.duriancare.notification.dto.NotificationResponse(
                             "1", request.title(), request.message(), request.type(), false,
-                            Instant.now());
+                            Instant.now(), request.metadata());
                 });
 
         listener.handle("""
@@ -62,6 +62,28 @@ class NotificationEventListenerTest {
         org.assertj.core.api.Assertions.assertThat(request.type()).isEqualTo(NotificationType.WEATHER);
         org.assertj.core.api.Assertions.assertThat(request.sourceEventId())
                 .isEqualTo("11111111-1111-1111-1111-111111111111");
+    }
+
+    @Test
+    void handlesKnowledgeSubmittedEvent() {
+        listener.handle("""
+                {
+                  "eventId": "22222222-2222-2222-2222-222222222222",
+                  "eventType": "KNOWLEDGE_SUBMITTED",
+                  "receiverId": "admin-1",
+                  "title": "Có bài kiến thức chờ duyệt",
+                  "message": "Kỹ sư đã gửi bài mới.",
+                  "metadata": {"targetUrl": "/dashboard/admin/knowledge"}
+                }
+                """);
+
+        ArgumentCaptor<CreateNotificationRequest> captor =
+                ArgumentCaptor.forClass(CreateNotificationRequest.class);
+        verify(notificationService).createNotification(captor.capture());
+        CreateNotificationRequest request = captor.getValue();
+        org.assertj.core.api.Assertions.assertThat(request.receiverId()).isEqualTo("admin-1");
+        org.assertj.core.api.Assertions.assertThat(request.metadata())
+                .containsEntry("targetUrl", "/dashboard/admin/knowledge");
     }
 
     @Test

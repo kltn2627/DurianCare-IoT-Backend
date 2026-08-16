@@ -3,6 +3,7 @@
 from collections import OrderedDict
 from dataclasses import dataclass
 import json
+import logging
 import math
 import os
 from pathlib import Path
@@ -32,6 +33,7 @@ from app.services.image_enhancement import (
 from app.services.leaf_pipeline import (
     AdaptiveLeafPipeline,
     CropCandidate,
+    DetectionBox,
     DetectionRun,
     ImageVariant,
 )
@@ -43,6 +45,8 @@ CLASS_LABELS = (
     "LEAF_BLIGHT",
     "PHOMOPSIS_LEAF_SPOT",
 )
+
+logger = logging.getLogger(__name__)
 
 
 class PredictionError(RuntimeError):
@@ -118,9 +122,17 @@ class DoubleModelDiseaseClassifier:
             )
         try:
             if self.settings.yolo_crop_enabled:
-                self.detector = YOLO(self.settings.yolo_model)
-                self.detector.to(self.device)
-                self._load_fallback_detector()
+                yolo_model_path = Path(self.settings.yolo_model)
+                if yolo_model_path.is_file():
+                    self.detector = YOLO(self.settings.yolo_model)
+                    self.detector.to(self.device)
+                    self._load_fallback_detector()
+                else:
+                    logger.warning(
+                        "YOLO detector weights not found at %s; "
+                        "falling back to whole-image MobileNet classification.",
+                        self.settings.yolo_model,
+                    )
             self.classifier = self._load_classifier(
                 self.settings.classifier_weights,
             )
@@ -134,8 +146,6 @@ class DoubleModelDiseaseClassifier:
             raise RuntimeError("MobileNetV2 classifier has not been loaded")
         if torch is None or self.transform is None:
             raise RuntimeError("AI runtime dependencies are not installed")
-        if self.detector is None and self.settings.yolo_crop_enabled:
-            raise RuntimeError("YOLO detector has not been loaded")
 
         try:
             if not self._image_has_leaf_color(image):
@@ -144,6 +154,9 @@ class DoubleModelDiseaseClassifier:
                     reason="no_leaf_color",
                     status_code=422,
                 )
+
+            if self.detector is None:
+                return self._predict_whole_image(image)
 
             detection_run = self._run_detection_pipeline(image)
             if not detection_run.selected_crops:
@@ -210,6 +223,44 @@ class DoubleModelDiseaseClassifier:
                 reason="unknown",
                 status_code=500,
             ) from exception
+
+    def _predict_whole_image(self, image: Image.Image) -> DiseasePrediction:
+        image_width, image_height = image.size
+        quality = analyze_image_quality(image)
+        candidate = CropCandidate(
+            image=image,
+            bbox=(0, 0, image_width, image_height),
+            detection=DetectionBox(
+                left=0,
+                top=0,
+                right=image_width,
+                bottom=image_height,
+                confidence=1.0,
+                class_id=0,
+                class_name="whole_image",
+                source_variant="whole_image",
+                confidence_threshold=0.0,
+                iou_threshold=0.0,
+                scale=1.0,
+                area_ratio=1.0,
+                crop_quality=float(getattr(quality, "overall", 1.0)),
+            ),
+            quality_score=float(getattr(quality, "overall", 1.0)),
+            acceptance_reason="yolo_unavailable_whole_image",
+        )
+        crop_predictions = self._classify_crops([candidate])
+        final_label, final_confidence, final_probabilities, top_predictions = self._ensemble_predictions(
+            crop_predictions,
+        )
+        confidence_is_low = final_confidence < self.min_prediction_confidence
+        return DiseasePrediction(
+            label=final_label,
+            confidence=float(final_confidence * 100.0),
+            used_detection_crop=False,
+            bounding_box=None,
+            top_predictions=top_predictions,
+            low_confidence=confidence_is_low,
+        )
 
     def _run_detection_pipeline(self, image: Image.Image) -> DetectionRun:
         if self.detector is None:
