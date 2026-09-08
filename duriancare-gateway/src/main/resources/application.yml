@@ -41,7 +41,7 @@ spring:
             - id: iot-service
               uri: ${IOT_SERVICE_URL:http://localhost:3001}
               predicates:
-                - Path=/api/iot/**
+                - Path=/api/iot/**,/api/v1/sensors/**,/api/v1/camera/**,/api/v1/public/**,/api/v1/export-assessment/**
             - id: ai-service
               uri: ${AI_SERVICE_URL:http://localhost:8000}
               predicates:
