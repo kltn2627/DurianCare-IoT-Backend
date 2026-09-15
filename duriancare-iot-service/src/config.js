@@ -1,5 +1,15 @@
 require("dotenv").config();
 
+// Re-reads ESP32_CAMERA_URL and ESP32_CAPTURE_PATH from .env on every call so
+// you can update the IP without restarting the service — just save .env.
+function getCameraConfig() {
+  require("dotenv").config({ override: true });
+  return {
+    esp32CameraUrl:   (process.env.ESP32_CAMERA_URL   || "http://192.168.1.100").replace(/\/$/, ""),
+    esp32CapturePath: (process.env.ESP32_CAPTURE_PATH || "/capture").replace(/^([^/])/, "/$1"),
+  };
+}
+
 module.exports = {
   port: Number(process.env.PORT || 3001),
   mqttUrl: process.env.MQTT_URL || "mqtt://localhost:1883",
@@ -18,5 +28,11 @@ module.exports = {
     )
   },
   kafkaBrokers: (process.env.KAFKA_BROKERS || "localhost:9092").split(","),
-  kafkaTopic: process.env.KAFKA_TELEMETRY_TOPIC || "iot.telemetry.received"
+  kafkaTopic: process.env.KAFKA_TELEMETRY_TOPIC || "iot.telemetry.received",
+  esp32CameraUrl:    (process.env.ESP32_CAMERA_URL    || "http://192.168.1.100").replace(/\/$/, ""),
+  esp32CapturePath:  (process.env.ESP32_CAPTURE_PATH  || "/capture").replace(/^([^/])/, "/$1"),
+  serverBaseUrl:  (process.env.SERVER_BASE_URL  || "http://localhost:8080").replace(/\/$/, ""),
+  aiServiceUrl:   (process.env.AI_SERVICE_URL   || "http://localhost:8000").replace(/\/$/, ""),
+  uploadsDir: process.env.UPLOADS_DIR || "./uploads",
+  getCameraConfig,
 };

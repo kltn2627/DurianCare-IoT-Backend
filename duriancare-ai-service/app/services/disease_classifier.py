@@ -3,10 +3,13 @@
 from collections import OrderedDict
 from dataclasses import dataclass
 import json
+import logging
 import math
 import os
 from pathlib import Path
 from typing import Any, Mapping
+
+logger = logging.getLogger(__name__)
 
 try:
     import torch
@@ -118,9 +121,17 @@ class DoubleModelDiseaseClassifier:
             )
         try:
             if self.settings.yolo_crop_enabled:
-                self.detector = YOLO(self.settings.yolo_model)
-                self.detector.to(self.device)
-                self._load_fallback_detector()
+                try:
+                    self.detector = YOLO(self.settings.yolo_model)
+                    self.detector.to(self.device)
+                    self._load_fallback_detector()
+                except Exception as yolo_exc:
+                    logger.warning(
+                        "YOLO primary detector unavailable (%s); "
+                        "prediction will require detector — no raw image will be classified",
+                        yolo_exc,
+                    )
+                    self.detector = None
             self.classifier = self._load_classifier(
                 self.settings.classifier_weights,
             )
@@ -134,8 +145,6 @@ class DoubleModelDiseaseClassifier:
             raise RuntimeError("MobileNetV2 classifier has not been loaded")
         if torch is None or self.transform is None:
             raise RuntimeError("AI runtime dependencies are not installed")
-        if self.detector is None and self.settings.yolo_crop_enabled:
-            raise RuntimeError("YOLO detector has not been loaded")
 
         try:
             if not self._image_has_leaf_color(image):

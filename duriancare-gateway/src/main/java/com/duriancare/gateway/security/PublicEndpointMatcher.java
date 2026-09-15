@@ -19,7 +19,8 @@ public class PublicEndpointMatcher {
             "/actuator/health",
             "/actuator/info",
             "/**/v3/api-docs/**",
-            "/swagger-ui/**");
+            "/swagger-ui/**",
+            "/api/v1/public/**");
 
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
 

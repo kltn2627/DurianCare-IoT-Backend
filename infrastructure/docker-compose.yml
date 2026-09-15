@@ -245,6 +245,7 @@ services:
       EUREKA_DEFAULT_ZONE: http://discovery-server:8761/eureka/
       MONGODB_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/${MONGODB_FARM_DATABASE:-duriancare_farm}?authSource=admin
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      AUTH_SERVICE_URL: http://duriancare-auth-service:8081
     depends_on:
       config-server:
         condition: service_started
@@ -252,6 +253,8 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      duriancare-auth-service:
+        condition: service_started
     networks:
       - duriancare-network
 
@@ -326,6 +329,7 @@ services:
       AI_DEBUG: ${AI_DEBUG:-true}
       AI_GIT_COMMIT: ${AI_GIT_COMMIT:-}
       YOLO_MODEL_PATH: ${YOLO_MODEL_PATH:-models/leaf_detector_best.pt}
+      YOLO_FALLBACK_MODEL_PATH: ${YOLO_FALLBACK_MODEL_PATH:-models/leaf_detector_best.pt}
       MOBILENET_WEIGHTS_PATH: models/mobilenetv2_classifier_high_acc.pth
       YOLO_CONFIDENCE: 0.25
       ENABLE_YOLO_CROP: ${ENABLE_YOLO_CROP:-true}
@@ -373,9 +377,12 @@ services:
     environment:
       PORT: 3002
       MONGO_URL: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/${MONGODB_CHAT_DATABASE:-duriancare_chat}?authSource=admin
+      AUTH_SERVICE_URL: http://duriancare-auth-service:8081
     depends_on:
       mongodb:
         condition: service_healthy
+      duriancare-auth-service:
+        condition: service_started
     networks:
       - duriancare-network
 
@@ -493,6 +500,12 @@ services:
       AUTH_OTP_VERIFY_RATE_LIMIT: ${AUTH_OTP_VERIFY_RATE_LIMIT:-10}
       AUTH_OTP_RESEND_RATE_LIMIT: ${AUTH_OTP_RESEND_RATE_LIMIT:-3}
       AUTH_REFRESH_RATE_LIMIT: ${AUTH_REFRESH_RATE_LIMIT:-30}
+      AUTH_SERVICE_URL: http://duriancare-auth-service:8081
+      FARM_SERVICE_URL: http://duriancare-farm-service:8082
+      CULTIVATION_SERVICE_URL: http://duriancare-cultivation-service:8084
+      TRACEABILITY_SERVICE_URL: http://duriancare-traceability-service:8083
+      NOTIFICATION_SERVICE_URL: http://duriancare-notification-service:8085
+      SEARCH_SERVICE_URL: http://duriancare-search-service:8086
       IOT_SERVICE_URL: http://duriancare-iot-service:3001
       AI_SERVICE_URL: http://duriancare-ai-service:8000
       CHAT_SERVICE_URL: http://duriancare-chat-service:3002
