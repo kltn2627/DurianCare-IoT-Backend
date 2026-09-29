@@ -33,7 +33,7 @@ spring:
             - id: farm-service
               uri: ${FARM_SERVICE_URL:http://localhost:8082}
               predicates:
-                - Path=/api/farms/**,/api/zones/**,/api/trees/**,/api/regimens/**,/api/v1/agronomists,/api/v1/agronomists/**,/api/v1/farms/*/agronomist-invitations,/api/v1/farms/*/agronomist-invitations/**,/api/v1/farms/*/agronomist-authorizations,/api/v1/farms/*/agronomist-authorizations/**,/api/v1/agronomist-invitations/**,/api/v1/farm-authorizations/**,/api/v1/me/agronomist-invitations,/api/v1/me/agronomist-invitations/**,/api/v1/me/authorized-farms,/api/v1/me/authorized-farms/**
+                - Path=/api/farms/**,/api/zones/**,/api/trees/**,/api/regimens/**,/api/v1/agronomists,/api/v1/agronomists/**,/api/v1/farms,/api/v1/farms/**,/api/v1/agronomist-invitations/**,/api/v1/farm-authorizations/**,/api/v1/me/agronomist-invitations,/api/v1/me/agronomist-invitations/**,/api/v1/me/authorized-farms,/api/v1/me/authorized-farms/**
             - id: cultivation-service
               uri: ${CULTIVATION_SERVICE_URL:http://localhost:8084}
               predicates:

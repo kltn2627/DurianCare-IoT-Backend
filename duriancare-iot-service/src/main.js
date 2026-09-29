@@ -3,6 +3,21 @@ const mqtt = require("mqtt");
 const { Kafka } = require("kafkajs");
 const { Pool } = require("pg");
 const config = require("./config");
+const {
+  ensureAlertSchema,
+  evaluateOfflineDevices,
+  evaluateTelemetryAlerts
+} = require("./alert-engine");
+const {
+  createFarmAccessClient,
+  ensureReadSchema,
+  registerReadApi
+} = require("./read-api");
+const {
+  requireInternalToken,
+  runOfflineWatchdog,
+  startOfflineWatchdogScheduler
+} = require("./iot-runtime");
 
 const app = express();
 const { schema: postgresSchema, ...postgresPoolConfig } = config.postgres;
@@ -10,6 +25,8 @@ if (!/^[a-z_][a-z0-9_]*$/.test(postgresSchema)) {
   throw new Error("POSTGRES_SCHEMA contains unsupported characters");
 }
 const telemetryTable = `"${postgresSchema}".telemetry`;
+const devicesTable = `"${postgresSchema}".iot_devices`;
+const alertsTable = `"${postgresSchema}".iot_alerts`;
 const pool = new Pool(postgresPoolConfig);
 pool.on("error", (error) => {
   console.error("Unexpected PostgreSQL pool error", error);
@@ -19,8 +36,23 @@ const kafka = new Kafka({
   brokers: config.kafkaBrokers
 });
 const producer = kafka.producer();
+const farmAccessClient = createFarmAccessClient({
+  farmServiceUrl: config.farmServiceUrl,
+  internalToken: config.internalToken
+});
+const notificationPublisher = {
+  publish(event) {
+    return producer.send({
+      topic: config.notificationTopic,
+      messages: [{ key: event.receiverId, value: JSON.stringify(event) }]
+    });
+  }
+};
 
 let mqttClient;
+let offlineWatchdogScheduler;
+
+app.use(express.json({ limit: "32kb" }));
 
 app.get("/actuator/health", async (_request, response) => {
   try {
@@ -37,6 +69,37 @@ app.get("/actuator/health", async (_request, response) => {
       error: error.message
     });
   }
+});
+
+app.post("/internal/iot/offline-watchdog/run", requireInternalToken(config.internalToken), async (_request, response) => {
+  try {
+    const result = await runOfflineWatchdog({
+      alertsTable,
+      devicesTable,
+      evaluateOfflineDevices,
+      farmAccessClient,
+      healthConfig: config.iotHealth,
+      notificationPublisher,
+      pool
+    });
+    response.json({
+      created: result.created.length,
+      recovered: result.recovered.length,
+      skipped: result.skipped === true
+    });
+  } catch (error) {
+    console.error("Offline watchdog failed", error);
+    response.status(500).json({ error: "Offline watchdog failed", message: error.message });
+  }
+});
+
+registerReadApi(app, {
+  alertsTable,
+  devicesTable,
+  farmAccessClient,
+  healthConfig: config.iotHealth,
+  pool,
+  telemetryTable
 });
 
 async function handleTelemetry(topic, payload) {
@@ -80,10 +143,36 @@ async function handleTelemetry(topic, payload) {
   );
   event.id = insertResult.rows[0].id;
 
+  const registryUpdate = await pool.query(
+    `UPDATE ${devicesTable}
+     SET last_seen_at = $2, updated_at = CURRENT_TIMESTAMP
+     WHERE device_uid = $1
+       AND status <> 'DELETED'
+     RETURNING id, device_uid, name, farm_id, cultivation_area_id, status, last_seen_at`,
+    [event.deviceId, event.receivedAt]
+  );
+
   await producer.send({
     topic: config.kafkaTopic,
     messages: [{ key: deviceId, value: JSON.stringify(event) }]
   });
+
+  if (registryUpdate.rowCount > 0) {
+    try {
+      await evaluateTelemetryAlerts({
+        alertsTable,
+        device: registryUpdate.rows[0],
+        farmAccessClient,
+        notificationPublisher,
+        pool,
+        telemetry: event,
+        thresholds: config.iotThresholds,
+        logger: console
+      });
+    } catch (error) {
+      console.error("IoT alert evaluation failed", error);
+    }
+  }
 }
 
 function parseOptionalNumber(value, fieldName) {
@@ -107,7 +196,18 @@ function parseTimestamp(value) {
 
 async function start() {
   await pool.query("SELECT 1");
+  await ensureReadSchema(pool, devicesTable);
+  await ensureAlertSchema(pool, alertsTable);
   await producer.connect();
+  offlineWatchdogScheduler = startOfflineWatchdogScheduler({
+    alertsTable,
+    devicesTable,
+    evaluateOfflineDevices,
+    farmAccessClient,
+    healthConfig: config.iotHealth,
+    notificationPublisher,
+    pool
+  });
 
   mqttClient = mqtt.connect(config.mqttUrl, {
     clientId: `duriancare-iot-${process.pid}`
@@ -126,6 +226,9 @@ async function start() {
 }
 
 async function shutdown() {
+  if (offlineWatchdogScheduler) {
+    offlineWatchdogScheduler.stop();
+  }
   if (mqttClient) {
     mqttClient.end(true);
   }

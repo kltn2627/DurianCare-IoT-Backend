@@ -24,6 +24,13 @@ public class NotificationEventListener {
             "DISEASE_DETECTED",
             "WEATHER_WARNING",
             "DEVICE_OFFLINE",
+            "TEMPERATURE_HIGH",
+            "TEMPERATURE_LOW",
+            "HUMIDITY_HIGH",
+            "HUMIDITY_LOW",
+            "LIGHT_HIGH",
+            "LIGHT_LOW",
+            "IOT_ALERT_RECOVERED",
             "SYSTEM_ALERT",
             "AGRONOMIST_INVITATION_CREATED",
             "AGRONOMIST_INVITATION_ACCEPTED",
@@ -104,7 +111,14 @@ public class NotificationEventListener {
             case "EXPERT_APPROVED" -> NotificationType.EXPERT;
             case "DISEASE_DETECTED" -> NotificationType.DISEASE;
             case "WEATHER_WARNING" -> NotificationType.WEATHER;
-            case "DEVICE_OFFLINE" -> NotificationType.DEVICE;
+            case "DEVICE_OFFLINE",
+                    "TEMPERATURE_HIGH",
+                    "TEMPERATURE_LOW",
+                    "HUMIDITY_HIGH",
+                    "HUMIDITY_LOW",
+                    "LIGHT_HIGH",
+                    "LIGHT_LOW",
+                    "IOT_ALERT_RECOVERED" -> NotificationType.DEVICE;
             case "SYSTEM_ALERT" -> NotificationType.SYSTEM;
             case "AGRONOMIST_INVITATION_CREATED",
                     "AGRONOMIST_INVITATION_ACCEPTED",

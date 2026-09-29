@@ -40,4 +40,11 @@ public interface UserConnectionRepository extends JpaRepository<UserConnection, 
             @Param("userId") UUID userId,
             @Param("statuses") Collection<UserConnectionStatus> statuses,
             Pageable pageable);
+
+    @Query("""
+            select c from UserConnection c
+            where (c.requesterId = :userId or c.receiverId = :userId)
+              and c.status = com.duriancare.auth.domain.UserConnectionStatus.ACCEPTED
+            """)
+    List<UserConnection> findAcceptedForUser(@Param("userId") UUID userId);
 }

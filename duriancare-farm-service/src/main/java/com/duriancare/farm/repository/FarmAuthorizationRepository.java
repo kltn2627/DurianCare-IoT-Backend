@@ -20,6 +20,11 @@ public interface FarmAuthorizationRepository
             String farmId,
             String ownerId);
 
+    @Query("{'farmId': ?0, 'status': ?1}")
+    List<FarmAuthorization> findByFarmIdAndStatus(
+            String farmId,
+            AuthorizationStatus status);
+
     @Query("{'farmId': ?0, 'engineerUserId': ?1, 'status': ?2}")
     Optional<FarmAuthorization> findByFarmIdAndAgronomistIdAndStatus(
             String farmId,

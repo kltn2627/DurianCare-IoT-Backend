@@ -7,6 +7,7 @@ import logging
 from pathlib import Path
 
 from fastapi import FastAPI
+from starlette.requests import Request
 
 from app.api.chat import router as chat_router
 from app.api.admin_rag import router as admin_rag_router
@@ -300,6 +301,33 @@ app = FastAPI(
     version="0.3.0",
     lifespan=lifespan,
 )
+
+
+@app.middleware("http")
+async def trace_prediction_transport(request: Request, call_next):
+    """Record the prediction transport lifecycle without reading multipart data."""
+    if request.method != "POST" or request.url.path != "/api/v1/predict":
+        return await call_next(request)
+
+    trace_id = request.headers.get("x-duriancare-trace-id", "missing")
+    started_at = datetime.now(timezone.utc)
+    logger.warning(
+        "PREDICTION_TRACE ai_transport_received traceId=%s contentType=%s contentLength=%s",
+        trace_id,
+        request.headers.get("content-type"),
+        request.headers.get("content-length"),
+    )
+    response = await call_next(request)
+    elapsed_ms = round((datetime.now(timezone.utc) - started_at).total_seconds() * 1000)
+    logger.warning(
+        "PREDICTION_TRACE ai_transport_completed traceId=%s status=%s elapsedMs=%s",
+        trace_id,
+        response.status_code,
+        elapsed_ms,
+    )
+    return response
+
+
 app.include_router(prediction_router)
 app.include_router(chat_router)
 app.include_router(rag_router)

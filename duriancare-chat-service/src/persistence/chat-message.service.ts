@@ -51,6 +51,13 @@ export class ChatMessageService {
       .exec();
   }
 
+  async latestRoomMessage(roomId: string): Promise<ChatMessageMongoDocument | null> {
+    return this.messageModel
+      .findOne({ roomId: roomId.trim() })
+      .sort({ sentAt: -1 })
+      .exec();
+  }
+
   async countUnreadForRole(
     roomId: string,
     readerRole: "FARMER" | "ENGINEER",

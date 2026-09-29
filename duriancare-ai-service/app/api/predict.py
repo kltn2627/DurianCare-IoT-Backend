@@ -1,5 +1,6 @@
 from io import BytesIO
 from pathlib import Path
+from time import perf_counter
 from uuid import uuid4
 import logging
 
@@ -41,6 +42,7 @@ from app.repositories.prediction_history_repository import PredictionHistoryRepo
 
 router = APIRouter(tags=["Disease Prediction"])
 logger = logging.getLogger(__name__)
+TRACE_HEADER = "x-duriancare-trace-id"
 
 
 def get_classifier(request: Request) -> DoubleModelDiseaseClassifier:
@@ -127,14 +129,40 @@ async def execute_prediction(
     device_id: str | None,
     stored_image: StoredImage | None = None,
 ) -> PredictionResponse:
+    trace_id = request.headers.get(TRACE_HEADER, "missing")
     classifier = get_classifier(request)
     settings = request.app.state.settings
+    request_started_at = perf_counter()
+    logger.warning(
+        "PREDICTION_TRACE ai_handler_entered traceId=%s filename=%s contentType=%s source=%s",
+        trace_id,
+        image.filename,
+        image.content_type,
+        source.value,
+    )
     pil_image, content = await read_image(image, settings.max_image_size_bytes)
+    logger.warning(
+        "PREDICTION_TRACE ai_image_decoded traceId=%s bytes=%s dimensions=%sx%s elapsedMs=%s",
+        trace_id,
+        len(content),
+        pil_image.width,
+        pil_image.height,
+        round((perf_counter() - request_started_at) * 1000),
+    )
 
     try:
+        inference_started_at = perf_counter()
+        logger.warning("PREDICTION_TRACE ai_inference_started traceId=%s", trace_id)
         prediction = await run_in_threadpool(
             classifier.predict,
             pil_image,
+            trace_id=trace_id,
+        )
+        logger.warning(
+            "PREDICTION_TRACE ai_inference_finished traceId=%s elapsedMs=%s label=%s",
+            trace_id,
+            round((perf_counter() - inference_started_at) * 1000),
+            prediction.label,
         )
     except PredictionError as exception:
         raise HTTPException(
@@ -241,6 +269,11 @@ async def execute_prediction(
         )
     except Exception:
         logger.exception("Failed to save prediction history")
+    logger.warning(
+        "PREDICTION_TRACE ai_response_ready traceId=%s status=200 elapsedMs=%s",
+        trace_id,
+        round((perf_counter() - request_started_at) * 1000),
+    )
     return response
 
 
