@@ -1,6 +1,8 @@
 package com.duriancare.cultivation.api;
 
 import com.duriancare.cultivation.service.CultivationScheduleNotFoundException;
+import com.duriancare.cultivation.security.CultivationAccessDeniedException;
+import com.duriancare.cultivation.security.CultivationAuthenticationException;
 import java.net.URI;
 import java.util.NoSuchElementException;
 import org.springframework.http.HttpStatus;
@@ -11,6 +13,20 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class CultivationApiExceptionHandler {
+
+    @ExceptionHandler(CultivationAuthenticationException.class)
+    ProblemDetail unauthorized(CultivationAuthenticationException exception) {
+        ProblemDetail detail = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, exception.getMessage());
+        detail.setType(URI.create("https://duriancare.local/problems/cultivation-authentication-required"));
+        return detail;
+    }
+
+    @ExceptionHandler(CultivationAccessDeniedException.class)
+    ProblemDetail forbidden(CultivationAccessDeniedException exception) {
+        ProblemDetail detail = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, exception.getMessage());
+        detail.setType(URI.create("https://duriancare.local/problems/cultivation-access-denied"));
+        return detail;
+    }
 
     @ExceptionHandler(CultivationScheduleNotFoundException.class)
     ProblemDetail notFound(CultivationScheduleNotFoundException exception) {

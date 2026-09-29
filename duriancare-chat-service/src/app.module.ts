@@ -15,6 +15,7 @@ import {
 } from "./persistence/chat-message.schema";
 import { ChatMessageService } from "./persistence/chat-message.service";
 import { ChatGateway } from "./realtime/chat.gateway";
+import { ChatSocketAuthService } from "./realtime/chat-socket-auth.service";
 import { RegimenReminderScheduler } from "./scheduler/regimen-reminder.scheduler";
 
 @Module({
@@ -34,6 +35,7 @@ import { RegimenReminderScheduler } from "./scheduler/regimen-reminder.scheduler
     ChatConversationService,
     ChatGateway,
     ChatMessageService,
+    ChatSocketAuthService,
     RegimenReminderScheduler
   ]
 })

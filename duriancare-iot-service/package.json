@@ -7,7 +7,8 @@
   "scripts": {
     "start": "node src/main.js",
     "dev": "node --watch src/main.js",
-    "check": "node --check src/main.js"
+    "check": "node --check src/main.js && node --check src/read-api.js && node --check src/alert-engine.js && node --check src/iot-runtime.js",
+    "test": "node --test"
   },
   "engines": {
     "node": ">=20"
