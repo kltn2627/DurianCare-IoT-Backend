@@ -34,5 +34,10 @@ module.exports = {
   serverBaseUrl:  (process.env.SERVER_BASE_URL  || "http://localhost:8080").replace(/\/$/, ""),
   aiServiceUrl:   (process.env.AI_SERVICE_URL   || "http://localhost:8000").replace(/\/$/, ""),
   uploadsDir: process.env.UPLOADS_DIR || "./uploads",
+  // Camera registration: ESP32 must include X-Camera-Key matching this value.
+  // Set CAMERA_REGISTRATION_KEY in .env to a strong secret; defaults are dev-only.
+  cameraRegistrationKey: process.env.CAMERA_REGISTRATION_KEY || "duriancare-esp32-dev-key",
+  // Minutes of silence before a camera is marked offline by the background job.
+  cameraOfflineTimeoutMinutes: Number(process.env.CAMERA_OFFLINE_TIMEOUT_MIN || 5),
   getCameraConfig,
 };

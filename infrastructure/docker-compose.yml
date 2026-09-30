@@ -304,6 +304,9 @@ services:
       POSTGRES_SCHEMA: ${POSTGRES_SCHEMA:-duriancare_iot}
       KAFKA_BROKERS: kafka:29092
       KAFKA_TELEMETRY_TOPIC: iot.telemetry.received
+      ESP32_CAMERA_URL: ${ESP32_CAMERA_URL:-http://192.168.1.10}
+      ESP32_CAPTURE_PATH: ${ESP32_CAPTURE_PATH:-/capture}
+      DEFAULT_ESP32_IP: ${DEFAULT_ESP32_IP:-192.168.1.10}
     depends_on:
       postgres:
         condition: service_healthy

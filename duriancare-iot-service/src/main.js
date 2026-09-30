@@ -1,11 +1,13 @@
 const path    = require("path");
 const express = require("express");
 const mqtt    = require("mqtt");
+const cron    = require("node-cron");
 const { Kafka } = require("kafkajs");
 const { Pool }  = require("pg");
 const config    = require("./config");
 const { createCameraRouter } = require("./camera/cameraRoutes");
 const { loadAll: loadCameraSchedules } = require("./camera/cameraScheduler");
+const { markOfflineStaleCameras } = require("./camera/deviceService");
 const { createAssessmentRouter } = require("./export/assessmentRoutes");
 const { createPublicRouter }     = require("./public/publicRoutes");
 
@@ -399,6 +401,21 @@ async function start() {
     serverBaseUrl: config.serverBaseUrl,
     uploadsDir:    config.uploadsDir,
     aiServiceUrl:  config.aiServiceUrl,
+  });
+
+  // Offline detection: every 5 min mark cameras silent for longer than the
+  // configured timeout as offline. Runs independently of MQTT / HTTP traffic.
+  cron.schedule("*/5 * * * *", async () => {
+    try {
+      const count = await markOfflineStaleCameras(
+        pool, postgresSchema, config.cameraOfflineTimeoutMinutes
+      );
+      if (count > 0) {
+        console.log(`[camera-offline] Marked ${count} camera(s) offline`);
+      }
+    } catch (err) {
+      console.warn("[camera-offline] Offline detection failed (non-fatal):", err.message);
+    }
   });
 
   mqttClient = mqtt.connect(config.mqttUrl, {
