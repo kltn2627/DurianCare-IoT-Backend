@@ -66,7 +66,7 @@ public class TreeDiagnosisService {
 
     // ── helpers ──────────────────────────────────────────────────────────────
 
-    private static TreeHealthStatus inferHealthStatus(String diseaseCode) {
+    static TreeHealthStatus inferHealthStatus(String diseaseCode) {
         if (diseaseCode == null || diseaseCode.isBlank()) return TreeHealthStatus.SUSPECTED;
         String normalized = diseaseCode.trim().toUpperCase().replace("-", "_").replace(" ", "_");
         return (normalized.equals("HEALTHY_LEAF")

@@ -171,7 +171,7 @@ class FarmAccessCheckServiceTest {
     }
 
     private FarmZone zone(String id) {
-        return new FarmZone(id, id, id, BigDecimal.ONE, Map.of(), null, ZoneStatus.ACTIVE, Instant.now(), Instant.now());
+        return new FarmZone(id, id, id, BigDecimal.ONE, Map.of(), null, ZoneStatus.ACTIVE, null, null, Instant.now(), Instant.now());
     }
 
     private FarmAuthorization authorization(AuthorizationStatus status, List<String> areas, Instant expiresAt) {
