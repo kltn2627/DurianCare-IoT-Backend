@@ -69,7 +69,9 @@ public class TreeDiagnosisService {
     private static TreeHealthStatus inferHealthStatus(String diseaseCode) {
         if (diseaseCode == null || diseaseCode.isBlank()) return TreeHealthStatus.SUSPECTED;
         String normalized = diseaseCode.trim().toUpperCase().replace("-", "_").replace(" ", "_");
-        return (normalized.equals("HEALTHY_LEAF") || normalized.equals("HEALTHY"))
+        return (normalized.equals("HEALTHY_LEAF")
+                || normalized.equals("HEALTHY")
+                || normalized.equals("RECOVERED_BY_FARMER"))
                 ? TreeHealthStatus.HEALTHY
                 : TreeHealthStatus.DISEASED;
     }
