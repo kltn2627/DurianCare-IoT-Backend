@@ -103,6 +103,34 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
+    void publicKnowledgeGetDoesNotRequireJwt() {
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.get("/api/knowledge/articles?page=0&size=1").build());
+        AtomicReference<ServerWebExchange> forwarded = new AtomicReference<>();
+
+        StepVerifier.create(filter.filter(exchange, next -> {
+            forwarded.set(next);
+            return Mono.empty();
+        })).verifyComplete();
+
+        assertThat(forwarded.get()).isNotNull();
+        assertThat(exchange.getResponse().getStatusCode()).isNull();
+        verify(redisTemplate, never()).hasKey(anyString());
+    }
+
+    @Test
+    void knowledgeWriteStillRequiresJwt() {
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.post("/api/knowledge/articles").build());
+        GatewayFilterChain chain = mock(GatewayFilterChain.class);
+
+        StepVerifier.create(filter.filter(exchange, chain)).verifyComplete();
+
+        assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        verify(chain, never()).filter(exchange);
+    }
+
+    @Test
     void revocationStoreFailureDoesNotBlockAuthenticatedRequestsByDefault() {
         when(redisTemplate.hasKey(anyString())).thenReturn(Mono.error(new IllegalStateException("redis unavailable")));
         MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/api/chat/conversations")

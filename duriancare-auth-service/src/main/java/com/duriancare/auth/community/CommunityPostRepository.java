@@ -1,5 +1,6 @@
 package com.duriancare.auth.community;
 
+import java.util.Collection;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -14,6 +15,14 @@ public interface CommunityPostRepository extends JpaRepository<CommunityPost, UU
             join fetch p.author a
             left join fetch a.profile pr
             where p.status <> com.duriancare.auth.community.CommunityPostStatus.HIDDEN
+              and (
+                p.visibility = com.duriancare.auth.community.CommunityPostVisibility.PUBLIC
+                or p.author.id = :actorId
+                or (
+                  p.visibility = com.duriancare.auth.community.CommunityPostVisibility.CONNECTIONS
+                  and p.author.id in :connectedAuthorIds
+                )
+              )
               and (:topic = '' or p.topic = :topic)
               and (
                 :query = ''
@@ -27,14 +36,27 @@ public interface CommunityPostRepository extends JpaRepository<CommunityPost, UU
             join p.author a
             left join a.profile pr
             where p.status <> com.duriancare.auth.community.CommunityPostStatus.HIDDEN
+              and (
+                p.visibility = com.duriancare.auth.community.CommunityPostVisibility.PUBLIC
+                or p.author.id = :actorId
+                or (
+                  p.visibility = com.duriancare.auth.community.CommunityPostVisibility.CONNECTIONS
+                  and p.author.id in :connectedAuthorIds
+                )
+              )
               and (:topic = '' or p.topic = :topic)
               and (
                 :query = ''
                 or lower(p.content) like lower(concat('%', :query, '%'))
                 or lower(coalesce(pr.fullName, a.email)) like lower(concat('%', :query, '%'))
-              )
+            )
             """)
-    Page<CommunityPost> feed(@Param("topic") String topic, @Param("query") String query, Pageable pageable);
+    Page<CommunityPost> feed(
+            @Param("actorId") UUID actorId,
+            @Param("connectedAuthorIds") Collection<UUID> connectedAuthorIds,
+            @Param("topic") String topic,
+            @Param("query") String query,
+            Pageable pageable);
 
     @Query(value = """
             select p from CommunityPost p

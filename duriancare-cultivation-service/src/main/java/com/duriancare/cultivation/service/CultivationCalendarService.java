@@ -42,6 +42,8 @@ import com.duriancare.cultivation.repository.HarvestBatchRepository;
 import com.duriancare.cultivation.repository.LabResidueResultRepository;
 import com.duriancare.cultivation.repository.LabSampleRepository;
 import com.duriancare.cultivation.repository.ResidueStandardRepository;
+import com.duriancare.cultivation.security.CultivationAccessGuard;
+import com.duriancare.cultivation.security.CultivationActor;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -51,6 +53,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -76,6 +79,7 @@ public class CultivationCalendarService {
     private final SafeHarvestDateCalculator safeHarvestDateCalculator;
     private final ComplianceEngine complianceEngine;
     private final LabResidueComparator labResidueComparator;
+    private final CultivationAccessGuard accessGuard;
 
     public CultivationCalendarService(
             CultivationPlanRepository planRepository,
@@ -92,7 +96,8 @@ public class CultivationCalendarService {
             ComplianceAssessmentRepository complianceAssessmentRepository,
             SafeHarvestDateCalculator safeHarvestDateCalculator,
             ComplianceEngine complianceEngine,
-            LabResidueComparator labResidueComparator) {
+            LabResidueComparator labResidueComparator,
+            CultivationAccessGuard accessGuard) {
         this.planRepository = planRepository;
         this.activityRepository = activityRepository;
         this.executionRepository = executionRepository;
@@ -108,6 +113,253 @@ public class CultivationCalendarService {
         this.safeHarvestDateCalculator = safeHarvestDateCalculator;
         this.complianceEngine = complianceEngine;
         this.labResidueComparator = labResidueComparator;
+        this.accessGuard = accessGuard;
+    }
+
+    public CultivationPlan createPlan(CultivationActor actor, CultivationCalendarDtos.CreatePlanRequest request) {
+        accessGuard.requireCreate(actor, "CultivationPlan", null, request.farmId(), request.plotId());
+        return createPlan(request);
+    }
+
+    public CultivationPlan getPlan(CultivationActor actor, String id) {
+        CultivationPlan plan = getPlan(id);
+        accessGuard.requireView(actor, "CultivationPlan", plan.id(), plan.farmId(), plan.plotId());
+        return plan;
+    }
+
+    public List<CultivationPlan> listPlans(CultivationActor actor, String farmId, String plotId, String cultivationSeasonId) {
+        return listPlans(farmId, plotId, cultivationSeasonId).stream()
+                .filter(plan -> accessGuard.canView(actor, plan.farmId(), plan.plotId()))
+                .toList();
+    }
+
+    public List<CultivationActivity> getPlanCalendar(CultivationActor actor, String id) {
+        CultivationPlan plan = getPlan(actor, id);
+        return activityRepository.findByCultivationPlanId(plan.id()).stream()
+                .filter(activity -> accessGuard.canView(actor, activity.farmId(), activity.plotId()))
+                .sorted(Comparator.comparing(CultivationActivity::scheduledStartAt))
+                .toList();
+    }
+
+    public CultivationActivity createActivity(CultivationActor actor, CultivationCalendarDtos.CreateActivityRequest request) {
+        CultivationPlan plan = getPlan(actor, request.cultivationPlanId());
+        requireSamePlanScope(plan, request);
+        accessGuard.requireCreate(actor, "CultivationActivity", null, request.farmId(), request.plotId());
+        return createActivity(request);
+    }
+
+    public List<CultivationActivity> listActivities(
+            CultivationActor actor,
+            String cultivationSeasonId,
+            ActivityType activityType,
+            ActivityStatus status) {
+        return listActivities(cultivationSeasonId, activityType, status).stream()
+                .filter(activity -> accessGuard.canView(actor, activity.farmId(), activity.plotId()))
+                .toList();
+    }
+
+    public CultivationActivity getActivity(CultivationActor actor, String id) {
+        CultivationActivity activity = getActivity(id);
+        accessGuard.requireView(actor, "CultivationActivity", activity.id(), activity.farmId(), activity.plotId());
+        return activity;
+    }
+
+    public CultivationActivity updateActivity(
+            CultivationActor actor,
+            String id,
+            CultivationCalendarDtos.UpdateActivityRequest request) {
+        CultivationActivity current = getActivity(id);
+        accessGuard.requireUpdate(actor, "CultivationActivity", current.id(), current.farmId(), current.plotId());
+        return updateActivity(id, request);
+    }
+
+    public CultivationActivity approveActivity(CultivationActor actor, String id, String userId) {
+        CultivationActivity current = getActivity(id);
+        accessGuard.requireUpdate(actor, "CultivationActivity", current.id(), current.farmId(), current.plotId());
+        requireSameActor(actor, userId);
+        return approveActivity(id, actor.userId());
+    }
+
+    public CultivationActivity rejectActivity(CultivationActor actor, String id, String userId, String reason) {
+        CultivationActivity current = getActivity(id);
+        accessGuard.requireUpdate(actor, "CultivationActivity", current.id(), current.farmId(), current.plotId());
+        requireSameActor(actor, userId);
+        return rejectActivity(id, actor.userId(), reason);
+    }
+
+    public CultivationActivity startActivity(CultivationActor actor, String id) {
+        CultivationActivity current = getActivity(id);
+        accessGuard.requireUpdate(actor, "CultivationActivity", current.id(), current.farmId(), current.plotId());
+        return startActivity(id);
+    }
+
+    public CultivationActivity skipActivity(CultivationActor actor, String id) {
+        CultivationActivity current = getActivity(id);
+        accessGuard.requireUpdate(actor, "CultivationActivity", current.id(), current.farmId(), current.plotId());
+        return skipActivity(id);
+    }
+
+    public CultivationActivity cancelActivity(CultivationActor actor, String id) {
+        CultivationActivity current = getActivity(id);
+        accessGuard.requireUpdate(actor, "CultivationActivity", current.id(), current.farmId(), current.plotId());
+        return cancelActivity(id);
+    }
+
+    public CultivationCalendarDtos.CompleteActivityResponse completeActivity(
+            CultivationActor actor,
+            String id,
+            CultivationCalendarDtos.CompleteActivityRequest request) {
+        CultivationActivity current = getActivity(id);
+        accessGuard.requireUpdate(actor, "CultivationActivity", current.id(), current.farmId(), current.plotId());
+        return completeActivity(id, request);
+    }
+
+    public CultivationCalendarDtos.CareHistoryResponse careHistory(CultivationActor actor, String cultivationSeasonId) {
+        List<CultivationActivity> activities = listActivities(actor, cultivationSeasonId, null, null);
+        List<ActivityExecution> executions = activities.stream()
+                .flatMap(activity -> executionRepository.findByCultivationActivityId(activity.id()).stream())
+                .toList();
+        List<ActivityInputUsage> usages = executions.stream()
+                .flatMap(execution -> inputUsageRepository.findByActivityExecutionId(execution.id()).stream())
+                .toList();
+        return new CultivationCalendarDtos.CareHistoryResponse(activities, executions, usages);
+    }
+
+    public List<CultivationActivity> chemicalHistory(CultivationActor actor, String cultivationSeasonId) {
+        return chemicalHistory(cultivationSeasonId).stream()
+                .filter(activity -> accessGuard.canView(actor, activity.farmId(), activity.plotId()))
+                .toList();
+    }
+
+    public java.util.Optional<LocalDate> safeHarvestDate(CultivationActor actor, String cultivationSeasonId) {
+        requireCanViewSeason(actor, cultivationSeasonId);
+        return safeHarvestDate(cultivationSeasonId);
+    }
+
+    public ComplianceAssessment assessCompliance(
+            CultivationActor actor,
+            String cultivationSeasonId,
+            CultivationCalendarDtos.AssessComplianceRequest request) {
+        HarvestBatch harvestBatch = request.harvestBatchId() == null ? null : getHarvestBatch(actor, request.harvestBatchId());
+        if (harvestBatch == null) {
+            requireCanViewSeason(actor, cultivationSeasonId);
+        } else if (!harvestBatch.cultivationSeasonId().equals(cultivationSeasonId)) {
+            throw new IllegalArgumentException("Harvest batch does not belong to the requested cultivation season");
+        }
+        return assessCompliance(cultivationSeasonId, request);
+    }
+
+    public LabSample createLabSample(CultivationActor actor, CultivationCalendarDtos.CreateLabSampleRequest request) {
+        if (StringUtils.hasText(request.harvestBatchId())) {
+            HarvestBatch batch = getHarvestBatch(actor, request.harvestBatchId());
+            if (!batch.cultivationSeasonId().equals(request.cultivationSeasonId())) {
+                throw new IllegalArgumentException("Harvest batch does not belong to the requested cultivation season");
+            }
+        } else {
+            requireCanViewSeason(actor, request.cultivationSeasonId());
+        }
+        return createLabSample(request);
+    }
+
+    public List<LabSample> listLabSamples(CultivationActor actor, String cultivationSeasonId, String harvestBatchId) {
+        return listLabSamples(cultivationSeasonId, harvestBatchId).stream()
+                .filter(sample -> canViewLabSample(actor, sample))
+                .toList();
+    }
+
+    public LabSample getLabSample(CultivationActor actor, String id) {
+        LabSample sample = getLabSample(id);
+        requireCanViewLabSample(actor, sample);
+        return sample;
+    }
+
+    public LabResidueResult createLabResult(CultivationActor actor, CultivationCalendarDtos.CreateLabResultRequest request) {
+        getLabSample(actor, request.labSampleId());
+        return createLabResult(request);
+    }
+
+    public HarvestBatch createHarvestBatch(CultivationActor actor, CultivationCalendarDtos.CreateHarvestBatchRequest request) {
+        accessGuard.requireCreate(actor, "HarvestBatch", null, request.farmId(), request.plotId());
+        return createHarvestBatch(request);
+    }
+
+    public HarvestBatch getHarvestBatch(CultivationActor actor, String id) {
+        HarvestBatch batch = getHarvestBatch(id);
+        accessGuard.requireView(actor, "HarvestBatch", batch.id(), batch.farmId(), batch.plotId());
+        return batch;
+    }
+
+    public List<HarvestBatch> listHarvestBatches(
+            CultivationActor actor,
+            String cultivationSeasonId,
+            String farmId,
+            String plotId) {
+        return listHarvestBatches(cultivationSeasonId, farmId, plotId).stream()
+                .filter(batch -> accessGuard.canView(actor, batch.farmId(), batch.plotId()))
+                .toList();
+    }
+
+    public ComplianceAssessment assessExportRelease(
+            CultivationActor actor,
+            CultivationCalendarDtos.AssessComplianceRequest request) {
+        HarvestBatch batch = getHarvestBatch(actor, requireText(request.harvestBatchId(), "Harvest batch is required"));
+        return assessCompliance(actor, batch.cultivationSeasonId(), request);
+    }
+
+    public ExportRelease createExportRelease(CultivationActor actor, CultivationCalendarDtos.CreateExportReleaseRequest request) {
+        HarvestBatch batch = getHarvestBatch(actor, request.harvestBatchId());
+        accessGuard.requireUpdate(actor, "ExportRelease", null, batch.farmId(), batch.plotId());
+        return createExportRelease(request);
+    }
+
+    public ExportRelease submitExportRelease(CultivationActor actor, String id, String userId) {
+        ExportRelease release = getExportRelease(actor, id);
+        HarvestBatch batch = getHarvestBatch(actor, release.harvestBatchId());
+        accessGuard.requireUpdate(actor, "ExportRelease", id, batch.farmId(), batch.plotId());
+        return submitExportRelease(id, userId);
+    }
+
+    public ExportRelease approveExportRelease(CultivationActor actor, String id, String reviewerId) {
+        ExportRelease release = getExportRelease(actor, id);
+        HarvestBatch batch = getHarvestBatch(actor, release.harvestBatchId());
+        accessGuard.requireUpdate(actor, "ExportRelease", id, batch.farmId(), batch.plotId());
+        return approveExportRelease(id, reviewerId);
+    }
+
+    public ExportRelease releaseExportRelease(CultivationActor actor, String id, String reviewerId) {
+        ExportRelease release = getExportRelease(actor, id);
+        HarvestBatch batch = getHarvestBatch(actor, release.harvestBatchId());
+        accessGuard.requireUpdate(actor, "ExportRelease", id, batch.farmId(), batch.plotId());
+        return releaseExportRelease(id, reviewerId);
+    }
+
+    public ExportRelease recallExportRelease(CultivationActor actor, String id, String reviewerId, String reason) {
+        ExportRelease release = getExportRelease(actor, id);
+        HarvestBatch batch = getHarvestBatch(actor, release.harvestBatchId());
+        accessGuard.requireUpdate(actor, "ExportRelease", id, batch.farmId(), batch.plotId());
+        return recallExportRelease(id, reviewerId, reason);
+    }
+
+    public ExportRelease getExportRelease(CultivationActor actor, String id) {
+        ExportRelease release = getExportRelease(id);
+        HarvestBatch batch = getHarvestBatch(actor, release.harvestBatchId());
+        accessGuard.requireView(actor, "ExportRelease", release.id(), batch.farmId(), batch.plotId());
+        return release;
+    }
+
+    public List<ExportRelease> listExportReleases(
+            CultivationActor actor,
+            String harvestBatchId,
+            String targetMarketCode,
+            ExportReleaseStatus status) {
+        return listExportReleases(harvestBatchId, targetMarketCode, status).stream()
+                .filter(release -> canViewExportRelease(actor, release))
+                .toList();
+    }
+
+    public CultivationCalendarDtos.TraceabilityResponse traceability(CultivationActor actor, String id) {
+        ExportRelease release = getExportRelease(actor, id);
+        return new CultivationCalendarDtos.TraceabilityResponse(id, release.traceabilitySnapshot());
     }
 
     public CultivationPlan createPlan(CultivationCalendarDtos.CreatePlanRequest request) {
@@ -244,26 +496,26 @@ public class CultivationCalendarService {
 
     public CultivationActivity approveActivity(String id, String userId) {
         CultivationActivity current = getActivity(id);
-        if (!current.approvalRequired()) {
-            throw new IllegalStateException("Activity does not require approval");
-        }
-        CultivationActivity approved = withStatus(current, ActivityStatus.APPROVED, userId, Instant.now(), null);
-        audit(AuditAction.CULTIVATION_ACTIVITY_APPROVED, "CultivationActivity", approved.id(), userId, null, Map.of());
+        requirePendingApproval(current);
+        String reviewerId = requireText(userId, "Approval user is required");
+        CultivationActivity approved = withStatus(current, ActivityStatus.APPROVED, reviewerId, Instant.now(), null);
+        audit(AuditAction.CULTIVATION_ACTIVITY_APPROVED, "CultivationActivity", approved.id(), reviewerId, null, Map.of());
         return approved;
     }
 
     public CultivationActivity rejectActivity(String id, String userId, String reason) {
         CultivationActivity current = getActivity(id);
-        if (!current.approvalRequired()) {
-            throw new IllegalStateException("Activity does not require approval");
-        }
-        CultivationActivity rejected = withStatus(current, ActivityStatus.CANCELLED, userId, Instant.now(), reason);
-        audit(AuditAction.CULTIVATION_ACTIVITY_REJECTED, "CultivationActivity", rejected.id(), userId, reason, Map.of());
+        requirePendingApproval(current);
+        String reviewerId = requireText(userId, "Rejection user is required");
+        String rejectionReason = requireText(reason, "Rejection reason is required");
+        CultivationActivity rejected = withStatus(current, ActivityStatus.CANCELLED, reviewerId, Instant.now(), rejectionReason);
+        audit(AuditAction.CULTIVATION_ACTIVITY_REJECTED, "CultivationActivity", rejected.id(), reviewerId, rejectionReason, Map.of());
         return rejected;
     }
 
     public CultivationActivity startActivity(String id) {
         CultivationActivity current = getActivity(id);
+        requireNotPendingApproval(current);
         if (current.status() == ActivityStatus.CANCELLED || current.status() == ActivityStatus.COMPLETED) {
             throw new IllegalStateException("Cancelled or completed activity cannot be started");
         }
@@ -286,6 +538,7 @@ public class CultivationCalendarService {
             String id,
             CultivationCalendarDtos.CompleteActivityRequest request) {
         CultivationActivity activity = getActivity(id);
+        requireNotPendingApproval(activity);
         if (activity.status() == ActivityStatus.CANCELLED || activity.status() == ActivityStatus.COMPLETED) {
             throw new IllegalStateException("Cancelled or completed activity cannot be completed");
         }
@@ -580,10 +833,69 @@ public class CultivationCalendarService {
 
     private CultivationActivity terminalStatus(String id, ActivityStatus status) {
         CultivationActivity current = getActivity(id);
+        requireNotPendingApproval(current);
         if (current.status() == ActivityStatus.COMPLETED) {
             throw new IllegalStateException("Completed activity cannot be changed");
         }
         return withStatus(current, status, current.approvedBy(), current.approvedAt(), current.rejectionReason());
+    }
+
+    private void requireSamePlanScope(
+            CultivationPlan plan,
+            CultivationCalendarDtos.CreateActivityRequest request) {
+        if (!Objects.equals(plan.farmId(), request.farmId().trim())
+                || !Objects.equals(plan.plotId(), request.plotId().trim())
+                || !Objects.equals(plan.cultivationSeasonId(), request.cultivationSeasonId().trim())) {
+            throw new IllegalArgumentException("Activity scope must match the cultivation plan scope");
+        }
+    }
+
+    private void requireCanViewSeason(CultivationActor actor, String cultivationSeasonId) {
+        List<ResourceScope> scopes = seasonScopes(cultivationSeasonId);
+        if (scopes.isEmpty()) {
+            throw notFound("Cultivation season", cultivationSeasonId);
+        }
+        scopes.forEach(scope -> accessGuard.requireView(actor, "CultivationSeason", cultivationSeasonId, scope.farmId(), scope.plotId()));
+    }
+
+    private List<ResourceScope> seasonScopes(String cultivationSeasonId) {
+        String seasonId = requireText(cultivationSeasonId, "Cultivation season is required");
+        List<ResourceScope> scopes = new ArrayList<>();
+        planRepository.findByCultivationSeasonId(seasonId).stream()
+                .map(plan -> new ResourceScope(plan.farmId(), plan.plotId()))
+                .forEach(scopes::add);
+        activityRepository.findAll().stream()
+                .filter(activity -> seasonId.equals(activity.cultivationSeasonId()))
+                .map(activity -> new ResourceScope(activity.farmId(), activity.plotId()))
+                .forEach(scopes::add);
+        harvestBatchRepository.findByCultivationSeasonId(seasonId).stream()
+                .map(batch -> new ResourceScope(batch.farmId(), batch.plotId()))
+                .forEach(scopes::add);
+        return scopes.stream().distinct().toList();
+    }
+
+    private boolean canViewLabSample(CultivationActor actor, LabSample sample) {
+        if (StringUtils.hasText(sample.harvestBatchId())) {
+            HarvestBatch batch = getHarvestBatch(sample.harvestBatchId());
+            return accessGuard.canView(actor, batch.farmId(), batch.plotId());
+        }
+        List<ResourceScope> scopes = seasonScopes(sample.cultivationSeasonId());
+        return !scopes.isEmpty() && scopes.stream()
+                .allMatch(scope -> accessGuard.canView(actor, scope.farmId(), scope.plotId()));
+    }
+
+    private void requireCanViewLabSample(CultivationActor actor, LabSample sample) {
+        if (!canViewLabSample(actor, sample)) {
+            throw new com.duriancare.cultivation.security.CultivationAccessDeniedException("Access denied for cultivation resource");
+        }
+    }
+
+    private boolean canViewExportRelease(CultivationActor actor, ExportRelease release) {
+        HarvestBatch batch = getHarvestBatch(release.harvestBatchId());
+        return accessGuard.canView(actor, batch.farmId(), batch.plotId());
+    }
+
+    private record ResourceScope(String farmId, String plotId) {
     }
 
     private CultivationActivity withStatus(CultivationActivity current, ActivityStatus status, String approvedBy, Instant approvedAt, String rejectionReason) {
@@ -592,6 +904,29 @@ public class CultivationCalendarService {
                 current.treeIds(), current.activityType(), current.title(), current.description(), current.scheduledStartAt(),
                 current.scheduledEndAt(), current.recurrenceRule(), current.priority(), status, current.assignedUserIds(),
                 current.approvalRequired(), approvedBy, approvedAt, rejectionReason, current.version(), current.createdAt(), Instant.now()));
+    }
+
+    private static void requirePendingApproval(CultivationActivity activity) {
+        if (!activity.approvalRequired()) {
+            throw new IllegalStateException("Activity does not require approval");
+        }
+        if (activity.status() != ActivityStatus.PENDING_APPROVAL) {
+            throw new IllegalStateException("Activity must be pending approval");
+        }
+    }
+
+    private static void requireNotPendingApproval(CultivationActivity activity) {
+        if (activity.approvalRequired() && activity.status() == ActivityStatus.PENDING_APPROVAL) {
+            throw new IllegalStateException("Activity must be approved before execution");
+        }
+    }
+
+    private static void requireSameActor(CultivationActor actor, String requestUserId) {
+        String actorId = requireText(actor.userId(), "Authenticated user is required");
+        String reviewerId = requireText(requestUserId, "Request user is required");
+        if (!actorId.equals(reviewerId)) {
+            throw new IllegalArgumentException("Approval user must match authenticated actor");
+        }
     }
 
     private void validateInputCanBePlanned(AgriculturalInput input, CultivationCalendarDtos.CreateActivityRequest request) {

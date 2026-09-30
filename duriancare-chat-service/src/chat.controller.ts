@@ -1,9 +1,11 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
   Get,
   Headers,
+  NotFoundException,
   Param,
   Patch,
   Post,
@@ -42,6 +44,10 @@ type SendMessageRequest = {
 
 type PublishRegimenRequest = {
   regimen: TreatmentRegimenPayload;
+};
+
+type UpdateRegimenStepRequest = {
+  completed: boolean;
 };
 
 type UpdateStatusRequest = {
@@ -193,6 +199,40 @@ export class ChatController {
       body.regimen
     );
     const response = await this.toResponse(conversation, actor.role);
+    this.chatGateway.emitConversationUpdated(response.id, response);
+    return { conversation: response };
+  }
+
+  @Patch(":conversationId/regimens/:messageId/steps/:day")
+  async updateRegimenStep(
+    @Headers("authorization") authorization: string,
+    @Headers("x-auth-user-id") userId: string,
+    @Headers("x-auth-role") role: string,
+    @Param("conversationId") conversationId: string,
+    @Param("messageId") messageId: string,
+    @Param("day") dayParam: string,
+    @Body() body: UpdateRegimenStepRequest
+  ) {
+    const actor = resolveActor(userId, role);
+    const day = Number(dayParam);
+    if (!Number.isInteger(day) || day < 1) {
+      throw new BadRequestException("Treatment step day is invalid");
+    }
+    const existingConversation = await this.conversationService.getForParticipant(
+      conversationId,
+      actor.userId
+    );
+    await this.assertAcceptedConnection(authorization, actor, existingConversation);
+    const updatedMessage = await this.chatMessageService.updateRegimenStep(
+      existingConversation.id,
+      messageId,
+      day,
+      Boolean(body?.completed)
+    );
+    if (!updatedMessage) {
+      throw new NotFoundException("Treatment regimen step was not found");
+    }
+    const response = await this.toResponse(existingConversation, actor.role);
     this.chatGateway.emitConversationUpdated(response.id, response);
     return { conversation: response };
   }

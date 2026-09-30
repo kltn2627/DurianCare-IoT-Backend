@@ -62,6 +62,25 @@ public final class CultivationCalendarDtos {
             String approvalUserId) {
     }
 
+    public record CreateCultivationSeasonRequest(
+            @NotBlank String farmId,
+            @NotBlank String plotId,
+            @NotBlank @Size(max = 160) String name,
+            @Size(max = 80) String crop,
+            @Size(max = 120) String variety,
+            @NotNull LocalDate startDate,
+            LocalDate endDate,
+            @NotBlank String createdBy) {
+    }
+
+    public record UpdateCultivationSeasonRequest(
+            @Size(max = 160) String name,
+            @Size(max = 80) String crop,
+            @Size(max = 120) String variety,
+            LocalDate startDate,
+            LocalDate endDate) {
+    }
+
     public record UpdateActivityRequest(
             @Size(max = 180) String title,
             @Size(max = 2000) String description,

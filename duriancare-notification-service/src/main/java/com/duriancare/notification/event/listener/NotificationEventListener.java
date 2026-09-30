@@ -24,6 +24,13 @@ public class NotificationEventListener {
             "DISEASE_DETECTED",
             "WEATHER_WARNING",
             "DEVICE_OFFLINE",
+            "TEMPERATURE_HIGH",
+            "TEMPERATURE_LOW",
+            "HUMIDITY_HIGH",
+            "HUMIDITY_LOW",
+            "LIGHT_HIGH",
+            "LIGHT_LOW",
+            "IOT_ALERT_RECOVERED",
             "SYSTEM_ALERT",
             "AGRONOMIST_INVITATION_CREATED",
             "AGRONOMIST_INVITATION_ACCEPTED",
@@ -34,7 +41,10 @@ public class NotificationEventListener {
             "CONNECTION_REQUEST_ACCEPTED",
             "CONNECTION_REQUEST_REJECTED",
             "CONNECTION_REQUEST_CANCELLED",
-            "CONNECTION_DISCONNECTED");
+            "CONNECTION_DISCONNECTED",
+            "KNOWLEDGE_SUBMITTED",
+            "KNOWLEDGE_APPROVED",
+            "KNOWLEDGE_REJECTED");
 
     private final ObjectMapper objectMapper;
     private final NotificationService notificationService;
@@ -101,7 +111,14 @@ public class NotificationEventListener {
             case "EXPERT_APPROVED" -> NotificationType.EXPERT;
             case "DISEASE_DETECTED" -> NotificationType.DISEASE;
             case "WEATHER_WARNING" -> NotificationType.WEATHER;
-            case "DEVICE_OFFLINE" -> NotificationType.DEVICE;
+            case "DEVICE_OFFLINE",
+                    "TEMPERATURE_HIGH",
+                    "TEMPERATURE_LOW",
+                    "HUMIDITY_HIGH",
+                    "HUMIDITY_LOW",
+                    "LIGHT_HIGH",
+                    "LIGHT_LOW",
+                    "IOT_ALERT_RECOVERED" -> NotificationType.DEVICE;
             case "SYSTEM_ALERT" -> NotificationType.SYSTEM;
             case "AGRONOMIST_INVITATION_CREATED",
                     "AGRONOMIST_INVITATION_ACCEPTED",

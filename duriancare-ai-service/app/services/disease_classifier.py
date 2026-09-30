@@ -7,6 +7,7 @@ import logging
 import math
 import os
 from pathlib import Path
+from time import perf_counter
 from typing import Any, Mapping
 
 logger = logging.getLogger(__name__)
@@ -35,6 +36,7 @@ from app.services.image_enhancement import (
 from app.services.leaf_pipeline import (
     AdaptiveLeafPipeline,
     CropCandidate,
+    DetectionBox,
     DetectionRun,
     ImageVariant,
 )
@@ -46,6 +48,8 @@ CLASS_LABELS = (
     "LEAF_BLIGHT",
     "PHOMOPSIS_LEAF_SPOT",
 )
+
+logger = logging.getLogger(__name__)
 
 
 class PredictionError(RuntimeError):
@@ -121,17 +125,26 @@ class DoubleModelDiseaseClassifier:
             )
         try:
             if self.settings.yolo_crop_enabled:
-                try:
-                    self.detector = YOLO(self.settings.yolo_model)
-                    self.detector.to(self.device)
-                    self._load_fallback_detector()
-                except Exception as yolo_exc:
+                yolo_model_path = Path(self.settings.yolo_model)
+                if not yolo_model_path.is_file():
                     logger.warning(
-                        "YOLO primary detector unavailable (%s); "
-                        "prediction will require detector — no raw image will be classified",
-                        yolo_exc,
+                        "YOLO detector weights not found at %s; "
+                        "falling back to whole-image MobileNet classification.",
+                        self.settings.yolo_model,
                     )
                     self.detector = None
+                else:
+                    try:
+                        self.detector = YOLO(self.settings.yolo_model)
+                        self.detector.to(self.device)
+                        self._load_fallback_detector()
+                    except Exception as yolo_exc:
+                        logger.warning(
+                            "YOLO primary detector unavailable (%s); "
+                            "prediction will require detector — no raw image will be classified",
+                            yolo_exc,
+                        )
+                        self.detector = None
             self.classifier = self._load_classifier(
                 self.settings.classifier_weights,
             )
@@ -140,21 +153,43 @@ class DoubleModelDiseaseClassifier:
                 f"Unable to load double-model pipeline: {exception}"
             ) from exception
 
-    def predict(self, image: Image.Image) -> DiseasePrediction:
+    def predict(
+        self,
+        image: Image.Image,
+        *,
+        trace_id: str | None = None,
+    ) -> DiseasePrediction:
         if self.classifier is None:
             raise RuntimeError("MobileNetV2 classifier has not been loaded")
         if torch is None or self.transform is None:
             raise RuntimeError("AI runtime dependencies are not installed")
 
+        profile: dict[str, Any] = {
+            "classifier_preprocess_ms": 0.0,
+            "model_forward_ms": 0.0,
+            "softmax_ms": 0.0,
+            "postprocess_ms": 0.0,
+            "tensor_shapes": [],
+            "view_count": 0,
+        }
+        prediction_started_at = perf_counter()
         try:
+            validator_started_at = perf_counter()
             if not self._image_has_leaf_color(image):
                 raise PredictionError(
                     "No durian leaf detected.",
                     reason="no_leaf_color",
                     status_code=422,
                 )
+            profile["validator_ms"] = (perf_counter() - validator_started_at) * 1000
 
+            if self.detector is None:
+                profile["detector_ms"] = 0.0
+                return self._predict_whole_image(image, profile=profile)
+
+            detector_started_at = perf_counter()
             detection_run = self._run_detection_pipeline(image)
+            profile["detector_ms"] = (perf_counter() - detector_started_at) * 1000
             if not detection_run.selected_crops:
                 self._write_success_or_failure_debug(
                     detection_run=detection_run,
@@ -184,7 +219,7 @@ class DoubleModelDiseaseClassifier:
                     status_code=422,
                 )
 
-            crop_predictions = self._classify_crops(validated_crops)
+            crop_predictions = self._classify_crops(validated_crops, profile=profile)
             final_label, final_confidence, final_probabilities, top_predictions = self._ensemble_predictions(
                 crop_predictions,
             )
@@ -219,6 +254,67 @@ class DoubleModelDiseaseClassifier:
                 reason="unknown",
                 status_code=500,
             ) from exception
+        finally:
+            logger.warning(
+                "AI_PROFILE traceId=%s input=%sx%s validatorMs=%s detectorMs=%s "
+                "classifierPreprocessMs=%s tensorShapes=%s viewCount=%s "
+                "modelForwardMs=%s softmaxMs=%s postprocessMs=%s totalInferenceMs=%s",
+                trace_id or "missing",
+                image.width,
+                image.height,
+                round(float(profile.get("validator_ms", 0.0))),
+                round(float(profile.get("detector_ms", 0.0))),
+                round(float(profile["classifier_preprocess_ms"])),
+                profile["tensor_shapes"],
+                profile["view_count"],
+                round(float(profile["model_forward_ms"])),
+                round(float(profile["softmax_ms"])),
+                round(float(profile["postprocess_ms"])),
+                round((perf_counter() - prediction_started_at) * 1000),
+            )
+
+    def _predict_whole_image(
+        self,
+        image: Image.Image,
+        *,
+        profile: dict[str, Any],
+    ) -> DiseasePrediction:
+        image_width, image_height = image.size
+        quality = analyze_image_quality(image)
+        candidate = CropCandidate(
+            image=image,
+            bbox=(0, 0, image_width, image_height),
+            detection=DetectionBox(
+                left=0,
+                top=0,
+                right=image_width,
+                bottom=image_height,
+                confidence=1.0,
+                class_id=0,
+                class_name="whole_image",
+                source_variant="whole_image",
+                confidence_threshold=0.0,
+                iou_threshold=0.0,
+                scale=1.0,
+                area_ratio=1.0,
+                crop_quality=float(getattr(quality, "overall", 1.0)),
+            ),
+            quality_score=float(getattr(quality, "overall", 1.0)),
+            acceptance_reason="yolo_unavailable_whole_image",
+        )
+        crop_predictions = self._classify_crops([candidate], profile=profile)
+        final_label, final_confidence, final_probabilities, top_predictions = self._ensemble_predictions(
+            crop_predictions,
+        )
+        confidence_is_low = final_confidence < self.min_prediction_confidence
+        return DiseasePrediction(
+            label=final_label,
+            confidence=float(final_confidence * 100.0),
+            used_detection_crop=False,
+            bounding_box=None,
+            top_predictions=top_predictions,
+            low_confidence=confidence_is_low,
+        )
 
     def _run_detection_pipeline(self, image: Image.Image) -> DetectionRun:
         if self.detector is None:
@@ -375,12 +471,15 @@ class DoubleModelDiseaseClassifier:
     def _classify_crops(
         self,
         crop_candidates: list[CropCandidate],
+        *,
+        profile: dict[str, Any] | None = None,
     ) -> list[dict[str, Any]]:
         assert self.classifier is not None
         assert torch is not None
 
         records: list[dict[str, Any]] = []
         for candidate in crop_candidates:
+            preprocess_started_at = perf_counter()
             quality = analyze_image_quality(candidate.image)
             view_variants = build_classifier_views(
                 candidate.image,
@@ -394,11 +493,24 @@ class DoubleModelDiseaseClassifier:
             if not view_tensors:
                 view_tensors = [self.transform(candidate.image).to(self.device)]
             view_batch = torch.stack(view_tensors, dim=0)
-            with torch.inference_mode():
-                view_logits = self.classifier(view_batch)
-                scaled_logits = view_logits / self.temperature
-                view_probabilities = torch.softmax(scaled_logits, dim=1)
+            if profile is not None:
+                profile["classifier_preprocess_ms"] += (perf_counter() - preprocess_started_at) * 1000
+                profile["view_count"] += len(view_tensors)
+                profile["tensor_shapes"].append(tuple(view_batch.shape))
 
+            with torch.inference_mode():
+                forward_started_at = perf_counter()
+                view_logits = self.classifier(view_batch)
+                if profile is not None:
+                    profile["model_forward_ms"] += (perf_counter() - forward_started_at) * 1000
+
+                scaled_logits = view_logits / self.temperature
+                softmax_started_at = perf_counter()
+                view_probabilities = torch.softmax(scaled_logits, dim=1)
+                if profile is not None:
+                    profile["softmax_ms"] += (perf_counter() - softmax_started_at) * 1000
+
+            postprocess_started_at = perf_counter()
             quality_weights = []
             for variant in view_variants:
                 view_quality = float(getattr(variant, "score", 1.0))
@@ -473,6 +585,8 @@ class DoubleModelDiseaseClassifier:
                     "softmax": [float(value) for value in probability_vector.tolist()],
                 }
             )
+            if profile is not None:
+                profile["postprocess_ms"] += (perf_counter() - postprocess_started_at) * 1000
         return records
 
     def _ensemble_predictions(

@@ -1,0 +1,13 @@
+package com.duriancare.farm.dto;
+
+import com.duriancare.farm.domain.FarmPermissionType;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
+public record FarmAccessCheckRequest(
+        @NotBlank String userId,
+        @NotBlank String role,
+        @NotBlank String farmId,
+        String cultivationAreaId,
+        @NotNull FarmPermissionType permission) {
+}

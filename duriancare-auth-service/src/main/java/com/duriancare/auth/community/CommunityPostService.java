@@ -8,8 +8,10 @@ import com.duriancare.auth.exception.InvalidRequestException;
 import com.duriancare.auth.exception.ResourceNotFoundException;
 import com.duriancare.auth.repository.UserRepository;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
@@ -28,6 +30,7 @@ public class CommunityPostService {
     private final CommunityCommentRepository commentRepository;
     private final CommunityReactionRepository reactionRepository;
     private final CommunityMediaStorageService mediaStorageService;
+    private final CommunityPostAccessService accessService;
     private final UserRepository userRepository;
 
     public CommunityPostService(
@@ -36,18 +39,25 @@ public class CommunityPostService {
             CommunityCommentRepository commentRepository,
             CommunityReactionRepository reactionRepository,
             CommunityMediaStorageService mediaStorageService,
+            CommunityPostAccessService accessService,
             UserRepository userRepository) {
         this.postRepository = postRepository;
         this.mediaRepository = mediaRepository;
         this.commentRepository = commentRepository;
         this.reactionRepository = reactionRepository;
         this.mediaStorageService = mediaStorageService;
+        this.accessService = accessService;
         this.userRepository = userRepository;
     }
 
     @Transactional(readOnly = true)
     public CommunityPageResponse<CommunityPostResponse> feed(String topic, String query, int page, int size, User actor) {
-        Page<CommunityPost> result = postRepository.feed(cleanFilter(topic), cleanFilter(query), pageRequest(page, size));
+        Page<CommunityPost> result = postRepository.feed(
+                actor.getId(),
+                connectedAuthorIds(actor),
+                cleanFilter(topic),
+                cleanFilter(query),
+                pageRequest(page, size));
         return pageResponse(result, actor, false);
     }
 
@@ -73,6 +83,7 @@ public class CommunityPostService {
     @Transactional(readOnly = true)
     public CommunityPostResponse detail(UUID postId, User actor) {
         CommunityPost post = post(postId);
+        accessService.requireCanViewPost(actor, post);
         return toResponse(post, actor, true);
     }
 
@@ -114,6 +125,7 @@ public class CommunityPostService {
     @Transactional
     public CommunityPostResponse react(UUID postId, CommunityReactionType reactionType, User actor) {
         CommunityPost post = post(postId);
+        accessService.requireCanViewPost(actor, post);
         if (reactionType == null) {
             reactionRepository.findByPostIdAndUserId(postId, actor.getId()).ifPresent(reactionRepository::delete);
         } else {
@@ -129,6 +141,7 @@ public class CommunityPostService {
     @Transactional
     public CommunityPostResponse addComment(UUID postId, CommunityCommentRequest request, User actor) {
         CommunityPost post = post(postId);
+        accessService.requireCanViewPost(actor, post);
         CommunityComment parent = null;
         if (request.parentId() != null) {
             parent = commentRepository.findById(request.parentId())
@@ -149,6 +162,7 @@ public class CommunityPostService {
     @Transactional
     public CommunityPostResponse deleteComment(UUID postId, UUID commentId, User actor) {
         CommunityPost post = post(postId);
+        accessService.requireCanViewPost(actor, post);
         CommunityComment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Comment was not found"));
         if (!comment.getPost().getId().equals(postId)) {
@@ -169,6 +183,7 @@ public class CommunityPostService {
     @Transactional
     public CommunityPostResponse report(UUID postId, User actor) {
         CommunityPost post = post(postId);
+        accessService.requireCanViewPost(actor, post);
         if (!post.getAuthor().getId().equals(actor.getId())) {
             post.setStatus(CommunityPostStatus.REPORTED);
         }
@@ -178,11 +193,13 @@ public class CommunityPostService {
     @Transactional
     public void delete(UUID postId, User actor) {
         CommunityPost post = post(postId);
-        if (actor.getRole() != UserRole.ADMIN && !post.getAuthor().getId().equals(actor.getId())) {
-            throw new InvalidRequestException("You can only delete your own post");
+        if (actor.getRole() == UserRole.ADMIN || post.getAuthor().getId().equals(actor.getId())) {
+            post.setStatus(CommunityPostStatus.HIDDEN);
+            postRepository.save(post);
+            return;
         }
-        post.setStatus(CommunityPostStatus.HIDDEN);
-        postRepository.save(post);
+        accessService.requireCanViewPost(actor, post);
+        throw new InvalidRequestException("You can only delete your own post");
     }
 
     @Transactional(readOnly = true)
@@ -200,6 +217,11 @@ public class CommunityPostService {
     private CommunityPost post(UUID postId) {
         return postRepository.findById(postId)
                 .orElseThrow(() -> new ResourceNotFoundException("Community post was not found"));
+    }
+
+    private Collection<UUID> connectedAuthorIds(User actor) {
+        Set<UUID> ids = accessService.acceptedConnectionUserIds(actor);
+        return ids.isEmpty() ? List.of(actor.getId()) : ids;
     }
 
     private CommunityPageResponse<CommunityPostResponse> pageResponse(Page<CommunityPost> page, User actor, boolean includeComments) {

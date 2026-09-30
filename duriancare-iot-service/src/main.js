@@ -10,9 +10,24 @@ const { loadAll: loadCameraSchedules } = require("./camera/cameraScheduler");
 const { markOfflineStaleCameras } = require("./camera/deviceService");
 const { createAssessmentRouter } = require("./export/assessmentRoutes");
 const { createPublicRouter }     = require("./public/publicRoutes");
+const {
+  ensureAlertSchema,
+  evaluateOfflineDevices,
+  evaluateTelemetryAlerts
+} = require("./alert-engine");
+const {
+  createFarmAccessClient,
+  ensureReadSchema,
+  registerReadApi
+} = require("./read-api");
+const {
+  requireInternalToken,
+  runOfflineWatchdog,
+  startOfflineWatchdogScheduler
+} = require("./iot-runtime");
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: "32kb" }));
 
 // Serve stored camera images (public — no auth needed, accessed by browser directly)
 app.use("/uploads", express.static(path.resolve(config.uploadsDir)));
@@ -22,6 +37,8 @@ if (!/^[a-z_][a-z0-9_]*$/.test(postgresSchema)) {
   throw new Error("POSTGRES_SCHEMA contains unsupported characters");
 }
 const telemetryTable = `"${postgresSchema}".telemetry`;
+const devicesTable = `"${postgresSchema}".iot_devices`;
+const alertsTable = `"${postgresSchema}".iot_alerts`;
 const pool = new Pool(postgresPoolConfig);
 pool.on("error", (error) => {
   console.error("Unexpected PostgreSQL pool error", error);
@@ -31,60 +48,22 @@ const kafka = new Kafka({
   brokers: config.kafkaBrokers
 });
 const producer = kafka.producer();
+const farmAccessClient = createFarmAccessClient({
+  farmServiceUrl: config.farmServiceUrl,
+  internalToken: config.internalToken
+});
+const notificationPublisher = {
+  publish(event) {
+    return producer.send({
+      topic: config.notificationTopic,
+      messages: [{ key: event.receiverId, value: JSON.stringify(event) }]
+    });
+  }
+};
 
 let mqttClient;
 let kafkaProducerReady = false;
-
-// Soil moisture thresholds (percentage, 0–100)
-const SOIL_DRY_THRESHOLD = 30;
-const SOIL_WET_THRESHOLD = 80;
-
-function computeStatus(soilMoisture) {
-  if (soilMoisture === null || soilMoisture === undefined) return null;
-  if (soilMoisture < SOIL_DRY_THRESHOLD) return "DRY_WARNING";
-  if (soilMoisture > SOIL_WET_THRESHOLD) return "WET_WARNING";
-  return "OPTIMAL";
-}
-
-function formatRow(row) {
-  const soil =
-    row.soil_moisture !== null && row.soil_moisture !== undefined
-      ? Number(row.soil_moisture)
-      : null;
-  return {
-    id: row.id,
-    device_id: row.device_id,
-    temperature:
-      row.temperature !== null && row.temperature !== undefined
-        ? Number(row.temperature)
-        : null,
-    air_humidity:
-      row.humidity !== null && row.humidity !== undefined
-        ? Number(row.humidity)
-        : null,
-    soil_moisture: soil,
-    status: computeStatus(soil),
-    timestamp: row.timestamp
-  };
-}
-
-// Export compliance assessment routes
-app.use("/api/v1/export-assessment", createAssessmentRouter({
-  pool,
-  schema: postgresSchema,
-}));
-
-// Public traceability — no authentication required, exposed by gateway
-app.use("/api/v1/public", createPublicRouter({ pool, schema: postgresSchema }));
-
-// Camera routes — mounted after static so /api/v1/camera/image/:fn is handled by the router
-app.use("/api/v1/camera", createCameraRouter({
-  pool,
-  schema:        postgresSchema,
-  serverBaseUrl: config.serverBaseUrl,
-  uploadsDir:    config.uploadsDir,
-  aiServiceUrl:  config.aiServiceUrl,
-}));
+let offlineWatchdogScheduler;
 
 // ── Health ────────────────────────────────────────────────────────────────────
 
@@ -105,16 +84,44 @@ app.get("/actuator/health", async (_request, response) => {
   }
 });
 
+// ── Internal APIs ─────────────────────────────────────────────────────────────
+
+app.post("/internal/iot/offline-watchdog/run", requireInternalToken(config.internalToken), async (_request, response) => {
+  try {
+    const result = await runOfflineWatchdog({
+      alertsTable,
+      devicesTable,
+      evaluateOfflineDevices,
+      farmAccessClient,
+      healthConfig: config.iotHealth,
+      notificationPublisher,
+      pool
+    });
+    response.json({
+      created: result.created.length,
+      recovered: result.recovered.length,
+      skipped: result.skipped === true
+    });
+  } catch (error) {
+    console.error("Offline watchdog failed", error);
+    response.status(500).json({ error: "Offline watchdog failed", message: error.message });
+  }
+});
+
+registerReadApi(app, {
+  alertsTable,
+  devicesTable,
+  farmAccessClient,
+  healthConfig: config.iotHealth,
+  pool,
+  telemetryTable
+});
+
 // ── Sensor REST API ───────────────────────────────────────────────────────────
 
 /**
  * POST /api/v1/sensors/data
  * Used by ESP32 devices to push sensor readings directly to the IoT service.
- *
- * Body (JSON):
- *   { "device_id": "esp32-01", "temperature": 28.5, "humidity": 65.2, "soil_moisture": 45.0 }
- *
- * Returns 201 with the stored record + computed status.
  */
 app.post("/api/v1/sensors/data", async (request, response) => {
   try {
@@ -189,9 +196,6 @@ app.post("/api/v1/sensors/data", async (request, response) => {
 /**
  * GET /api/v1/sensors/latest
  * Returns the most recent reading(s).
- *
- * Query params:
- *   device_id (optional) — filter to a single device; omit to get latest per device
  */
 app.get("/api/v1/sensors/latest", async (request, response) => {
   try {
@@ -216,7 +220,6 @@ app.get("/api/v1/sensors/latest", async (request, response) => {
       return response.json(formatRow(result.rows[0]));
     }
 
-    // No device_id: return latest row per device
     result = await pool.query(
       `SELECT DISTINCT ON (device_id)
          id, device_id, temperature, humidity, soil_moisture, "timestamp"
@@ -233,13 +236,6 @@ app.get("/api/v1/sensors/latest", async (request, response) => {
 /**
  * GET /api/v1/sensors/history
  * Returns paginated historical sensor readings.
- *
- * Query params:
- *   device_id (optional) — filter by device
- *   from      (optional) — ISO-8601 start timestamp (inclusive)
- *   to        (optional) — ISO-8601 end timestamp (inclusive)
- *   limit     (optional, default 50, max 200)
- *   offset    (optional, default 0)
  */
 app.get("/api/v1/sensors/history", async (request, response) => {
   try {
@@ -302,6 +298,24 @@ app.get("/api/v1/sensors/history", async (request, response) => {
   }
 });
 
+// Export compliance assessment routes
+app.use("/api/v1/export-assessment", createAssessmentRouter({
+  pool,
+  schema: postgresSchema,
+}));
+
+// Public traceability — no authentication required, exposed by gateway
+app.use("/api/v1/public", createPublicRouter({ pool, schema: postgresSchema }));
+
+// Camera routes — mounted after static so /api/v1/camera/image/:fn is handled by the router
+app.use("/api/v1/camera", createCameraRouter({
+  pool,
+  schema:        postgresSchema,
+  serverBaseUrl: config.serverBaseUrl,
+  uploadsDir:    config.uploadsDir,
+  aiServiceUrl:  config.aiServiceUrl,
+}));
+
 // ── MQTT telemetry ingestion ──────────────────────────────────────────────────
 
 async function handleTelemetry(topic, payload) {
@@ -351,11 +365,41 @@ async function handleTelemetry(topic, payload) {
   );
   event.id = insertResult.rows[0].id;
 
+  const registryUpdate = await pool.query(
+    `UPDATE ${devicesTable}
+     SET last_seen_at = $2, updated_at = CURRENT_TIMESTAMP
+     WHERE device_uid = $1
+       AND status <> 'DELETED'
+     RETURNING id, device_uid, name, farm_id, cultivation_area_id, status, last_seen_at`,
+    [event.deviceId, event.receivedAt]
+  );
+
   if (kafkaProducerReady) {
-    await producer.send({
-      topic: config.kafkaTopic,
-      messages: [{ key: deviceId, value: JSON.stringify(event) }]
-    });
+    try {
+      await producer.send({
+        topic: config.kafkaTopic,
+        messages: [{ key: deviceId, value: JSON.stringify(event) }]
+      });
+    } catch (kafkaErr) {
+      console.warn("[kafka] Publish failed (non-fatal):", kafkaErr.message);
+    }
+  }
+
+  if (registryUpdate.rowCount > 0) {
+    try {
+      await evaluateTelemetryAlerts({
+        alertsTable,
+        device: registryUpdate.rows[0],
+        farmAccessClient,
+        notificationPublisher,
+        pool,
+        telemetry: event,
+        thresholds: config.iotThresholds,
+        logger: console
+      });
+    } catch (error) {
+      console.error("IoT alert evaluation failed", error);
+    }
   }
 }
 
@@ -380,10 +424,42 @@ function parseTimestamp(value) {
   return timestamp;
 }
 
+function computeStatus(soilMoisture) {
+  if (soilMoisture === null || soilMoisture === undefined) return null;
+  if (soilMoisture < 30) return "DRY_WARNING";
+  if (soilMoisture > 80) return "WET_WARNING";
+  return "OPTIMAL";
+}
+
+function formatRow(row) {
+  const soil =
+    row.soil_moisture !== null && row.soil_moisture !== undefined
+      ? Number(row.soil_moisture)
+      : null;
+  return {
+    id: row.id,
+    device_id: row.device_id,
+    temperature:
+      row.temperature !== null && row.temperature !== undefined
+        ? Number(row.temperature)
+        : null,
+    air_humidity:
+      row.humidity !== null && row.humidity !== undefined
+        ? Number(row.humidity)
+        : null,
+    soil_moisture: soil,
+    status: computeStatus(soil),
+    timestamp: row.timestamp
+  };
+}
+
 // ── Startup / shutdown ────────────────────────────────────────────────────────
 
 async function start() {
   await pool.query("SELECT 1");
+
+  await ensureReadSchema(pool, devicesTable);
+  await ensureAlertSchema(pool, alertsTable);
 
   // Kafka is optional — if the broker is not reachable the service stays up and
   // skips event publishing rather than crashing (common in local dev without Kafka).
@@ -395,6 +471,16 @@ async function start() {
     console.warn("[kafka] Broker unavailable — telemetry events will not be published:", err.message);
   }
 
+  offlineWatchdogScheduler = startOfflineWatchdogScheduler({
+    alertsTable,
+    devicesTable,
+    evaluateOfflineDevices,
+    farmAccessClient,
+    healthConfig: config.iotHealth,
+    notificationPublisher,
+    pool
+  });
+
   await loadCameraSchedules({
     pool,
     schema:        postgresSchema,
@@ -404,7 +490,7 @@ async function start() {
   });
 
   // Offline detection: every 5 min mark cameras silent for longer than the
-  // configured timeout as offline. Runs independently of MQTT / HTTP traffic.
+  // configured timeout as offline.
   cron.schedule("*/5 * * * *", async () => {
     try {
       const count = await markOfflineStaleCameras(
@@ -437,6 +523,9 @@ async function start() {
 }
 
 async function shutdown() {
+  if (offlineWatchdogScheduler) {
+    offlineWatchdogScheduler.stop();
+  }
   if (mqttClient) {
     mqttClient.end(true);
   }

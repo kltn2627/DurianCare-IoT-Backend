@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -41,6 +42,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({AuthenticationFailedException.class, InvalidTokenException.class})
     ResponseEntity<ApiError> handleUnauthorized(RuntimeException exception) {
         return response(HttpStatus.UNAUTHORIZED, exception.getMessage());
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    ResponseEntity<ApiError> handleForbidden(AccessDeniedException exception) {
+        return response(HttpStatus.FORBIDDEN, exception.getMessage());
     }
 
     @ExceptionHandler(AvatarStorageException.class)

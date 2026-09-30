@@ -7,6 +7,7 @@ import logging
 from pathlib import Path
 
 from fastapi import FastAPI
+from starlette.requests import Request
 
 from app.api.chat import router as chat_router
 from app.api.admin_rag import router as admin_rag_router
@@ -16,6 +17,7 @@ from app.db.migration_runner import run_ai_database_migrations
 from app.decision.decision_service import DecisionSupportService
 from app.core.config import settings
 from app.repositories.knowledge_repository import KnowledgeRepository
+from app.repositories.prediction_history_repository import PredictionHistoryRepository
 from app.services.disease_classifier import DoubleModelDiseaseClassifier
 from app.services.recommendation_service import RecommendationService
 from app.services.rag_service import RagService
@@ -157,6 +159,8 @@ async def lifespan(app: FastAPI):
     app.state.recommendation_service = None
     app.state.recommendation_load_error = None
     app.state.recommendation_repository = None
+    app.state.prediction_history_repository = None
+    app.state.prediction_history_load_error = None
     app.state.decision_service = None
     app.state.decision_load_error = None
     app.state.s3_storage = None
@@ -222,6 +226,15 @@ async def lifespan(app: FastAPI):
         app.state.recommendation_load_error = str(exception)
 
     try:
+        app.state.prediction_history_repository = PredictionHistoryRepository(
+            settings.postgres_url,
+            settings.knowledge_db_schema,
+        )
+    except Exception as exception:
+        logger.exception("Failed to initialize prediction history repository")
+        app.state.prediction_history_load_error = str(exception)
+
+    try:
         app.state.decision_service = DecisionSupportService()
     except Exception as exception:
         logger.exception("Failed to initialize decision support service")
@@ -281,8 +294,16 @@ async def lifespan(app: FastAPI):
     recommendation_repository = getattr(app.state, "recommendation_repository", None)
     if recommendation_repository is not None:
         recommendation_repository.close()
+    prediction_history_repository = getattr(
+        app.state,
+        "prediction_history_repository",
+        None,
+    )
+    if prediction_history_repository is not None:
+        prediction_history_repository.close()
     app.state.recommendation_repository = None
     app.state.recommendation_service = None
+    app.state.prediction_history_repository = None
     app.state.decision_service = None
     app.state.s3_storage = None
     app.state.runtime_info = None
@@ -293,6 +314,33 @@ app = FastAPI(
     version="0.3.0",
     lifespan=lifespan,
 )
+
+
+@app.middleware("http")
+async def trace_prediction_transport(request: Request, call_next):
+    """Record the prediction transport lifecycle without reading multipart data."""
+    if request.method != "POST" or request.url.path != "/api/v1/predict":
+        return await call_next(request)
+
+    trace_id = request.headers.get("x-duriancare-trace-id", "missing")
+    started_at = datetime.now(timezone.utc)
+    logger.warning(
+        "PREDICTION_TRACE ai_transport_received traceId=%s contentType=%s contentLength=%s",
+        trace_id,
+        request.headers.get("content-type"),
+        request.headers.get("content-length"),
+    )
+    response = await call_next(request)
+    elapsed_ms = round((datetime.now(timezone.utc) - started_at).total_seconds() * 1000)
+    logger.warning(
+        "PREDICTION_TRACE ai_transport_completed traceId=%s status=%s elapsedMs=%s",
+        trace_id,
+        response.status_code,
+        elapsed_ms,
+    )
+    return response
+
+
 app.include_router(prediction_router)
 app.include_router(chat_router)
 app.include_router(rag_router)

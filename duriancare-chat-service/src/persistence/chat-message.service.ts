@@ -51,6 +51,13 @@ export class ChatMessageService {
       .exec();
   }
 
+  async latestRoomMessage(roomId: string): Promise<ChatMessageMongoDocument | null> {
+    return this.messageModel
+      .findOne({ roomId: roomId.trim() })
+      .sort({ sentAt: -1 })
+      .exec();
+  }
+
   async countUnreadForRole(
     roomId: string,
     readerRole: "FARMER" | "ENGINEER",
@@ -70,12 +77,21 @@ export class ChatMessageService {
   }
 
   async updateRegimenStep(
+    roomId: string,
     messageId: string,
     day: number,
     completed: boolean
   ): Promise<ChatMessageMongoDocument | null> {
-    const message = await this.messageModel.findById(messageId).exec();
+    const message = await this.messageModel
+      .findOne({
+        _id: messageId,
+        messageType: "TREATMENT_REGIMEN",
+        roomId: roomId.trim()
+      })
+      .exec();
     if (!message?.payload || !("steps" in message.payload) || !message.payload.steps) return null;
+    const hasStep = message.payload.steps.some((step: TreatmentStepPayload) => step.day === day);
+    if (!hasStep) return null;
 
     message.payload.steps = message.payload.steps.map((step: TreatmentStepPayload) =>
       step.day === day ? { ...step, completed } : step

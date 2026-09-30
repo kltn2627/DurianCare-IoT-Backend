@@ -10,6 +10,33 @@ function getCameraConfig() {
   };
 }
 
+const DEFAULT_EXPECTED_TELEMETRY_INTERVAL_SECONDS = 60;
+const DEFAULT_STALE_AFTER_INTERVALS = 3;
+const DEFAULT_OFFLINE_AFTER_INTERVALS = 10;
+
+function positiveNumber(name, fallback) {
+  const raw = process.env[name];
+  const value = raw === undefined || raw === "" ? fallback : Number(raw);
+  if (!Number.isFinite(value) || value <= 0) {
+    throw new Error(`${name} must be a positive number`);
+  }
+  return value;
+}
+
+const expectedTelemetryIntervalSeconds = positiveNumber(
+  "IOT_EXPECTED_TELEMETRY_INTERVAL_SECONDS",
+  DEFAULT_EXPECTED_TELEMETRY_INTERVAL_SECONDS
+);
+const staleAfterIntervals = positiveNumber("IOT_STALE_AFTER_INTERVALS", DEFAULT_STALE_AFTER_INTERVALS);
+const offlineAfterIntervals = positiveNumber("IOT_OFFLINE_AFTER_INTERVALS", DEFAULT_OFFLINE_AFTER_INTERVALS);
+if (staleAfterIntervals >= offlineAfterIntervals) {
+  throw new Error("IOT_STALE_AFTER_INTERVALS must be lower than IOT_OFFLINE_AFTER_INTERVALS");
+}
+const offlineWatchdogIntervalSeconds = positiveNumber(
+  "IOT_OFFLINE_WATCHDOG_INTERVAL_SECONDS",
+  expectedTelemetryIntervalSeconds
+);
+
 module.exports = {
   port: Number(process.env.PORT || 3001),
   mqttUrl: process.env.MQTT_URL || "mqtt://localhost:1883",
@@ -27,17 +54,31 @@ module.exports = {
       process.env.POSTGRES_CONNECTION_TIMEOUT_MS || 5000
     )
   },
+  farmServiceUrl: process.env.FARM_SERVICE_URL || "http://localhost:8082",
+  internalToken: process.env.INTERNAL_SERVICE_TOKEN || "local-internal-token",
   kafkaBrokers: (process.env.KAFKA_BROKERS || "localhost:9092").split(","),
   kafkaTopic: process.env.KAFKA_TELEMETRY_TOPIC || "iot.telemetry.received",
+  notificationTopic: process.env.NOTIFICATION_EVENTS_TOPIC || "duriancare.notification.events",
   esp32CameraUrl:    (process.env.ESP32_CAMERA_URL    || "http://192.168.1.100").replace(/\/$/, ""),
   esp32CapturePath:  (process.env.ESP32_CAPTURE_PATH  || "/capture").replace(/^([^/])/, "/$1"),
   serverBaseUrl:  (process.env.SERVER_BASE_URL  || "http://localhost:8080").replace(/\/$/, ""),
   aiServiceUrl:   (process.env.AI_SERVICE_URL   || "http://localhost:8000").replace(/\/$/, ""),
   uploadsDir: process.env.UPLOADS_DIR || "./uploads",
-  // Camera registration: ESP32 must include X-Camera-Key matching this value.
-  // Set CAMERA_REGISTRATION_KEY in .env to a strong secret; defaults are dev-only.
   cameraRegistrationKey: process.env.CAMERA_REGISTRATION_KEY || "duriancare-esp32-dev-key",
-  // Minutes of silence before a camera is marked offline by the background job.
   cameraOfflineTimeoutMinutes: Number(process.env.CAMERA_OFFLINE_TIMEOUT_MIN || 5),
   getCameraConfig,
+  iotHealth: {
+    expectedTelemetryIntervalSeconds,
+    offlineAfterIntervals,
+    offlineWatchdogIntervalSeconds,
+    staleAfterIntervals
+  },
+  iotThresholds: {
+    temperatureHigh: Number(process.env.IOT_TEMPERATURE_HIGH || 38),
+    temperatureLow: Number(process.env.IOT_TEMPERATURE_LOW || 15),
+    humidityHigh: Number(process.env.IOT_HUMIDITY_HIGH || 95),
+    humidityLow: Number(process.env.IOT_HUMIDITY_LOW || 45),
+    lightHigh: Number(process.env.IOT_LIGHT_HIGH || 4095),
+    lightLow: Number(process.env.IOT_LIGHT_LOW || 0)
+  }
 };
