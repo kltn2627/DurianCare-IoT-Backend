@@ -122,6 +122,8 @@ public class FarmCatalogService {
                 request.boundaryGeoJson(),
                 normalizeOptional(request.description()),
                 ZoneStatus.ACTIVE,
+                request.rowCount(),
+                request.treesPerRow(),
                 now,
                 now);
         List<FarmZone> zones = new ArrayList<>(zonesOf(farm));
@@ -148,6 +150,8 @@ public class FarmCatalogService {
                 request.boundaryGeoJson() == null ? current.boundaryGeoJson() : request.boundaryGeoJson(),
                 request.description() == null ? current.description() : normalizeOptional(request.description()),
                 request.status() == null ? current.status() : request.status(),
+                current.rowCount(),
+                current.treesPerRow(),
                 current.createdAt(),
                 now);
         zones.set(index, updated);
@@ -247,6 +251,8 @@ public class FarmCatalogService {
                 zone.boundaryGeoJson(),
                 zone.description(),
                 zone.status(),
+                zone.rowCount(),
+                zone.treesPerRow(),
                 zone.createdAt(),
                 zone.updatedAt());
     }

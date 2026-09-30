@@ -1,6 +1,8 @@
 package com.duriancare.farm.controller;
 
 import com.duriancare.farm.dto.CreateTreeRequest;
+import com.duriancare.farm.dto.GenerateTreesRequest;
+import com.duriancare.farm.dto.GenerateTreesResult;
 import com.duriancare.farm.dto.RequestActor;
 import com.duriancare.farm.dto.SaveTreeDiagnosisRequest;
 import com.duriancare.farm.dto.TreeDetailResponse;
@@ -71,6 +73,18 @@ public class TreeController {
         TreeDetailResponse created = treeService.createTree(
                 actorResolver.resolve(userId, email, role), zoneId, req);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    @PostMapping("/api/zones/{zoneId}/trees/generate")
+    public ResponseEntity<GenerateTreesResult> generateTrees(
+            @PathVariable String zoneId,
+            @Valid @RequestBody GenerateTreesRequest req,
+            @RequestHeader("X-Auth-User-Id") String userId,
+            @RequestHeader(value = "X-Auth-Email", required = false) String email,
+            @RequestHeader("X-Auth-Role") String role) {
+        GenerateTreesResult result = treeService.generateTrees(
+                actorResolver.resolve(userId, email, role), zoneId, req);
+        return ResponseEntity.status(HttpStatus.CREATED).body(result);
     }
 
     @GetMapping("/api/zones/{zoneId}/safety-summary")

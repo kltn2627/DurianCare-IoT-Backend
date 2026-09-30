@@ -7,6 +7,8 @@ import com.duriancare.farm.domain.TreeDiagnosisRecord;
 import com.duriancare.farm.domain.TreeHealthStatus;
 import com.duriancare.farm.domain.TreeStatus;
 import com.duriancare.farm.dto.CreateTreeRequest;
+import com.duriancare.farm.dto.GenerateTreesRequest;
+import com.duriancare.farm.dto.GenerateTreesResult;
 import com.duriancare.farm.dto.RequestActor;
 import com.duriancare.farm.dto.TreeDetailResponse;
 import com.duriancare.farm.dto.TreeSummaryResponse;
@@ -108,6 +110,42 @@ public class TreeService {
                 diagnosisRepository.findTopByTreeIdOrderByDiagnosedAtDesc(treeId);
         long count = diagnosisRepository.countByTreeId(treeId);
         return toDetailResponse(saved, latest, count);
+    }
+
+    public GenerateTreesResult generateTrees(
+            RequestActor actor,
+            String zoneId,
+            GenerateTreesRequest req) {
+        Farm farm = requireFarmByZone(actor, zoneId);
+        Instant now = Instant.now();
+        int generated = 0;
+        int skipped = 0;
+        String prefix = "H";
+        for (int row = 1; row <= req.rows(); row++) {
+            for (int col = 1; col <= req.treesPerRow(); col++) {
+                String treeCode = String.format("H%02d-C%02d", row, col);
+                if (treeRepository.existsByFarmZoneIdAndTreeCode(zoneId, treeCode)) {
+                    skipped++;
+                    continue;
+                }
+                // Normalize position to [0,1] with a small margin so trees don't clip at edges
+                double margin = 0.05;
+                double posX = req.treesPerRow() == 1 ? 0.5
+                        : margin + (col - 1) * (1.0 - 2 * margin) / (req.treesPerRow() - 1);
+                double posY = req.rows() == 1 ? 0.5
+                        : margin + (row - 1) * (1.0 - 2 * margin) / (req.rows() - 1);
+                DurianTree tree = new DurianTree(
+                        null, farm.id(), zoneId, null, treeCode,
+                        null, req.variety(), req.plantedDate(),
+                        null, null,
+                        (double) Math.round(posX * 10000) / 10000,
+                        (double) Math.round(posY * 10000) / 10000,
+                        TreeHealthStatus.SUSPECTED, TreeStatus.ACTIVE, req.notes(), now, now);
+                treeRepository.save(tree);
+                generated++;
+            }
+        }
+        return new GenerateTreesResult(zoneId, generated, skipped, prefix);
     }
 
     public void updateTreeHealthStatus(String treeId, TreeHealthStatus newStatus) {

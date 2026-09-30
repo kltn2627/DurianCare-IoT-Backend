@@ -13,6 +13,8 @@ public record FarmZone(
         Map<String, Object> boundaryGeoJson,
         String description,
         ZoneStatus status,
+        Integer rowCount,
+        Integer treesPerRow,
         Instant createdAt,
         Instant updatedAt) {
 }
