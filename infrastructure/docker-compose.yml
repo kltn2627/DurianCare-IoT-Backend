@@ -275,6 +275,7 @@ services:
       MONGODB_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/${MONGODB_CULTIVATION_DATABASE:-duriancare_cultivation}?authSource=admin
       SERVER_PORT: 8084
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      FARM_SERVICE_URL: http://duriancare-farm-service:8082
     depends_on:
       config-server:
         condition: service_started
