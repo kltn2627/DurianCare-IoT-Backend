@@ -28,6 +28,7 @@ public interface KnowledgeArticleRepository extends JpaRepository<KnowledgeArtic
                     :searchPattern is null
                     or lower(article.title) like :searchPattern
                     or lower(article.excerpt) like :searchPattern
+                    or lower(article.tags) like :searchPattern
                   )
             """)
     Page<KnowledgeArticle> searchByStatus(
