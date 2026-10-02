@@ -8,6 +8,7 @@ import com.duriancare.farm.dto.SaveTreeDiagnosisRequest;
 import com.duriancare.farm.dto.TreeDetailResponse;
 import com.duriancare.farm.dto.TreeDiagnosisResponse;
 import com.duriancare.farm.dto.TreeSummaryResponse;
+import com.duriancare.farm.dto.UpdateTreeHealthStatusRequest;
 import com.duriancare.farm.dto.UpdateTreeRequest;
 import com.duriancare.farm.dto.ZoneDetailResponse;
 import com.duriancare.farm.dto.ZoneSafetySummaryResponse;
@@ -19,6 +20,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -149,5 +151,16 @@ public class TreeController {
             @RequestHeader("X-Auth-Role") String role) {
         return diagnosisService.getLatestDiagnosis(
                 actorResolver.resolve(userId, email, role), treeId);
+    }
+
+    @PatchMapping("/api/trees/{treeId}/health-status")
+    public TreeDetailResponse updateHealthStatus(
+            @PathVariable String treeId,
+            @Valid @RequestBody UpdateTreeHealthStatusRequest req,
+            @RequestHeader("X-Auth-User-Id") String userId,
+            @RequestHeader(value = "X-Auth-Email", required = false) String email,
+            @RequestHeader("X-Auth-Role") String role) {
+        return treeService.transitionHealthStatus(
+                actorResolver.resolve(userId, email, role), treeId, req.healthStatus());
     }
 }

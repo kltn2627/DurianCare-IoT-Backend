@@ -148,6 +148,17 @@ public class TreeService {
         return new GenerateTreesResult(zoneId, generated, skipped, prefix);
     }
 
+    public TreeDetailResponse transitionHealthStatus(
+            RequestActor actor, String treeId, TreeHealthStatus newStatus) {
+        if (newStatus != TreeHealthStatus.TREATING && newStatus != TreeHealthStatus.RECOVERED) {
+            throw new FarmInvalidRequestException(
+                    "Manual transitions only allowed to TREATING or RECOVERED. Got: " + newStatus);
+        }
+        requireTree(actor, treeId);
+        updateTreeHealthStatus(treeId, newStatus);
+        return getTreeDetail(actor, treeId);
+    }
+
     public void updateTreeHealthStatus(String treeId, TreeHealthStatus newStatus) {
         treeRepository.findById(treeId).ifPresent(existing -> {
             Instant now = Instant.now();
