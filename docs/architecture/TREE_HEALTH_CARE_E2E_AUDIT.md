@@ -62,6 +62,7 @@ TREE MAP → TREE DETAIL → AI DIAGNOSIS → KNOWLEDGE BASE
 
 | Gap | Note |
 |-----|------|
+| ~~Backend PATCH unprotected~~ | **FIXED** — `TreeService.enforceRecoveryGate()` blocks WORSENED/STABLE/UNCERTAIN at service layer → HTTP 409 |
 | Care Schedule / Cultivation sync with TreeCarePlan | No link from `TreeCarePlan` to a cultivation/schedule system; would require new domain model |
 | KB article tags must contain disease codes | Search depends on KB article content; articles must be tagged with disease codes (e.g. `Algal_Leaf_Spot`) for search to return results — runtime data dependency, not a code bug |
 | Mobile imageUrl is local file URI | `photo.uri` from expo-image-picker is a local URI; backend accepts it but cannot serve/display it externally — would require upload-to-S3 before save for persistence |

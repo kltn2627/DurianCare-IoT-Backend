@@ -67,8 +67,8 @@ DISEASED ◄──────────────────────�
 ```
 
 **Allowed manual transitions** (enforced in `TreeService.transitionHealthStatus()`):
-- Any state → `TREATING`
-- Any state → `RECOVERED`
+- Any state → `TREATING` (unrestricted)
+- Any state → `RECOVERED` **only when** evaluateRecovery outcome is RECOVERED or IMPROVED; otherwise HTTP 409
 
 All other status changes happen automatically via `TreeDiagnosisService.inferHealthStatus()`.
 
@@ -348,7 +348,7 @@ All files confirmed to have all 5 states (HEALTHY/SUSPECTED/DISEASED/TREATING/RE
 
 **BUG CONFIRMED FIXED:** RecoveryPanel called PATCH directly without evaluateRecovery. Now evaluateRecovery called on expand; WORSENED/STABLE/UNCERTAIN blocks confirm. Fixed commits `cde1765` (mobile), `162f009` (web).
 
-**ARCHITECTURAL LIMITATION:** `PATCH /api/trees/{treeId}/health-status` does not enforce evaluateRecovery on backend — UI gate is presentation-layer only. DC-T005 was set RECOVERED on 2026-10-02 via direct PATCH overriding disease diagnosis.
+**ARCHITECTURAL GAP CLOSED:** `PATCH /api/trees/{treeId}/health-status` now enforces evaluateRecovery on the backend. `TreeService.transitionHealthStatus()` calls `enforceRecoveryGate()` inline when `newStatus == RECOVERED`, replicating the same logic as `TreeDiagnosisService.evaluateRecovery()` using `diagnosisRepository` directly (no circular dependency). WORSENED/STABLE/UNCERTAIN outcomes throw `FarmConflictException` → HTTP 409. 6 unit tests cover all outcomes (WORSENED, STABLE, UNCERTAIN block; RECOVERED, IMPROVED allow; TREATING unrestricted).
 
 ### 10.9 NOT TESTABLE — FARMER JWT REQUIRED
 

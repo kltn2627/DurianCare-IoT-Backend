@@ -53,7 +53,7 @@ Legend: ✅ PASS | ⚠️ PARTIAL | ❌ FAIL | 🔒 NOT TESTABLE (requires farme
 | Recovery gate: RECOVERED/IMPROVED → allowed | ✅ | ✅ | ✅ | |
 | DC-T026 evaluation (TREATING, latest=PHOMOPSIS) | WORSENED (current=PHOMOPSIS, prev=HEALTHY_LEAF, different codes) | 🔒 NOT TESTABLE — FARMER JWT | 🔒 NOT TESTABLE — FARMER JWT | Expected: gate blocks confirm |
 | DC-T010 evaluation (TREATING, latest=HEALTHY_LEAF) | RECOVERED (current is healthy) | 🔒 NOT TESTABLE — FARMER JWT | 🔒 NOT TESTABLE — FARMER JWT | Expected: gate allows confirm |
-| Backend PATCH unprotected (UI-only gate) | ⚠️ PATCH /health-status allows RECOVERED without evaluateRecovery | — | — | Backend limitation: direct API calls bypass UI gate |
+| Backend PATCH enforced (gate at service layer) | ✅ `TreeService.enforceRecoveryGate()` blocks WORSENED/STABLE/UNCERTAIN → HTTP 409 | — | — | Fixed: `FarmConflictException` thrown when not eligible |
 
 ---
 
@@ -136,7 +136,7 @@ Legend: ✅ PASS | ⚠️ PARTIAL | ❌ FAIL | 🔒 NOT TESTABLE (requires farme
 
 ## Known Limitations
 
-1. **Backend PATCH endpoint unprotected**: `PATCH /api/trees/{treeId}/health-status` allows TREATING/RECOVERED without evaluateRecovery. UI gate is presentation-layer only. Direct API calls bypass it.
+1. ~~**Backend PATCH endpoint unprotected**~~ — **FIXED**: `TreeService.enforceRecoveryGate()` now evaluates the top 2 diagnoses inline when `newStatus == RECOVERED`. WORSENED/STABLE/UNCERTAIN → `FarmConflictException` (HTTP 409). TREATING transition remains unrestricted.
 2. **N+1 query in `listTreesForMap`**: For each tree, a separate query fetches latest diagnosis. Acceptable for current scale; monitor for zones with 100+ trees.
 3. **Mobile imageUrl is local file URI**: `photo.uri` from expo-image-picker is device-local. Backend stores it but cannot serve it externally.
 4. **DC-T005 data inconsistency**: healthStatus=RECOVERED but latest diagnosis is ALGAL_LEAF_SPOT. Farmer manually set RECOVERED on 2026-10-02 via direct PATCH, overriding disease diagnosis. This is a valid use of the endpoint but illustrates the UI gate bypass risk.

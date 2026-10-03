@@ -3,6 +3,7 @@ package com.duriancare.farm.service;
 import com.duriancare.farm.domain.DurianTree;
 import com.duriancare.farm.domain.Farm;
 import com.duriancare.farm.domain.FarmZone;
+import com.duriancare.farm.domain.RecoveryOutcome;
 import com.duriancare.farm.domain.TreeDiagnosisRecord;
 import com.duriancare.farm.domain.TreeHealthStatus;
 import com.duriancare.farm.domain.TreeStatus;
@@ -21,6 +22,8 @@ import com.duriancare.farm.repository.TreeDiagnosisRecordRepository;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -155,6 +158,9 @@ public class TreeService {
                     "Manual transitions only allowed to TREATING or RECOVERED. Got: " + newStatus);
         }
         requireTree(actor, treeId);
+        if (newStatus == TreeHealthStatus.RECOVERED) {
+            enforceRecoveryGate(treeId);
+        }
         updateTreeHealthStatus(treeId, newStatus);
         return getTreeDetail(actor, treeId);
     }
@@ -200,6 +206,56 @@ public class TreeService {
                 safeTrees, attentionTrees, notAssessedTrees,
                 safetyRate != null ? Math.round(safetyRate * 100.0) / 100.0 : null,
                 label, Instant.now());
+    }
+
+    // ── recovery gate ─────────────────────────────────────────────────────────
+
+    private void enforceRecoveryGate(String treeId) {
+        PageRequest top2 = PageRequest.of(0, 2, Sort.by(Sort.Direction.DESC, "diagnosedAt"));
+        List<TreeDiagnosisRecord> recent = diagnosisRepository
+                .findByTreeIdOrderByDiagnosedAtDesc(treeId, top2)
+                .getContent();
+        RecoveryOutcome outcome;
+        if (recent.size() < 2) {
+            outcome = RecoveryOutcome.UNCERTAIN;
+        } else {
+            TreeDiagnosisRecord current = recent.get(0);
+            TreeDiagnosisRecord previous = recent.get(1);
+            String currentCode = normalizeCode(current.diseaseCode());
+            String previousCode = normalizeCode(previous.diseaseCode());
+            if (isHealthyCode(currentCode)) {
+                outcome = RecoveryOutcome.RECOVERED;
+            } else if (!currentCode.equals(previousCode)) {
+                outcome = RecoveryOutcome.WORSENED;
+            } else {
+                double prevConf = previous.confidence() != null ? previous.confidence() : 0.5;
+                double currConf = current.confidence() != null ? current.confidence() : 0.5;
+                double delta = prevConf - currConf;
+                if (delta > 0.15) {
+                    outcome = RecoveryOutcome.IMPROVED;
+                } else if (delta < -0.15) {
+                    outcome = RecoveryOutcome.WORSENED;
+                } else {
+                    outcome = RecoveryOutcome.STABLE;
+                }
+            }
+        }
+        if (outcome != RecoveryOutcome.RECOVERED && outcome != RecoveryOutcome.IMPROVED) {
+            throw new FarmConflictException(
+                    "RECOVERY_NOT_ALLOWED|" + outcome.name()
+                            + "|Cây chưa đủ điều kiện xác nhận hồi phục.");
+        }
+    }
+
+    private static String normalizeCode(String code) {
+        if (code == null || code.isBlank()) return "UNKNOWN";
+        return code.trim().toUpperCase().replace("-", "_").replace(" ", "_");
+    }
+
+    private static boolean isHealthyCode(String normalizedCode) {
+        return normalizedCode.equals("HEALTHY_LEAF")
+                || normalizedCode.equals("HEALTHY")
+                || normalizedCode.equals("RECOVERED_BY_FARMER");
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────
