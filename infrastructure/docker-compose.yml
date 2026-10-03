@@ -247,6 +247,7 @@ services:
       EUREKA_DEFAULT_ZONE: http://discovery-server:8761/eureka/
       MONGODB_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/${MONGODB_FARM_DATABASE:-duriancare_farm}?authSource=admin
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_ALERT_TOPIC: ${KAFKA_ALERT_TOPIC}
       AUTH_SERVICE_URL: http://duriancare-auth-service:8081
     depends_on:
       config-server:

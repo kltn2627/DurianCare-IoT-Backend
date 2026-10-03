@@ -1,17 +1,22 @@
 package com.duriancare.farm.controller;
 
+import com.duriancare.farm.dto.CreateTreeCarePlanRequest;
 import com.duriancare.farm.dto.CreateTreeRequest;
 import com.duriancare.farm.dto.GenerateTreesRequest;
 import com.duriancare.farm.dto.GenerateTreesResult;
+import com.duriancare.farm.dto.RecoveryEvaluationResponse;
 import com.duriancare.farm.dto.RequestActor;
 import com.duriancare.farm.dto.SaveTreeDiagnosisRequest;
+import com.duriancare.farm.dto.TreeCarePlanResponse;
 import com.duriancare.farm.dto.TreeDetailResponse;
 import com.duriancare.farm.dto.TreeDiagnosisResponse;
 import com.duriancare.farm.dto.TreeSummaryResponse;
+import com.duriancare.farm.dto.UpdateCarePlanStatusRequest;
 import com.duriancare.farm.dto.UpdateTreeHealthStatusRequest;
 import com.duriancare.farm.dto.UpdateTreeRequest;
 import com.duriancare.farm.dto.ZoneDetailResponse;
 import com.duriancare.farm.dto.ZoneSafetySummaryResponse;
+import com.duriancare.farm.service.TreeCarePlanService;
 import com.duriancare.farm.service.TreeDiagnosisService;
 import com.duriancare.farm.service.TreeService;
 import jakarta.validation.Valid;
@@ -34,14 +39,17 @@ public class TreeController {
 
     private final TreeService treeService;
     private final TreeDiagnosisService diagnosisService;
+    private final TreeCarePlanService carePlanService;
     private final RequestActorResolver actorResolver;
 
     public TreeController(
             TreeService treeService,
             TreeDiagnosisService diagnosisService,
+            TreeCarePlanService carePlanService,
             RequestActorResolver actorResolver) {
         this.treeService = treeService;
         this.diagnosisService = diagnosisService;
+        this.carePlanService = carePlanService;
         this.actorResolver = actorResolver;
     }
 
@@ -162,5 +170,60 @@ public class TreeController {
             @RequestHeader("X-Auth-Role") String role) {
         return treeService.transitionHealthStatus(
                 actorResolver.resolve(userId, email, role), treeId, req.healthStatus());
+    }
+
+    // ── Care Plans (/api/trees/{treeId}/care-plans and /api/care-plans/...) ──
+
+    @PostMapping("/api/trees/{treeId}/care-plans")
+    public ResponseEntity<TreeCarePlanResponse> createCarePlan(
+            @PathVariable String treeId,
+            @Valid @RequestBody CreateTreeCarePlanRequest req,
+            @RequestHeader("X-Auth-User-Id") String userId,
+            @RequestHeader(value = "X-Auth-Email", required = false) String email,
+            @RequestHeader("X-Auth-Role") String role) {
+        TreeCarePlanResponse created = carePlanService.createCarePlan(
+                actorResolver.resolve(userId, email, role), treeId, req);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    @GetMapping("/api/trees/{treeId}/care-plans")
+    public List<TreeCarePlanResponse> listCarePlans(
+            @PathVariable String treeId,
+            @RequestHeader("X-Auth-User-Id") String userId,
+            @RequestHeader(value = "X-Auth-Email", required = false) String email,
+            @RequestHeader("X-Auth-Role") String role) {
+        return carePlanService.listCarePlans(actorResolver.resolve(userId, email, role), treeId);
+    }
+
+    @GetMapping("/api/care-plans/{planId}")
+    public TreeCarePlanResponse getCarePlan(
+            @PathVariable String planId,
+            @RequestHeader("X-Auth-User-Id") String userId,
+            @RequestHeader(value = "X-Auth-Email", required = false) String email,
+            @RequestHeader("X-Auth-Role") String role) {
+        return carePlanService.getCarePlan(actorResolver.resolve(userId, email, role), planId);
+    }
+
+    @PatchMapping("/api/care-plans/{planId}/status")
+    public TreeCarePlanResponse updateCarePlanStatus(
+            @PathVariable String planId,
+            @Valid @RequestBody UpdateCarePlanStatusRequest req,
+            @RequestHeader("X-Auth-User-Id") String userId,
+            @RequestHeader(value = "X-Auth-Email", required = false) String email,
+            @RequestHeader("X-Auth-Role") String role) {
+        return carePlanService.updateStatus(
+                actorResolver.resolve(userId, email, role), planId, req.status());
+    }
+
+    // ── Recovery Evaluation ───────────────────────────────────────────────────
+
+    @PostMapping("/api/trees/{treeId}/evaluate-recovery")
+    public RecoveryEvaluationResponse evaluateRecovery(
+            @PathVariable String treeId,
+            @RequestHeader("X-Auth-User-Id") String userId,
+            @RequestHeader(value = "X-Auth-Email", required = false) String email,
+            @RequestHeader("X-Auth-Role") String role) {
+        return diagnosisService.evaluateRecovery(
+                actorResolver.resolve(userId, email, role), treeId);
     }
 }
