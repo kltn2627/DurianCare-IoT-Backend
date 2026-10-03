@@ -1,8 +1,27 @@
 require("dotenv").config();
 
+// Re-reads ESP32_CAMERA_URL and ESP32_CAPTURE_PATH from .env on every call so
+// you can update the IP without restarting the service — just save .env.
+function getCameraConfig() {
+  require("dotenv").config({ override: true });
+  return {
+    esp32CameraUrl:   (process.env.ESP32_CAMERA_URL   || "http://192.168.1.100").replace(/\/$/, ""),
+    esp32CapturePath: (process.env.ESP32_CAPTURE_PATH || "/capture").replace(/^([^/])/, "/$1"),
+  };
+}
+
 const DEFAULT_EXPECTED_TELEMETRY_INTERVAL_SECONDS = 60;
 const DEFAULT_STALE_AFTER_INTERVALS = 3;
 const DEFAULT_OFFLINE_AFTER_INTERVALS = 10;
+
+function positiveNumber(name, fallback) {
+  const raw = process.env[name];
+  const value = raw === undefined || raw === "" ? fallback : Number(raw);
+  if (!Number.isFinite(value) || value <= 0) {
+    throw new Error(`${name} must be a positive number`);
+  }
+  return value;
+}
 
 const expectedTelemetryIntervalSeconds = positiveNumber(
   "IOT_EXPECTED_TELEMETRY_INTERVAL_SECONDS",
@@ -17,15 +36,6 @@ const offlineWatchdogIntervalSeconds = positiveNumber(
   "IOT_OFFLINE_WATCHDOG_INTERVAL_SECONDS",
   expectedTelemetryIntervalSeconds
 );
-
-function positiveNumber(name, fallback) {
-  const raw = process.env[name];
-  const value = raw === undefined || raw === "" ? fallback : Number(raw);
-  if (!Number.isFinite(value) || value <= 0) {
-    throw new Error(`${name} must be a positive number`);
-  }
-  return value;
-}
 
 module.exports = {
   port: Number(process.env.PORT || 3001),
@@ -49,6 +59,14 @@ module.exports = {
   kafkaBrokers: (process.env.KAFKA_BROKERS || "localhost:9092").split(","),
   kafkaTopic: process.env.KAFKA_TELEMETRY_TOPIC || "iot.telemetry.received",
   notificationTopic: process.env.NOTIFICATION_EVENTS_TOPIC || "duriancare.notification.events",
+  esp32CameraUrl:    (process.env.ESP32_CAMERA_URL    || "http://192.168.1.100").replace(/\/$/, ""),
+  esp32CapturePath:  (process.env.ESP32_CAPTURE_PATH  || "/capture").replace(/^([^/])/, "/$1"),
+  serverBaseUrl:  (process.env.SERVER_BASE_URL  || "http://localhost:8080").replace(/\/$/, ""),
+  aiServiceUrl:   (process.env.AI_SERVICE_URL   || "http://localhost:8000").replace(/\/$/, ""),
+  uploadsDir: process.env.UPLOADS_DIR || "./uploads",
+  cameraRegistrationKey: process.env.CAMERA_REGISTRATION_KEY || "duriancare-esp32-dev-key",
+  cameraOfflineTimeoutMinutes: Number(process.env.CAMERA_OFFLINE_TIMEOUT_MIN || 5),
+  getCameraConfig,
   iotHealth: {
     expectedTelemetryIntervalSeconds,
     offlineAfterIntervals,

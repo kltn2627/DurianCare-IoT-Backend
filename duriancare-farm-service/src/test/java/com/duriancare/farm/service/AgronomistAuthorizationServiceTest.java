@@ -438,6 +438,8 @@ class AgronomistAuthorizationServiceTest {
                 Map.of(),
                 null,
                 ZoneStatus.ACTIVE,
+                null,
+                null,
                 Instant.now(),
                 Instant.now());
     }

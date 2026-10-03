@@ -1,0 +1,28 @@
+# DurianCare MobileNetV2 Classifier Confusion Matrix
+# Source: Training evaluation on held-out test set (n=1088)
+# Method: Direct model evaluation (NOT end-to-end pipeline)
+# Note: These are classifier-isolation metrics. End-to-end accuracy also depends on
+#       the YOLO detector successfully finding a leaf (historical FNR ~5.88%).
+# Date: 2026-09-15
+#
+# Row = True class, Column = Predicted class
+true_class,ALGAL_LEAF_SPOT,ALLOCARIDARA_ATTACK,HEALTHY_LEAF,LEAF_BLIGHT,PHOMOPSIS_LEAF_SPOT,support
+ALGAL_LEAF_SPOT,194,1,0,1,4,200
+ALLOCARIDARA_ATTACK,3,178,0,1,1,183
+HEALTHY_LEAF,0,0,257,0,1,258
+LEAF_BLIGHT,3,0,2,198,2,205
+PHOMOPSIS_LEAF_SPOT,3,2,2,2,233,242
+total_predicted,203,181,261,202,241,1088
+
+# Per-class metrics (Precision / Recall / F1)
+# Source: bar chart images in ImageDurianCare-IoT/ training evaluation folder
+metric,ALGAL_LEAF_SPOT,ALLOCARIDARA_ATTACK,HEALTHY_LEAF,LEAF_BLIGHT,PHOMOPSIS_LEAF_SPOT
+precision,0.96,0.98,0.98,0.98,0.97
+recall,0.97,0.97,1.00,0.97,0.96
+f1,0.96,0.98,0.99,0.97,0.96
+
+# Overall
+# accuracy = 1060/1088 = 97.43%
+# macro_avg_precision = 0.974
+# macro_avg_recall = 0.974
+# macro_avg_f1 = 0.972

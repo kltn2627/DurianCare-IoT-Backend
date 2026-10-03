@@ -36,13 +36,23 @@ public class FarmNotificationEventPublisher {
             String title,
             String message,
             Map<String, Object> metadata) {
+        publish(eventType, receiverId, title, message, "EXPERT", metadata);
+    }
+
+    public void publish(
+            String eventType,
+            String receiverId,
+            String title,
+            String message,
+            String notificationType,
+            Map<String, Object> metadata) {
         FarmNotificationEvent event = new FarmNotificationEvent(
                 UUID.randomUUID(),
                 eventType,
                 receiverId,
                 title,
                 message,
-                "EXPERT",
+                notificationType,
                 metadata == null ? Map.of() : metadata,
                 Instant.now());
         try {

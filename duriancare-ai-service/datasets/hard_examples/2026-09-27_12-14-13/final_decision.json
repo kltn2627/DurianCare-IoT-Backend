@@ -1,0 +1,4 @@
+{
+  "pipeline_stage_failed": "validator",
+  "failure_reason": "crop_quality_issue"
+}

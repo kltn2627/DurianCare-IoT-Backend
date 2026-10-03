@@ -2,6 +2,8 @@ package com.duriancare.farm.dto;
 
 import com.duriancare.farm.domain.FarmStatus;
 import com.duriancare.farm.domain.ZoneStatus;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
@@ -41,7 +43,9 @@ public final class FarmCatalogDtos {
             @Size(max = 48) String code,
             @PositiveOrZero BigDecimal areaSquareMeters,
             Map<String, Object> boundaryGeoJson,
-            @Size(max = 1000) String description) {
+            @Size(max = 1000) String description,
+            @Min(1) @Max(500) Integer rowCount,
+            @Min(1) @Max(500) Integer treesPerRow) {
     }
 
     public record UpdateFarmZoneRequest(
@@ -61,6 +65,8 @@ public final class FarmCatalogDtos {
             Map<String, Object> boundaryGeoJson,
             String description,
             ZoneStatus status,
+            Integer rowCount,
+            Integer treesPerRow,
             Instant createdAt,
             Instant updatedAt) {
     }

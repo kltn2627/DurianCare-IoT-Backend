@@ -19,11 +19,14 @@ class LeafPipelineTest(unittest.TestCase):
         variants = self.pipeline._build_variants(dark_image)
 
         self.assertGreaterEqual(len(variants), 2)
-        self.assertEqual("original", variants[0].name)
+        # rank_variants sorts by quality score descending; for dark images a
+        # brightness-boosting enhancement scores higher than the original, so
+        # the top-ranked variant must NOT be "original".
+        self.assertNotEqual("original", variants[0].name)
         self.assertTrue(
             any(
-                variant.name in {"autocontrast", "gamma_up_1_2"}
-                for variant in variants[1:]
+                variant.name in {"contrast_stretch", "brightness_norm", "gamma_1_15", "clahe"}
+                for variant in variants
             )
         )
 
