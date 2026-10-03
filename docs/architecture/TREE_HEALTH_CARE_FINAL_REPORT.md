@@ -281,3 +281,80 @@ Runtime verification requires live services (Docker Compose up, farmer JWT, real
 | Health status và diagnosis history riêng biệt | ✅ Separate collection/field |
 | Mọi thay đổi Tree Map phản ánh từ DB | ✅ listTrees() re-fetches from backend |
 | KHÔNG train Pest Detection | ✅ Not done |
+
+---
+
+## 10. Runtime Recovery Verification
+
+**Date:** 2026-10-03  
+**Method:** Docker Compose started locally; MongoDB queried directly; farmer JWT NOT AVAILABLE (password unknown — credential exploration blocked by security policy)
+
+### 10.1 Services Status
+
+| Service | Port | Status |
+|---------|------|--------|
+| farm-service | 8082 | ✅ UP |
+| notification-service | 8085 | ✅ UP |
+| gateway | 8080 | ✅ UP |
+| auth-service | internal | ✅ UP |
+| MongoDB | 27018 | ✅ UP |
+
+### 10.2 Database State (Verified from MongoDB)
+
+| Status | Count |
+|--------|-------|
+| HEALTHY | 51 |
+| SUSPECTED | 23 |
+| DISEASED | 14 |
+| TREATING | 9 (DC-T001, T010, T026, T073-T079) |
+| RECOVERED | 3 (DC-T005, T071, T072) |
+
+All 5 health states in real DB. No mock/demo data in runtime records.
+
+### 10.3 evaluateRecovery Predicted Outcomes (Code-Verified, Not Runtime-Tested via UI)
+
+| Tree | State | Latest Diagnosis | Prev Diagnosis | Predicted Outcome | Gate |
+|------|-------|-----------------|----------------|-------------------|------|
+| DC-T026 | TREATING | PHOMOPSIS_LEAF_SPOT (0.9974) | HEALTHY_LEAF (0.87) | **WORSENED** (different codes) | Blocks |
+| DC-T010 | TREATING | HEALTHY_LEAF (0.93) | LEAF_BLIGHT (0.873) | **RECOVERED** (isHealthy=true) | Allows |
+
+### 10.4 Care Plans (Verified from DB)
+
+- 2 care plans for DC-T008 (DISEASED)
+- Second plan: `diagnosisId="6abfac4b..."` (real ID), treatment="Phun Mancozeb", followUpDate=2026-10-16
+- Real diagnosis ID — not hardcoded
+
+### 10.5 Notifications (Verified from DB)
+
+- 1 CARE notification: title="Lịch tái khám cây DC-T008"
+- `metadata.treeId = "tree-008"` (not null, correctly set)
+- receiverId = farmer userId `9ffc2a41-eaa6-4567-ad6d-d6741acafeb7`
+
+### 10.6 Build Results
+
+| Platform | Result |
+|----------|--------|
+| Web `npm run build` | ✅ 0 errors |
+| Web `npx tsc --noEmit` | ✅ 0 errors |
+| Mobile `npx tsc --noEmit` | ⚠️ 2 pre-existing errors (expo-router, socket.io-client — not from this work) |
+
+### 10.7 Status Mapping Audit (All 5 States in All Files)
+
+All files confirmed to have all 5 states (HEALTHY/SUSPECTED/DISEASED/TREATING/RECOVERED) in every color/label/bg map. Legends auto-include all states via `Object.entries(HEALTH_LABELS)`.
+
+### 10.8 Key Findings
+
+**BUG CONFIRMED FIXED:** RECOVERED trees showed as gray on mobile tree map (RECOVERED missing from `ZoneTreesScreen` maps). Fixed commit `cde1765`.
+
+**BUG CONFIRMED FIXED:** RecoveryPanel called PATCH directly without evaluateRecovery. Now evaluateRecovery called on expand; WORSENED/STABLE/UNCERTAIN blocks confirm. Fixed commits `cde1765` (mobile), `162f009` (web).
+
+**ARCHITECTURAL LIMITATION:** `PATCH /api/trees/{treeId}/health-status` does not enforce evaluateRecovery on backend — UI gate is presentation-layer only. DC-T005 was set RECOVERED on 2026-10-02 via direct PATCH overriding disease diagnosis.
+
+### 10.9 NOT TESTABLE — FARMER JWT REQUIRED
+
+- Full UI flow (Tree Map → RecoveryPanel → confirm → map color change)
+- Tree map reload/logout/login persistence
+- Re-diagnosis flow via notification click
+- Follow-up notification routing to correct tree
+
+Manual verification steps: See Section 8.
