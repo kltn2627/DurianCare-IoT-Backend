@@ -199,9 +199,7 @@ public class CommunityPostService {
             return;
         }
         accessService.requireCanViewPost(actor, post);
-        if (actor.getRole() != UserRole.ADMIN && !post.getAuthor().getId().equals(actor.getId())) {
-            throw new InvalidRequestException("You can only delete your own post");
-        }
+        throw new InvalidRequestException("You can only delete your own post");
     }
 
     @Transactional(readOnly = true)

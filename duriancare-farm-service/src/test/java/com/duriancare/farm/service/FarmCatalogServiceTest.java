@@ -73,7 +73,9 @@ class FarmCatalogServiceTest {
                 "A1",
                 BigDecimal.TEN,
                 Map.of(),
-                "Khu dau tien"));
+                "Khu dau tien",
+                null,
+                null));
 
         assertThat(zone.id()).isNotBlank();
         assertThat(zone.name()).isEqualTo("Khu A1");
@@ -150,7 +152,7 @@ class FarmCatalogServiceTest {
                 BigDecimal.ONE,
                 BigDecimal.TEN,
                 FarmStatus.ACTIVE,
-                List.of(new FarmZone("zone-1", "Zone 1", "Z1", BigDecimal.ONE, Map.of(), null, ZoneStatus.ACTIVE, now, now)),
+                List.of(new FarmZone("zone-1", "Zone 1", "Z1", BigDecimal.ONE, Map.of(), null, ZoneStatus.ACTIVE, null, null, now, now)),
                 now,
                 now);
     }

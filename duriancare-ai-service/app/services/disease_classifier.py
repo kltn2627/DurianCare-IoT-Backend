@@ -10,6 +10,8 @@ from pathlib import Path
 from time import perf_counter
 from typing import Any, Mapping
 
+logger = logging.getLogger(__name__)
+
 try:
     import torch
     from PIL import Image, ImageStat as _PilImageStat
@@ -124,16 +126,25 @@ class DoubleModelDiseaseClassifier:
         try:
             if self.settings.yolo_crop_enabled:
                 yolo_model_path = Path(self.settings.yolo_model)
-                if yolo_model_path.is_file():
-                    self.detector = YOLO(self.settings.yolo_model)
-                    self.detector.to(self.device)
-                    self._load_fallback_detector()
-                else:
+                if not yolo_model_path.is_file():
                     logger.warning(
                         "YOLO detector weights not found at %s; "
                         "falling back to whole-image MobileNet classification.",
                         self.settings.yolo_model,
                     )
+                    self.detector = None
+                else:
+                    try:
+                        self.detector = YOLO(self.settings.yolo_model)
+                        self.detector.to(self.device)
+                        self._load_fallback_detector()
+                    except Exception as yolo_exc:
+                        logger.warning(
+                            "YOLO primary detector unavailable (%s); "
+                            "prediction will require detector — no raw image will be classified",
+                            yolo_exc,
+                        )
+                        self.detector = None
             self.classifier = self._load_classifier(
                 self.settings.classifier_weights,
             )

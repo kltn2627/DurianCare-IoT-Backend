@@ -8,5 +8,6 @@ public enum NotificationType {
     EXPERT,
     WEATHER,
     DISEASE,
+    CARE,
     GENERAL
 }

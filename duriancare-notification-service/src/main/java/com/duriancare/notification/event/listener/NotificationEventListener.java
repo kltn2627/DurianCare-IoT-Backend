@@ -44,7 +44,8 @@ public class NotificationEventListener {
             "CONNECTION_DISCONNECTED",
             "KNOWLEDGE_SUBMITTED",
             "KNOWLEDGE_APPROVED",
-            "KNOWLEDGE_REJECTED");
+            "KNOWLEDGE_REJECTED",
+            "CARE_FOLLOWUP");
 
     private final ObjectMapper objectMapper;
     private final NotificationService notificationService;
@@ -130,6 +131,7 @@ public class NotificationEventListener {
                     "CONNECTION_REQUEST_REJECTED",
                     "CONNECTION_REQUEST_CANCELLED",
                     "CONNECTION_DISCONNECTED" -> NotificationType.EXPERT;
+            case "CARE_FOLLOWUP" -> NotificationType.CARE;
             default -> NotificationType.GENERAL;
         };
     }

@@ -185,6 +185,19 @@ async def lifespan(app: FastAPI):
         logger.exception("Failed to load disease prediction models")
         app.state.model_load_error = str(exception)
 
+    if app.state.disease_classifier is not None:
+        _loaded_detector = getattr(app.state.disease_classifier, "detector", None)
+        if _loaded_detector is None and settings.yolo_crop_enabled:
+            _missing_path = settings.yolo_model
+            logger.warning(
+                "PROVISIONING REQUIRED: leaf detector not loaded — disease diagnosis is DISABLED. "
+                "YOLO_CROP is enabled but '%s' is absent. "
+                "Place the durian-fine-tuned YOLOv8 checkpoint at that path and restart the service. "
+                "Known SHA-256 of last working checkpoint: "
+                "afe27d6579c618579aa9217d75f5e79a1a81b615d2370a6d367d0b31f4f418ab",
+                _missing_path,
+            )
+
     rag_service = RagService(settings)
     try:
         rag_service.initialize()
@@ -366,10 +379,19 @@ def health() -> dict[str, object]:
     else:
         service_status = "DOWN"
 
+    detector_ready = (
+        classifier is not None
+        and getattr(classifier, "detector", None) is not None
+    )
+    diagnosis_ready = classifier is not None and detector_ready
+
     response: dict[str, str | bool] = {
         "status": service_status,
         "service": "duriancare-ai-service",
-        "modelsLoaded": classifier is not None,
+        "modelsLoaded": diagnosis_ready,
+        "classifierLoaded": classifier is not None,
+        "detectorReady": detector_ready,
+        "diagnosisReady": diagnosis_ready,
         "device": classifier.device.type if classifier is not None else "unavailable",
         "databaseReady": bool(rag_status.get("databaseReady")),
         "embeddingReady": bool(rag_status.get("embeddingReady")),
@@ -389,6 +411,8 @@ def health() -> dict[str, object]:
             and app.state.s3_storage.enabled
         ),
     }
+    if not detector_ready and settings.yolo_crop_enabled:
+        response["detectorMissingPath"] = settings.yolo_model
     model_load_error = getattr(app.state, "model_load_error", None)
     if model_load_error:
         response["modelLoadError"] = model_load_error

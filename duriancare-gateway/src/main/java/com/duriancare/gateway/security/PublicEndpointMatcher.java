@@ -20,7 +20,8 @@ public class PublicEndpointMatcher {
             "/actuator/health",
             "/actuator/info",
             "/**/v3/api-docs/**",
-            "/swagger-ui/**");
+            "/swagger-ui/**",
+            "/api/v1/public/**");
 
     private static final List<String> PUBLIC_GET_PATHS = List.of(
             "/api/knowledge/articles",
