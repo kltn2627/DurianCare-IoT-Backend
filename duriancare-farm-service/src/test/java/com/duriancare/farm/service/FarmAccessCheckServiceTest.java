@@ -55,6 +55,17 @@ class FarmAccessCheckServiceTest {
     }
 
     @Test
+    void administratorMayReadOnlyExistingCalendarZone() {
+        when(farmRepository.findById("farm-1")).thenReturn(Optional.of(farm("farm-1", "owner-1")));
+        assertThat(service.canAccess(new FarmAccessCheckRequest("admin-1", "ADMIN", "farm-1", "zone-1",
+                FarmPermissionType.VIEW_CARE_SCHEDULE))).isTrue();
+        assertThat(service.canAccess(new FarmAccessCheckRequest("admin-1", "ADMIN", "farm-1", "zone-1",
+                FarmPermissionType.UPDATE_CARE_SCHEDULE))).isFalse();
+        assertThat(service.canAccess(new FarmAccessCheckRequest("admin-1", "ADMIN", "farm-1", "unknown-zone",
+                FarmPermissionType.VIEW_CARE_SCHEDULE))).isFalse();
+    }
+
+    @Test
     void authorizedEngineerAccessesAllowedFarm() {
         when(farmRepository.findById("farm-1")).thenReturn(Optional.of(farm("farm-1", "owner-1")));
         when(authorizationRepository.findByFarmIdAndAgronomistIdAndStatus(

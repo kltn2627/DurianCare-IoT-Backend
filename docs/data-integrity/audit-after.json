@@ -1,0 +1,769 @@
+{
+  "generatedAt": "2026-10-03T15:41:24.162Z",
+  "mode": "READ_ONLY",
+  "counts": {
+    "farms": {
+      "total": 3,
+      "VALID": 3,
+      "ORPHAN": 0,
+      "SCOPE_MISMATCH": 0,
+      "LEGACY_UNVERIFIED": 0
+    },
+    "zones": {
+      "total": 5,
+      "VALID": 5,
+      "ORPHAN": 0,
+      "SCOPE_MISMATCH": 0,
+      "LEGACY_UNVERIFIED": 0
+    },
+    "cultivation_seasons": {
+      "total": 2,
+      "VALID": 2,
+      "ORPHAN": 0,
+      "SCOPE_MISMATCH": 0,
+      "LEGACY_UNVERIFIED": 0
+    },
+    "cultivation_plans": {
+      "total": 5,
+      "VALID": 3,
+      "ORPHAN": 0,
+      "SCOPE_MISMATCH": 0,
+      "LEGACY_UNVERIFIED": 2
+    },
+    "cultivation_activities": {
+      "total": 19,
+      "VALID": 10,
+      "ORPHAN": 0,
+      "SCOPE_MISMATCH": 0,
+      "LEGACY_UNVERIFIED": 9
+    },
+    "cultivation_schedules": {
+      "total": 3,
+      "VALID": 0,
+      "ORPHAN": 0,
+      "SCOPE_MISMATCH": 0,
+      "LEGACY_UNVERIFIED": 3
+    },
+    "harvest_batches": {
+      "total": 3,
+      "VALID": 1,
+      "ORPHAN": 0,
+      "SCOPE_MISMATCH": 0,
+      "LEGACY_UNVERIFIED": 2
+    },
+    "lab_samples": {
+      "total": 1,
+      "VALID": 1,
+      "ORPHAN": 0,
+      "SCOPE_MISMATCH": 0,
+      "LEGACY_UNVERIFIED": 0
+    },
+    "lab_residue_results": {
+      "total": 0,
+      "VALID": 0,
+      "ORPHAN": 0,
+      "SCOPE_MISMATCH": 0,
+      "LEGACY_UNVERIFIED": 0
+    },
+    "export_releases": {
+      "total": 1,
+      "VALID": 0,
+      "ORPHAN": 0,
+      "SCOPE_MISMATCH": 0,
+      "LEGACY_UNVERIFIED": 1
+    }
+  },
+  "legacyMarkerCount": 17,
+  "records": [
+    {
+      "collection": "farms",
+      "id": "farm-minh-phat-2026",
+      "currentReferences": {
+        "ownerUserId": "d398555d-6dcf-4265-be48-4b7565fd5000"
+      },
+      "status": "VALID",
+      "problem": null,
+      "possibleParentCandidates": [],
+      "confidence": "HIGH"
+    },
+    {
+      "collection": "farms",
+      "id": "6ab28abc7588363ff7816026",
+      "currentReferences": {
+        "ownerUserId": "d398555d-6dcf-4265-be48-4b7565fd5000"
+      },
+      "status": "VALID",
+      "problem": null,
+      "possibleParentCandidates": [],
+      "confidence": "HIGH"
+    },
+    {
+      "collection": "farms",
+      "id": "demo-farm-vuon-sau-rieng-ha-nhu",
+      "currentReferences": {
+        "ownerUserId": "d398555d-6dcf-4265-be48-4b7565fd5000"
+      },
+      "status": "VALID",
+      "problem": null,
+      "possibleParentCandidates": [],
+      "confidence": "HIGH"
+    },
+    {
+      "collection": "zones",
+      "id": "plot-khu-a-truong-thanh",
+      "currentReferences": {
+        "farmId": "farm-minh-phat-2026"
+      },
+      "status": "VALID",
+      "problem": null,
+      "possibleParentCandidates": [],
+      "confidence": "HIGH"
+    },
+    {
+      "collection": "zones",
+      "id": "plot-khu-b-ra-hoa",
+      "currentReferences": {
+        "farmId": "farm-minh-phat-2026"
+      },
+      "status": "VALID",
+      "problem": null,
+      "possibleParentCandidates": [],
+      "confidence": "HIGH"
+    },
+    {
+      "collection": "zones",
+      "id": "8884b7cb-7ef1-45a0-983c-6351171bbe38",
+      "currentReferences": {
+        "farmId": "6ab28abc7588363ff7816026"
+      },
+      "status": "VALID",
+      "problem": null,
+      "possibleParentCandidates": [],
+      "confidence": "HIGH"
+    },
+    {
+      "collection": "zones",
+      "id": "demo-plot-khu-a-ri6",
+      "currentReferences": {
+        "farmId": "demo-farm-vuon-sau-rieng-ha-nhu"
+      },
+      "status": "VALID",
+      "problem": null,
+      "possibleParentCandidates": [],
+      "confidence": "HIGH"
+    },
+    {
+      "collection": "zones",
+      "id": "demo-plot-khu-b-dona",
+      "currentReferences": {
+        "farmId": "demo-farm-vuon-sau-rieng-ha-nhu"
+      },
+      "status": "VALID",
+      "problem": null,
+      "possibleParentCandidates": [],
+      "confidence": "HIGH"
+    },
+    {
+      "collection": "cultivation_seasons",
+      "id": "6ab28abda6148cf58aac5184",
+      "currentReferences": {
+        "farmId": "6ab28abc7588363ff7816026",
+        "plotId": "8884b7cb-7ef1-45a0-983c-6351171bbe38"
+      },
+      "status": "VALID",
+      "problem": null,
+      "possibleParentCandidates": [
+        {
+          "farmId": "6ab28abc7588363ff7816026",
+          "plotId": "8884b7cb-7ef1-45a0-983c-6351171bbe38"
+        }
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "collection": "cultivation_seasons",
+      "id": "season-minh-phat-2026",
+      "currentReferences": {
+        "farmId": "farm-minh-phat-2026",
+        "plotId": "plot-khu-a-truong-thanh"
+      },
+      "status": "VALID",
+      "problem": null,
+      "possibleParentCandidates": [
+        {
+          "farmId": "farm-minh-phat-2026",
+          "plotId": "plot-khu-a-truong-thanh"
+        }
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "collection": "cultivation_plans",
+      "id": "plan-minh-phat-vu-2026",
+      "currentReferences": {
+        "farmId": "farm-minh-phat-2026",
+        "plotId": "plot-khu-a-truong-thanh",
+        "cultivationSeasonId": "season-minh-phat-2026"
+      },
+      "status": "VALID",
+      "problem": null,
+      "possibleParentCandidates": [
+        {
+          "seasonId": "season-minh-phat-2026",
+          "farmId": "farm-minh-phat-2026",
+          "plotId": "plot-khu-a-truong-thanh"
+        }
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "collection": "cultivation_plans",
+      "id": "fa6ff574-6296-4443-86e5-3c8d233d3363",
+      "currentReferences": {
+        "farmId": "farm-minh-phat-2026",
+        "plotId": "plot-khu-a-truong-thanh",
+        "cultivationSeasonId": "season-minh-phat-2026"
+      },
+      "status": "VALID",
+      "problem": null,
+      "possibleParentCandidates": [
+        {
+          "seasonId": "season-minh-phat-2026",
+          "farmId": "farm-minh-phat-2026",
+          "plotId": "plot-khu-a-truong-thanh"
+        }
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "collection": "cultivation_plans",
+      "id": "demo-plan-ri6-nuoi-trai-2026-08",
+      "currentReferences": {
+        "farmId": "demo-farm-vuon-sau-rieng-ha-nhu",
+        "plotId": "demo-plot-khu-a-ri6",
+        "cultivationSeasonId": "demo-season-ri6-2026-08"
+      },
+      "status": "LEGACY_UNVERIFIED",
+      "problem": "cultivationSeasonId does not exist; Migration marker: Season missing or Plan scope differs from Season",
+      "possibleParentCandidates": [
+        {
+          "farmId": "demo-farm-vuon-sau-rieng-ha-nhu",
+          "plotId": "demo-plot-khu-a-ri6",
+          "seasonId": null
+        }
+      ],
+      "confidence": "LOW"
+    },
+    {
+      "collection": "cultivation_plans",
+      "id": "demo-plan-dona-phuc-hoi-2026-08",
+      "currentReferences": {
+        "farmId": "demo-farm-vuon-sau-rieng-ha-nhu",
+        "plotId": "demo-plot-khu-b-dona",
+        "cultivationSeasonId": "demo-season-dona-2026-08"
+      },
+      "status": "LEGACY_UNVERIFIED",
+      "problem": "cultivationSeasonId does not exist; Migration marker: Season missing or Plan scope differs from Season",
+      "possibleParentCandidates": [
+        {
+          "farmId": "demo-farm-vuon-sau-rieng-ha-nhu",
+          "plotId": "demo-plot-khu-b-dona",
+          "seasonId": null
+        }
+      ],
+      "confidence": "LOW"
+    },
+    {
+      "collection": "cultivation_plans",
+      "id": "73d08d81-d0fb-4df5-8ca8-f435a02b6201",
+      "currentReferences": {
+        "farmId": "6ab28abc7588363ff7816026",
+        "plotId": "8884b7cb-7ef1-45a0-983c-6351171bbe38",
+        "cultivationSeasonId": "6ab28abda6148cf58aac5184"
+      },
+      "status": "VALID",
+      "problem": null,
+      "possibleParentCandidates": [
+        {
+          "seasonId": "6ab28abda6148cf58aac5184",
+          "farmId": "6ab28abc7588363ff7816026",
+          "plotId": "8884b7cb-7ef1-45a0-983c-6351171bbe38"
+        }
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "collection": "cultivation_activities",
+      "id": "activity-tuoi-nuoc-sang-2026-07-13",
+      "currentReferences": {
+        "cultivationPlanId": "plan-minh-phat-vu-2026",
+        "cultivationSeasonId": "season-minh-phat-2026",
+        "farmId": "farm-minh-phat-2026",
+        "plotId": "plot-khu-a-truong-thanh"
+      },
+      "status": "VALID",
+      "problem": null,
+      "possibleParentCandidates": [
+        {
+          "cultivationPlanId": "plan-minh-phat-vu-2026"
+        },
+        {
+          "cultivationPlanId": "fa6ff574-6296-4443-86e5-3c8d233d3363"
+        }
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "collection": "cultivation_activities",
+      "id": "activity-kiem-tra-sau-benh-2026-07-13",
+      "currentReferences": {
+        "cultivationPlanId": "plan-minh-phat-vu-2026",
+        "cultivationSeasonId": "season-minh-phat-2026",
+        "farmId": "farm-minh-phat-2026",
+        "plotId": "plot-khu-b-ra-hoa"
+      },
+      "status": "LEGACY_UNVERIFIED",
+      "problem": "Activity farmId/plotId/seasonId differs from Plan; Migration marker: Plan/Season missing or Activity scope differs from Plan",
+      "possibleParentCandidates": [],
+      "confidence": "LOW"
+    },
+    {
+      "collection": "cultivation_activities",
+      "id": "activity-bon-phan-huu-co-2026-07-14",
+      "currentReferences": {
+        "cultivationPlanId": "plan-minh-phat-vu-2026",
+        "cultivationSeasonId": "season-minh-phat-2026",
+        "farmId": "farm-minh-phat-2026",
+        "plotId": "plot-khu-a-truong-thanh"
+      },
+      "status": "VALID",
+      "problem": null,
+      "possibleParentCandidates": [
+        {
+          "cultivationPlanId": "plan-minh-phat-vu-2026"
+        },
+        {
+          "cultivationPlanId": "fa6ff574-6296-4443-86e5-3c8d233d3363"
+        }
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "collection": "cultivation_activities",
+      "id": "activity-phun-sinh-hoc-2026-07-15",
+      "currentReferences": {
+        "cultivationPlanId": "plan-minh-phat-vu-2026",
+        "cultivationSeasonId": "season-minh-phat-2026",
+        "farmId": "farm-minh-phat-2026",
+        "plotId": "plot-khu-a-truong-thanh"
+      },
+      "status": "VALID",
+      "problem": null,
+      "possibleParentCandidates": [
+        {
+          "cultivationPlanId": "plan-minh-phat-vu-2026"
+        },
+        {
+          "cultivationPlanId": "fa6ff574-6296-4443-86e5-3c8d233d3363"
+        }
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "collection": "cultivation_activities",
+      "id": "activity-yeu-cau-phun-hoa-chat-2026-07-16",
+      "currentReferences": {
+        "cultivationPlanId": "plan-minh-phat-vu-2026",
+        "cultivationSeasonId": "season-minh-phat-2026",
+        "farmId": "farm-minh-phat-2026",
+        "plotId": "plot-khu-b-ra-hoa"
+      },
+      "status": "LEGACY_UNVERIFIED",
+      "problem": "Activity farmId/plotId/seasonId differs from Plan; Migration marker: Plan/Season missing or Activity scope differs from Plan",
+      "possibleParentCandidates": [],
+      "confidence": "LOW"
+    },
+    {
+      "collection": "cultivation_activities",
+      "id": "activity-cat-tia-2026-07-10",
+      "currentReferences": {
+        "cultivationPlanId": "plan-minh-phat-vu-2026",
+        "cultivationSeasonId": "season-minh-phat-2026",
+        "farmId": "farm-minh-phat-2026",
+        "plotId": "plot-khu-a-truong-thanh"
+      },
+      "status": "VALID",
+      "problem": null,
+      "possibleParentCandidates": [
+        {
+          "cultivationPlanId": "plan-minh-phat-vu-2026"
+        },
+        {
+          "cultivationPlanId": "fa6ff574-6296-4443-86e5-3c8d233d3363"
+        }
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "collection": "cultivation_activities",
+      "id": "436015b0-d0ec-4763-af23-eff12edc555b",
+      "currentReferences": {
+        "cultivationPlanId": "plan-minh-phat-vu-2026",
+        "cultivationSeasonId": "season-minh-phat-2026",
+        "farmId": "farm-minh-phat-2026",
+        "plotId": "plot-khu-a-truong-thanh"
+      },
+      "status": "VALID",
+      "problem": null,
+      "possibleParentCandidates": [
+        {
+          "cultivationPlanId": "plan-minh-phat-vu-2026"
+        },
+        {
+          "cultivationPlanId": "fa6ff574-6296-4443-86e5-3c8d233d3363"
+        }
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "collection": "cultivation_activities",
+      "id": "649c15ee-4a57-41ea-9c40-8bc32808fa89",
+      "currentReferences": {
+        "cultivationPlanId": "plan-minh-phat-vu-2026",
+        "cultivationSeasonId": "season-minh-phat-2026",
+        "farmId": "farm-minh-phat-2026",
+        "plotId": "plot-khu-a-truong-thanh"
+      },
+      "status": "VALID",
+      "problem": null,
+      "possibleParentCandidates": [
+        {
+          "cultivationPlanId": "plan-minh-phat-vu-2026"
+        },
+        {
+          "cultivationPlanId": "fa6ff574-6296-4443-86e5-3c8d233d3363"
+        }
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "collection": "cultivation_activities",
+      "id": "3b2be243-8a7a-4511-b19b-6b96a514569d",
+      "currentReferences": {
+        "cultivationPlanId": "fa6ff574-6296-4443-86e5-3c8d233d3363",
+        "cultivationSeasonId": "season-minh-phat-2026",
+        "farmId": "farm-minh-phat-2026",
+        "plotId": "plot-khu-a-truong-thanh"
+      },
+      "status": "VALID",
+      "problem": null,
+      "possibleParentCandidates": [
+        {
+          "cultivationPlanId": "plan-minh-phat-vu-2026"
+        },
+        {
+          "cultivationPlanId": "fa6ff574-6296-4443-86e5-3c8d233d3363"
+        }
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "collection": "cultivation_activities",
+      "id": "774046c4-e4cf-45e7-9798-b813aec92b7e",
+      "currentReferences": {
+        "cultivationPlanId": "fa6ff574-6296-4443-86e5-3c8d233d3363",
+        "cultivationSeasonId": "season-minh-phat-2026",
+        "farmId": "farm-minh-phat-2026",
+        "plotId": "plot-khu-a-truong-thanh"
+      },
+      "status": "VALID",
+      "problem": null,
+      "possibleParentCandidates": [
+        {
+          "cultivationPlanId": "plan-minh-phat-vu-2026"
+        },
+        {
+          "cultivationPlanId": "fa6ff574-6296-4443-86e5-3c8d233d3363"
+        }
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "collection": "cultivation_activities",
+      "id": "585d9551-1550-428a-a820-ffd25dda8926",
+      "currentReferences": {
+        "cultivationPlanId": "fa6ff574-6296-4443-86e5-3c8d233d3363",
+        "cultivationSeasonId": "season-minh-phat-2026",
+        "farmId": "farm-minh-phat-2026",
+        "plotId": "plot-khu-a-truong-thanh"
+      },
+      "status": "VALID",
+      "problem": null,
+      "possibleParentCandidates": [
+        {
+          "cultivationPlanId": "plan-minh-phat-vu-2026"
+        },
+        {
+          "cultivationPlanId": "fa6ff574-6296-4443-86e5-3c8d233d3363"
+        }
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "collection": "cultivation_activities",
+      "id": "demo-act-2026-08-05-irrigation-ri6",
+      "currentReferences": {
+        "cultivationPlanId": "demo-plan-ri6-nuoi-trai-2026-08",
+        "cultivationSeasonId": "demo-season-ri6-2026-08",
+        "farmId": "demo-farm-vuon-sau-rieng-ha-nhu",
+        "plotId": "demo-plot-khu-a-ri6"
+      },
+      "status": "LEGACY_UNVERIFIED",
+      "problem": "cultivationSeasonId does not exist; Migration marker: Plan/Season missing or Activity scope differs from Plan",
+      "possibleParentCandidates": [
+        {
+          "cultivationPlanId": "demo-plan-ri6-nuoi-trai-2026-08"
+        }
+      ],
+      "confidence": "MEDIUM"
+    },
+    {
+      "collection": "cultivation_activities",
+      "id": "demo-act-2026-08-05-pest-monitor-ri6",
+      "currentReferences": {
+        "cultivationPlanId": "demo-plan-ri6-nuoi-trai-2026-08",
+        "cultivationSeasonId": "demo-season-ri6-2026-08",
+        "farmId": "demo-farm-vuon-sau-rieng-ha-nhu",
+        "plotId": "demo-plot-khu-a-ri6"
+      },
+      "status": "LEGACY_UNVERIFIED",
+      "problem": "cultivationSeasonId does not exist; Migration marker: Plan/Season missing or Activity scope differs from Plan",
+      "possibleParentCandidates": [
+        {
+          "cultivationPlanId": "demo-plan-ri6-nuoi-trai-2026-08"
+        }
+      ],
+      "confidence": "MEDIUM"
+    },
+    {
+      "collection": "cultivation_activities",
+      "id": "demo-act-2026-08-06-fertilization-ri6",
+      "currentReferences": {
+        "cultivationPlanId": "demo-plan-ri6-nuoi-trai-2026-08",
+        "cultivationSeasonId": "demo-season-ri6-2026-08",
+        "farmId": "demo-farm-vuon-sau-rieng-ha-nhu",
+        "plotId": "demo-plot-khu-a-ri6"
+      },
+      "status": "LEGACY_UNVERIFIED",
+      "problem": "cultivationSeasonId does not exist; Migration marker: Plan/Season missing or Activity scope differs from Plan",
+      "possibleParentCandidates": [
+        {
+          "cultivationPlanId": "demo-plan-ri6-nuoi-trai-2026-08"
+        }
+      ],
+      "confidence": "MEDIUM"
+    },
+    {
+      "collection": "cultivation_activities",
+      "id": "demo-act-2026-08-07-pruning-dona",
+      "currentReferences": {
+        "cultivationPlanId": "demo-plan-dona-phuc-hoi-2026-08",
+        "cultivationSeasonId": "demo-season-dona-2026-08",
+        "farmId": "demo-farm-vuon-sau-rieng-ha-nhu",
+        "plotId": "demo-plot-khu-b-dona"
+      },
+      "status": "LEGACY_UNVERIFIED",
+      "problem": "cultivationSeasonId does not exist; Migration marker: Plan/Season missing or Activity scope differs from Plan",
+      "possibleParentCandidates": [
+        {
+          "cultivationPlanId": "demo-plan-dona-phuc-hoi-2026-08"
+        }
+      ],
+      "confidence": "MEDIUM"
+    },
+    {
+      "collection": "cultivation_activities",
+      "id": "demo-act-2026-08-09-biological-dona",
+      "currentReferences": {
+        "cultivationPlanId": "demo-plan-dona-phuc-hoi-2026-08",
+        "cultivationSeasonId": "demo-season-dona-2026-08",
+        "farmId": "demo-farm-vuon-sau-rieng-ha-nhu",
+        "plotId": "demo-plot-khu-b-dona"
+      },
+      "status": "LEGACY_UNVERIFIED",
+      "problem": "cultivationSeasonId does not exist; Migration marker: Plan/Season missing or Activity scope differs from Plan",
+      "possibleParentCandidates": [
+        {
+          "cultivationPlanId": "demo-plan-dona-phuc-hoi-2026-08"
+        }
+      ],
+      "confidence": "MEDIUM"
+    },
+    {
+      "collection": "cultivation_activities",
+      "id": "demo-act-2026-08-12-fruit-bagging-ri6",
+      "currentReferences": {
+        "cultivationPlanId": "demo-plan-ri6-nuoi-trai-2026-08",
+        "cultivationSeasonId": "demo-season-ri6-2026-08",
+        "farmId": "demo-farm-vuon-sau-rieng-ha-nhu",
+        "plotId": "demo-plot-khu-a-ri6"
+      },
+      "status": "LEGACY_UNVERIFIED",
+      "problem": "cultivationSeasonId does not exist; Migration marker: Plan/Season missing or Activity scope differs from Plan",
+      "possibleParentCandidates": [
+        {
+          "cultivationPlanId": "demo-plan-ri6-nuoi-trai-2026-08"
+        }
+      ],
+      "confidence": "MEDIUM"
+    },
+    {
+      "collection": "cultivation_activities",
+      "id": "71b88cc9-0a3e-4486-8326-e306f57ab7c8",
+      "currentReferences": {
+        "cultivationPlanId": "demo-plan-ri6-nuoi-trai-2026-08",
+        "cultivationSeasonId": "demo-season-ri6-2026-08",
+        "farmId": "demo-farm-vuon-sau-rieng-ha-nhu",
+        "plotId": "demo-plot-khu-a-ri6"
+      },
+      "status": "LEGACY_UNVERIFIED",
+      "problem": "cultivationSeasonId does not exist; Migration marker: Plan/Season missing or Activity scope differs from Plan",
+      "possibleParentCandidates": [
+        {
+          "cultivationPlanId": "demo-plan-ri6-nuoi-trai-2026-08"
+        }
+      ],
+      "confidence": "MEDIUM"
+    },
+    {
+      "collection": "cultivation_activities",
+      "id": "cbac418c-00aa-44f6-a3b9-3962defa0585",
+      "currentReferences": {
+        "cultivationPlanId": "73d08d81-d0fb-4df5-8ca8-f435a02b6201",
+        "cultivationSeasonId": "6ab28abda6148cf58aac5184",
+        "farmId": "6ab28abc7588363ff7816026",
+        "plotId": "8884b7cb-7ef1-45a0-983c-6351171bbe38"
+      },
+      "status": "VALID",
+      "problem": null,
+      "possibleParentCandidates": [
+        {
+          "cultivationPlanId": "73d08d81-d0fb-4df5-8ca8-f435a02b6201"
+        }
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "collection": "harvest_batches",
+      "id": "harvest-batch-minh-phat-2026-001",
+      "currentReferences": {
+        "cultivationSeasonId": "season-minh-phat-2026",
+        "farmId": "farm-minh-phat-2026",
+        "plotId": "plot-khu-a-truong-thanh"
+      },
+      "status": "VALID",
+      "problem": null,
+      "possibleParentCandidates": [
+        {
+          "seasonId": "season-minh-phat-2026"
+        }
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "collection": "harvest_batches",
+      "id": "demo-harvest-batch-ri6-2026-001",
+      "currentReferences": {
+        "cultivationSeasonId": "demo-season-ri6-2026-08",
+        "farmId": "demo-farm-vuon-sau-rieng-ha-nhu",
+        "plotId": "demo-plot-khu-a-ri6"
+      },
+      "status": "LEGACY_UNVERIFIED",
+      "problem": "cultivationSeasonId does not exist; Migration marker: Season missing or Batch scope differs from Season",
+      "possibleParentCandidates": [],
+      "confidence": "NONE"
+    },
+    {
+      "collection": "harvest_batches",
+      "id": "demo-harvest-batch-dona-2026-001",
+      "currentReferences": {
+        "cultivationSeasonId": "demo-season-dona-2026-08",
+        "farmId": "demo-farm-vuon-sau-rieng-ha-nhu",
+        "plotId": "demo-plot-khu-b-dona"
+      },
+      "status": "LEGACY_UNVERIFIED",
+      "problem": "cultivationSeasonId does not exist; Migration marker: Season missing or Batch scope differs from Season",
+      "possibleParentCandidates": [],
+      "confidence": "NONE"
+    },
+    {
+      "collection": "lab_samples",
+      "id": "lab-sample-minh-phat-2026-001",
+      "currentReferences": {
+        "harvestBatchId": "harvest-batch-minh-phat-2026-001",
+        "cultivationSeasonId": "season-minh-phat-2026"
+      },
+      "status": "VALID",
+      "problem": null,
+      "possibleParentCandidates": [
+        {
+          "harvestBatchId": "harvest-batch-minh-phat-2026-001"
+        }
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "collection": "export_releases",
+      "id": "demo-export-release-ri6-eu-2026-001",
+      "currentReferences": {
+        "harvestBatchId": "demo-harvest-batch-ri6-2026-001",
+        "businessStatus": "RELEASED"
+      },
+      "status": "LEGACY_UNVERIFIED",
+      "problem": "Batch ancestry is invalid; Migration marker: Batch ancestry invalid; historical business status RELEASED does not imply verified compliance",
+      "possibleParentCandidates": [
+        {
+          "harvestBatchId": "demo-harvest-batch-ri6-2026-001",
+          "cultivationSeasonId": "demo-season-ri6-2026-08"
+        }
+      ],
+      "confidence": "LOW"
+    },
+    {
+      "collection": "cultivation_schedules",
+      "id": "demo-schedule-2026-08-05-irrigation",
+      "currentReferences": {
+        "zoneId": "demo-plot-khu-a-ri6",
+        "cropId": "demo-season-ri6-2026-08"
+      },
+      "status": "LEGACY_UNVERIFIED",
+      "problem": "Legacy schedule has no canonical farmId/cultivationSeasonId relationship; Migration marker: Deprecated care flow lacks canonical Farm/Season relationship",
+      "possibleParentCandidates": [],
+      "confidence": "LOW"
+    },
+    {
+      "collection": "cultivation_schedules",
+      "id": "demo-schedule-2026-08-06-fertilizer",
+      "currentReferences": {
+        "zoneId": "demo-plot-khu-a-ri6",
+        "cropId": "demo-season-ri6-2026-08"
+      },
+      "status": "LEGACY_UNVERIFIED",
+      "problem": "Legacy schedule has no canonical farmId/cultivationSeasonId relationship; Migration marker: Deprecated care flow lacks canonical Farm/Season relationship",
+      "possibleParentCandidates": [],
+      "confidence": "LOW"
+    },
+    {
+      "collection": "cultivation_schedules",
+      "id": "demo-schedule-2026-08-07-pruning",
+      "currentReferences": {
+        "zoneId": "demo-plot-khu-b-dona",
+        "cropId": "demo-season-dona-2026-08"
+      },
+      "status": "LEGACY_UNVERIFIED",
+      "problem": "Legacy schedule has no canonical farmId/cultivationSeasonId relationship; Migration marker: Deprecated care flow lacks canonical Farm/Season relationship",
+      "possibleParentCandidates": [],
+      "confidence": "LOW"
+    }
+  ]
+}

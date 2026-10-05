@@ -2,15 +2,21 @@ package com.duriancare.farm.service;
 
 import com.duriancare.farm.domain.Farm;
 import com.duriancare.farm.domain.FarmStatus;
+import com.duriancare.farm.domain.AuthorizationStatus;
+import com.duriancare.farm.domain.FarmPermissionType;
 import com.duriancare.farm.domain.FarmZone;
 import com.duriancare.farm.domain.ZoneStatus;
 import com.duriancare.farm.dto.FarmCatalogDtos;
 import com.duriancare.farm.dto.RequestActor;
 import com.duriancare.farm.repository.FarmRepository;
+import com.duriancare.farm.repository.FarmAuthorizationRepository;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.Objects;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -20,11 +26,56 @@ import org.springframework.util.StringUtils;
 public class FarmCatalogService {
 
     private final FarmRepository farmRepository;
+    private final FarmAuthorizationRepository authorizationRepository;
     private final AgronomistRolePolicy rolePolicy;
 
-    public FarmCatalogService(FarmRepository farmRepository, AgronomistRolePolicy rolePolicy) {
+    public FarmCatalogService(FarmRepository farmRepository, FarmAuthorizationRepository authorizationRepository,
+            AgronomistRolePolicy rolePolicy) {
         this.farmRepository = farmRepository;
+        this.authorizationRepository = authorizationRepository;
         this.rolePolicy = rolePolicy;
+    }
+
+    public List<FarmCatalogDtos.FarmResponse> listCalendarFarms(RequestActor actor) {
+        if (rolePolicy.isOwner(actor.role())) return listOwnedFarms(actor);
+        if ("ADMIN".equals(rolePolicy.normalize(actor.role()))) {
+            return farmRepository.findAll().stream()
+                    .filter(farm -> farm.status() != FarmStatus.ARCHIVED)
+                    .sorted(Comparator.comparing(Farm::updatedAt, Comparator.nullsLast(Comparator.naturalOrder())).reversed())
+                    .map(this::toResponse)
+                    .toList();
+        }
+        if (!rolePolicy.isAgronomist(actor.role())) return List.of();
+        var zonesByFarm = new LinkedHashMap<String, Set<String>>();
+        var unrestrictedFarms = new HashSet<String>();
+        Instant now = Instant.now();
+        authorizationRepository.findByAgronomistIdAndStatus(actor.userId(), AuthorizationStatus.ACTIVE).stream()
+                .filter(authorization -> authorization.validUntil() == null || authorization.validUntil().isAfter(now))
+                .filter(authorization -> authorization.permissions() != null
+                        && authorization.permissions().contains(FarmPermissionType.VIEW_CARE_SCHEDULE))
+                .forEach(authorization -> {
+                    zonesByFarm.computeIfAbsent(authorization.farmId(), ignored -> new HashSet<>());
+                    if (authorization.allowedCultivationAreaIds().isEmpty()) {
+                        unrestrictedFarms.add(authorization.farmId());
+                    } else {
+                        zonesByFarm.get(authorization.farmId()).addAll(authorization.allowedCultivationAreaIds());
+                    }
+                });
+        return zonesByFarm.entrySet().stream()
+                .map(entry -> farmRepository.findById(entry.getKey())
+                        .filter(farm -> farm.status() != FarmStatus.ARCHIVED)
+                        .map(farm -> {
+                            var response = toResponse(farm);
+                            var allowedZones = unrestrictedFarms.contains(entry.getKey())
+                                    ? response.zones()
+                                    : response.zones().stream().filter(zone -> entry.getValue().contains(zone.id())).toList();
+                            return new FarmCatalogDtos.FarmResponse(response.id(), response.ownerUserId(),
+                                    response.name(), response.address(), response.province(), response.district(),
+                                    response.latitude(), response.longitude(), response.areaHectares(), response.status(),
+                                    allowedZones, response.createdAt(), response.updatedAt());
+                        }).orElse(null))
+                .filter(java.util.Objects::nonNull)
+                .toList();
     }
 
     public List<FarmCatalogDtos.FarmResponse> listOwnedFarms(RequestActor actor) {
@@ -121,9 +172,10 @@ public class FarmCatalogService {
                 request.areaSquareMeters(),
                 request.boundaryGeoJson(),
                 normalizeOptional(request.description()),
-                ZoneStatus.ACTIVE,
+                request.status() == null ? ZoneStatus.ACTIVE : request.status(),
                 now,
-                now);
+                now,
+                request.agronomy());
         List<FarmZone> zones = new ArrayList<>(zonesOf(farm));
         zones.add(zone);
         farmRepository.save(copyWithZones(farm, zones, now));
@@ -149,7 +201,8 @@ public class FarmCatalogService {
                 request.description() == null ? current.description() : normalizeOptional(request.description()),
                 request.status() == null ? current.status() : request.status(),
                 current.createdAt(),
-                now);
+                now,
+                request.agronomy() == null ? current.agronomy() : request.agronomy());
         zones.set(index, updated);
         farmRepository.save(copyWithZones(farm, zones, now));
         return toZoneResponse(updated);
@@ -248,7 +301,8 @@ public class FarmCatalogService {
                 zone.description(),
                 zone.status(),
                 zone.createdAt(),
-                zone.updatedAt());
+                zone.updatedAt(),
+                zone.agronomy());
     }
 
     private String requireText(String value, String message) {

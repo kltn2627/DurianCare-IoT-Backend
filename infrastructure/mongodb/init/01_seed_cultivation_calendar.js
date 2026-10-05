@@ -8,6 +8,8 @@ const zoneAId = "plot-khu-a-truong-thanh";
 const zoneBId = "plot-khu-b-ra-hoa";
 const seasonId = "season-minh-phat-2026";
 const planId = "plan-minh-phat-vu-2026";
+const zoneBSeasonId = "season-minh-phat-khu-b-2026";
+const zoneBPlanId = "plan-minh-phat-khu-b-2026";
 const ownerId = "seed-owner-farmer";
 const expertId = "seed-expert-approval";
 
@@ -55,6 +57,19 @@ farmDb.farms.updateOne(
   { upsert: true },
 );
 
+[
+  { id: seasonId, plotId: zoneAId, name: "Vụ Minh Phát 2026 - Khu A", variety: "Dona" },
+  { id: zoneBSeasonId, plotId: zoneBId, name: "Vụ Minh Phát 2026 - Khu B", variety: "Ri6" },
+].forEach((season) => cultivationDb.cultivation_seasons.updateOne(
+  { _id: season.id },
+  { $setOnInsert: {
+    farmId, plotId: season.plotId, name: season.name, crop: "DURIAN", variety: season.variety,
+    startDate: ISODate("2026-07-01T00:00:00Z"), endDate: ISODate("2026-08-25T00:00:00Z"),
+    createdBy: ownerId, createdAt: now, updatedAt: now,
+  } },
+  { upsert: true },
+));
+
 cultivationDb.cultivation_plans.updateOne(
   { _id: planId },
   {
@@ -73,6 +88,17 @@ cultivationDb.cultivation_plans.updateOne(
       updatedAt: now,
     },
   },
+  { upsert: true },
+);
+
+cultivationDb.cultivation_plans.updateOne(
+  { _id: zoneBPlanId },
+  { $setOnInsert: {
+    farmId, plotId: zoneBId, cultivationSeasonId: zoneBSeasonId, templateId: null,
+    name: "Kế hoạch chăm sóc Khu B - 2026",
+    startDate: ISODate("2026-07-01T00:00:00Z"), expectedHarvestDate: ISODate("2026-08-25T00:00:00Z"),
+    targetMarketCodes: ["VN"], status: "ACTIVE", createdBy: ownerId, createdAt: now, updatedAt: now,
+  } },
   { upsert: true },
 );
 
@@ -102,8 +128,8 @@ const activities = [
   },
   {
     _id: "activity-kiem-tra-sau-benh-2026-07-13",
-    cultivationPlanId: planId,
-    cultivationSeasonId: seasonId,
+    cultivationPlanId: zoneBPlanId,
+    cultivationSeasonId: zoneBSeasonId,
     farmId,
     plotId: zoneBId,
     treeIds: [],
@@ -171,8 +197,8 @@ const activities = [
   },
   {
     _id: "activity-yeu-cau-phun-hoa-chat-2026-07-16",
-    cultivationPlanId: planId,
-    cultivationSeasonId: seasonId,
+    cultivationPlanId: zoneBPlanId,
+    cultivationSeasonId: zoneBSeasonId,
     farmId,
     plotId: zoneBId,
     treeIds: [],

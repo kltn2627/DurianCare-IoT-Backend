@@ -1,0 +1,97 @@
+{
+  "mode": "DRY_RUN",
+  "sourceEvidence": "infrastructure/mongodb/init/01_seed_cultivation_calendar.js",
+  "plannedChanges": [],
+  "skipped": [
+    {
+      "collection": "cultivation_plans",
+      "id": "demo-plan-ri6-nuoi-trai-2026-08",
+      "reason": "Business linkage and status left unchanged; marker records unresolved ancestry"
+    },
+    {
+      "collection": "cultivation_plans",
+      "id": "demo-plan-dona-phuc-hoi-2026-08",
+      "reason": "Business linkage and status left unchanged; marker records unresolved ancestry"
+    },
+    {
+      "collection": "cultivation_activities",
+      "id": "activity-kiem-tra-sau-benh-2026-07-13",
+      "reason": "Business linkage and status left unchanged; marker records unresolved ancestry"
+    },
+    {
+      "collection": "cultivation_activities",
+      "id": "activity-yeu-cau-phun-hoa-chat-2026-07-16",
+      "reason": "Business linkage and status left unchanged; marker records unresolved ancestry"
+    },
+    {
+      "collection": "cultivation_activities",
+      "id": "demo-act-2026-08-05-irrigation-ri6",
+      "reason": "Business linkage and status left unchanged; marker records unresolved ancestry"
+    },
+    {
+      "collection": "cultivation_activities",
+      "id": "demo-act-2026-08-05-pest-monitor-ri6",
+      "reason": "Business linkage and status left unchanged; marker records unresolved ancestry"
+    },
+    {
+      "collection": "cultivation_activities",
+      "id": "demo-act-2026-08-06-fertilization-ri6",
+      "reason": "Business linkage and status left unchanged; marker records unresolved ancestry"
+    },
+    {
+      "collection": "cultivation_activities",
+      "id": "demo-act-2026-08-07-pruning-dona",
+      "reason": "Business linkage and status left unchanged; marker records unresolved ancestry"
+    },
+    {
+      "collection": "cultivation_activities",
+      "id": "demo-act-2026-08-09-biological-dona",
+      "reason": "Business linkage and status left unchanged; marker records unresolved ancestry"
+    },
+    {
+      "collection": "cultivation_activities",
+      "id": "demo-act-2026-08-12-fruit-bagging-ri6",
+      "reason": "Business linkage and status left unchanged; marker records unresolved ancestry"
+    },
+    {
+      "collection": "cultivation_activities",
+      "id": "71b88cc9-0a3e-4486-8326-e306f57ab7c8",
+      "reason": "Business linkage and status left unchanged; marker records unresolved ancestry"
+    },
+    {
+      "collection": "harvest_batches",
+      "id": "demo-harvest-batch-ri6-2026-001",
+      "reason": "Business linkage and status left unchanged; marker records unresolved ancestry"
+    },
+    {
+      "collection": "harvest_batches",
+      "id": "demo-harvest-batch-dona-2026-001",
+      "reason": "Business linkage and status left unchanged; marker records unresolved ancestry"
+    },
+    {
+      "collection": "export_releases",
+      "id": "demo-export-release-ri6-eu-2026-001",
+      "reason": "Business linkage and status left unchanged; marker records unresolved ancestry"
+    },
+    {
+      "collection": "cultivation_schedules",
+      "id": "demo-schedule-2026-08-05-irrigation",
+      "reason": "Business linkage and status left unchanged; marker records unresolved ancestry"
+    },
+    {
+      "collection": "cultivation_schedules",
+      "id": "demo-schedule-2026-08-06-fertilizer",
+      "reason": "Business linkage and status left unchanged; marker records unresolved ancestry"
+    },
+    {
+      "collection": "cultivation_schedules",
+      "id": "demo-schedule-2026-08-07-pruning",
+      "reason": "Business linkage and status left unchanged; marker records unresolved ancestry"
+    }
+  ],
+  "counts": {
+    "createSeason": 0,
+    "markUnverified": 0,
+    "skipped": 17
+  }
+}

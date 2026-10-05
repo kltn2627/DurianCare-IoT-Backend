@@ -34,7 +34,7 @@ public class FarmCatalogController {
             @RequestHeader("X-Auth-User-Id") String userId,
             @RequestHeader(value = "X-Auth-Email", required = false) String email,
             @RequestHeader("X-Auth-Role") String role) {
-        return service.listOwnedFarms(actor(userId, email, role));
+        return service.listCalendarFarms(actor(userId, email, role));
     }
 
     @PostMapping

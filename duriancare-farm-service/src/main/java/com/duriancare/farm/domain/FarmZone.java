@@ -3,6 +3,7 @@ package com.duriancare.farm.domain;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Map;
+import org.springframework.data.annotation.PersistenceCreator;
 
 public record FarmZone(
         String id,
@@ -13,5 +14,16 @@ public record FarmZone(
         String description,
         ZoneStatus status,
         Instant createdAt,
-        Instant updatedAt) {
+        Instant updatedAt,
+        FarmZoneAgronomy agronomy) {
+
+    @PersistenceCreator
+    public FarmZone {
+    }
+
+    public FarmZone(String id, String name, String code, BigDecimal areaSquareMeters,
+                    Map<String, Object> boundaryGeoJson, String description, ZoneStatus status,
+                    Instant createdAt, Instant updatedAt) {
+        this(id, name, code, areaSquareMeters, boundaryGeoJson, description, status, createdAt, updatedAt, null);
+    }
 }

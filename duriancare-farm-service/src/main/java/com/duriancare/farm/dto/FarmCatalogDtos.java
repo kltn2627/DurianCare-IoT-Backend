@@ -1,7 +1,9 @@
 package com.duriancare.farm.dto;
 
 import com.duriancare.farm.domain.FarmStatus;
+import com.duriancare.farm.domain.FarmZoneAgronomy;
 import com.duriancare.farm.domain.ZoneStatus;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
@@ -41,7 +43,13 @@ public final class FarmCatalogDtos {
             @Size(max = 48) String code,
             @PositiveOrZero BigDecimal areaSquareMeters,
             Map<String, Object> boundaryGeoJson,
-            @Size(max = 1000) String description) {
+            @Size(max = 1000) String description,
+            ZoneStatus status,
+            @Valid FarmZoneAgronomy agronomy) {
+        public CreateFarmZoneRequest(String name, String code, BigDecimal areaSquareMeters,
+                                     Map<String, Object> boundaryGeoJson, String description) {
+            this(name, code, areaSquareMeters, boundaryGeoJson, description, null, null);
+        }
     }
 
     public record UpdateFarmZoneRequest(
@@ -50,7 +58,12 @@ public final class FarmCatalogDtos {
             @PositiveOrZero BigDecimal areaSquareMeters,
             Map<String, Object> boundaryGeoJson,
             @Size(max = 1000) String description,
-            ZoneStatus status) {
+            ZoneStatus status,
+            @Valid FarmZoneAgronomy agronomy) {
+        public UpdateFarmZoneRequest(String name, String code, BigDecimal areaSquareMeters,
+                                     Map<String, Object> boundaryGeoJson, String description, ZoneStatus status) {
+            this(name, code, areaSquareMeters, boundaryGeoJson, description, status, null);
+        }
     }
 
     public record FarmZoneResponse(
@@ -62,7 +75,8 @@ public final class FarmCatalogDtos {
             String description,
             ZoneStatus status,
             Instant createdAt,
-            Instant updatedAt) {
+            Instant updatedAt,
+            FarmZoneAgronomy agronomy) {
     }
 
     public record FarmResponse(

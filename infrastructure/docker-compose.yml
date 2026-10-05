@@ -264,8 +264,8 @@ services:
     image: duriancare/cultivation-service:local
     container_name: duriancare-cultivation-service
     restart: unless-stopped
-    ports:
-      - "18084:8084"
+    expose:
+      - "8084"
     environment:
       CONFIG_SERVER_URL: http://config-server:8888
       EUREKA_DEFAULT_ZONE: http://discovery-server:8761/eureka/
