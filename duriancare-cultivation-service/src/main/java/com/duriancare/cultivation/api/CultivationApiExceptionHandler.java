@@ -1,7 +1,10 @@
 package com.duriancare.cultivation.api;
 
 import com.duriancare.cultivation.service.CultivationScheduleNotFoundException;
+import com.duriancare.cultivation.security.CultivationAccessDeniedException;
+import com.duriancare.cultivation.security.CultivationAuthenticationException;
 import java.net.URI;
+import java.util.NoSuchElementException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -11,6 +14,20 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class CultivationApiExceptionHandler {
 
+    @ExceptionHandler(CultivationAuthenticationException.class)
+    ProblemDetail unauthorized(CultivationAuthenticationException exception) {
+        ProblemDetail detail = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, exception.getMessage());
+        detail.setType(URI.create("https://duriancare.local/problems/cultivation-authentication-required"));
+        return detail;
+    }
+
+    @ExceptionHandler(CultivationAccessDeniedException.class)
+    ProblemDetail forbidden(CultivationAccessDeniedException exception) {
+        ProblemDetail detail = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, exception.getMessage());
+        detail.setType(URI.create("https://duriancare.local/problems/cultivation-access-denied"));
+        return detail;
+    }
+
     @ExceptionHandler(CultivationScheduleNotFoundException.class)
     ProblemDetail notFound(CultivationScheduleNotFoundException exception) {
         ProblemDetail detail = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, exception.getMessage());
@@ -18,7 +35,14 @@ public class CultivationApiExceptionHandler {
         return detail;
     }
 
-    @ExceptionHandler({IllegalArgumentException.class, MethodArgumentNotValidException.class})
+    @ExceptionHandler(NoSuchElementException.class)
+    ProblemDetail notFound(NoSuchElementException exception) {
+        ProblemDetail detail = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, exception.getMessage());
+        detail.setType(URI.create("https://duriancare.local/problems/cultivation-resource-not-found"));
+        return detail;
+    }
+
+    @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class, MethodArgumentNotValidException.class})
     ProblemDetail badRequest(Exception exception) {
         ProblemDetail detail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, messageOf(exception));
         detail.setType(URI.create("https://duriancare.local/problems/invalid-cultivation-schedule"));

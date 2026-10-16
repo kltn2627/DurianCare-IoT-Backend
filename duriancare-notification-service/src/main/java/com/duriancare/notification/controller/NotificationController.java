@@ -11,8 +11,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
+@Tag(name = "Notification OTP", description = "OTP generation and validation endpoints")
 @RequestMapping("/api/v1/notification/otp")
 public class NotificationController {
 
@@ -24,12 +27,14 @@ public class NotificationController {
 
     @PostMapping("/generate")
     @ResponseStatus(HttpStatus.ACCEPTED)
+    @Operation(summary = "Generate OTP", description = "Generate and send an OTP to the provided email address.")
     public OtpResponse generate(@Valid @RequestBody GenerateOtpRequest request) {
         otpService.generateOtp(request.email());
         return new OtpResponse("success", false, "OTP sent");
     }
 
     @PostMapping("/validate")
+    @Operation(summary = "Validate OTP", description = "Validate an OTP code for the specified email address.")
     public OtpResponse validate(@Valid @RequestBody ValidateOtpRequest request) {
         boolean valid = otpService.validateOtp(request.email(), request.otp());
         return new OtpResponse("success", valid, valid ? "OTP is valid" : "OTP is invalid");

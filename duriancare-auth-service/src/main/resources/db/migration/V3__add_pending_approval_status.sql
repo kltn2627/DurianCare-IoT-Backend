@@ -1,0 +1,5 @@
+ALTER TABLE users DROP CONSTRAINT chk_users_status;
+
+ALTER TABLE users
+    ADD CONSTRAINT chk_users_status
+        CHECK (status IN ('PENDING_VERIFICATION', 'PENDING_APPROVAL', 'ACTIVE', 'BLOCKED'));

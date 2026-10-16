@@ -3,13 +3,19 @@ import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 import {
   ChatMessageDocument,
-  ChatMessageMongoDocument
+  ChatMessageMongoDocument,
+  ChatMessagePayload,
+  TreatmentRegimenPayload,
+  TreatmentStepPayload
 } from "./chat-message.schema";
 
 export type PersistChatMessage = {
+  content?: string;
+  messageType?: "TEXT" | "IMAGE" | "TREATMENT_REGIMEN";
+  payload?: ChatMessagePayload;
   roomId: string;
   senderId: string;
-  content: string;
+  senderRole: "FARMER" | "ENGINEER";
 };
 
 @Injectable()
@@ -20,12 +26,77 @@ export class ChatMessageService {
   ) {}
 
   async create(message: PersistChatMessage): Promise<ChatMessageMongoDocument> {
+    const messageType = message.messageType ?? "TEXT";
+    const content = (message.content ?? "").trim();
+
     return this.messageModel.create({
       roomId: message.roomId.trim(),
       senderId: message.senderId.trim(),
-      content: message.content.trim(),
-      messageType: "TEXT",
+      senderRole: message.senderRole,
+      content,
+      messageType,
+      payload: message.payload ?? null,
       sentAt: new Date()
     });
+  }
+
+  async listRoomMessages(
+    roomId: string,
+    limit = 100
+  ): Promise<ChatMessageMongoDocument[]> {
+    return this.messageModel
+      .find({ roomId: roomId.trim() })
+      .sort({ sentAt: 1 })
+      .limit(Math.min(Math.max(limit, 1), 200))
+      .exec();
+  }
+
+  async latestRoomMessage(roomId: string): Promise<ChatMessageMongoDocument | null> {
+    return this.messageModel
+      .findOne({ roomId: roomId.trim() })
+      .sort({ sentAt: -1 })
+      .exec();
+  }
+
+  async countUnreadForRole(
+    roomId: string,
+    readerRole: "FARMER" | "ENGINEER",
+    since: Date | null
+  ): Promise<number> {
+    return this.messageModel
+      .countDocuments({
+        roomId: roomId.trim(),
+        senderRole: { $ne: readerRole },
+        ...(since ? { sentAt: { $gt: since } } : {})
+      })
+      .exec();
+  }
+
+  async deleteRoomMessages(roomId: string): Promise<void> {
+    await this.messageModel.deleteMany({ roomId: roomId.trim() }).exec();
+  }
+
+  async updateRegimenStep(
+    roomId: string,
+    messageId: string,
+    day: number,
+    completed: boolean
+  ): Promise<ChatMessageMongoDocument | null> {
+    const message = await this.messageModel
+      .findOne({
+        _id: messageId,
+        messageType: "TREATMENT_REGIMEN",
+        roomId: roomId.trim()
+      })
+      .exec();
+    if (!message?.payload || !("steps" in message.payload) || !message.payload.steps) return null;
+    const hasStep = message.payload.steps.some((step: TreatmentStepPayload) => step.day === day);
+    if (!hasStep) return null;
+
+    message.payload.steps = message.payload.steps.map((step: TreatmentStepPayload) =>
+      step.day === day ? { ...step, completed } : step
+    );
+    message.markModified("payload");
+    return message.save();
   }
 }

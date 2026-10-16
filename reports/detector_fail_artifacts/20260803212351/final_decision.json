@@ -1,0 +1,30 @@
+{
+  "pipeline_stage_failed": null,
+  "failure_reason": null,
+  "prediction": {
+    "label": "ALGAL_LEAF_SPOT",
+    "confidence": 0.3974840044975281,
+    "probabilities": [
+      0.3974840044975281,
+      0.25419655442237854,
+      0.001243002712726593,
+      0.3457389175891876,
+      0.0013375594280660152
+    ],
+    "topPredictions": [
+      {
+        "label": "ALGAL_LEAF_SPOT",
+        "confidence": 39.74840044975281
+      },
+      {
+        "label": "LEAF_BLIGHT",
+        "confidence": 34.57389175891876
+      },
+      {
+        "label": "ALLOCARIDARA_ATTACK",
+        "confidence": 25.419655442237854
+      }
+    ],
+    "lowConfidence": false
+  }
+}

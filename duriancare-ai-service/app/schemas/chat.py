@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field, field_validator
 
 class ChatQuestion(BaseModel):
     question: str = Field(min_length=1, max_length=2000)
+    predicted_disease: str | None = Field(default=None, max_length=80)
 
     @field_validator("question")
     @classmethod

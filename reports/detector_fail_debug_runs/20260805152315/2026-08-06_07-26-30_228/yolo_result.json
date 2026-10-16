@@ -1,0 +1,34 @@
+{
+  "model": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\duriancare-ai-service\\yolov8s.pt",
+  "weights": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\duriancare-ai-service\\yolov8s.pt",
+  "device": "cpu",
+  "attempts": [
+    {
+      "variant": "clahe",
+      "preprocessing": "clahe",
+      "confidenceThreshold": 0.25,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 240,
+      "imageHeight": 240,
+      "processingTimeMs": 228.607,
+      "detections": [
+        {
+          "left": 44,
+          "top": 5,
+          "right": 113,
+          "bottom": 234,
+          "confidence": 0.40752917528152466,
+          "class_id": 0,
+          "class_name": "person",
+          "source_variant": "clahe",
+          "confidence_threshold": 0.25,
+          "iou_threshold": 0.55,
+          "scale": 1.0,
+          "area_ratio": 0.274323,
+          "crop_quality": 0.6602
+        }
+      ]
+    }
+  ]
+}

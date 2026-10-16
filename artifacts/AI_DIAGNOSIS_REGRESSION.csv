@@ -1,0 +1,6 @@
+label,expected_disease,actual_disease,confidence,http_status,passed,skipped,latency_ms,note
+algal_leaf_spot_1080x810,ALGAL_LEAF_SPOT,ALGAL_LEAF_SPOT,48.59%,200,True,False,4739.1,
+leaf_blight_1080x810,LEAF_BLIGHT,LEAF_BLIGHT,78.07%,200,True,False,4560.5,
+allocaridara_attack,ALLOCARIDARA_ATTACK,,,-1,False,True,-1,NOT TESTED — NO VALID IMAGE AVAILABLE
+healthy_leaf,HEALTHY_LEAF,,,-1,False,True,-1,NOT TESTED — NO VALID IMAGE AVAILABLE
+phomopsis_leaf_spot,PHOMOPSIS_LEAF_SPOT,,,-1,False,True,-1,NOT TESTED — NO VALID IMAGE AVAILABLE

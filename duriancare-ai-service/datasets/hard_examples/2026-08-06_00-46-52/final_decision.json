@@ -1,0 +1,78 @@
+{
+  "pipeline_stage_failed": "detector",
+  "failure_reason": "detector_no_bbox",
+  "attempts": [
+    {
+      "variant": "clahe",
+      "confidenceThreshold": 0.25,
+      "iouThreshold": 0.55,
+      "detections": []
+    },
+    {
+      "variant": "clahe",
+      "confidenceThreshold": 0.195,
+      "iouThreshold": 0.55,
+      "detections": []
+    },
+    {
+      "variant": "brightness_norm",
+      "confidenceThreshold": 0.25,
+      "iouThreshold": 0.55,
+      "detections": []
+    },
+    {
+      "variant": "brightness_norm",
+      "confidenceThreshold": 0.195,
+      "iouThreshold": 0.55,
+      "detections": []
+    },
+    {
+      "variant": "contrast_stretch",
+      "confidenceThreshold": 0.25,
+      "iouThreshold": 0.55,
+      "detections": []
+    },
+    {
+      "variant": "contrast_stretch",
+      "confidenceThreshold": 0.195,
+      "iouThreshold": 0.55,
+      "detections": []
+    },
+    {
+      "variant": "gamma_1_15",
+      "confidenceThreshold": 0.25,
+      "iouThreshold": 0.55,
+      "detections": []
+    },
+    {
+      "variant": "gamma_1_15",
+      "confidenceThreshold": 0.195,
+      "iouThreshold": 0.55,
+      "detections": []
+    },
+    {
+      "variant": "original",
+      "confidenceThreshold": 0.138,
+      "iouThreshold": 0.45,
+      "detections": []
+    },
+    {
+      "variant": "original",
+      "confidenceThreshold": 0.113,
+      "iouThreshold": 0.45,
+      "detections": []
+    },
+    {
+      "variant": "awb",
+      "confidenceThreshold": 0.138,
+      "iouThreshold": 0.45,
+      "detections": []
+    },
+    {
+      "variant": "awb",
+      "confidenceThreshold": 0.113,
+      "iouThreshold": 0.45,
+      "detections": []
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "pipeline_stage_failed": null,
+  "failure_reason": null,
+  "prediction": {
+    "label": "ALLOCARIDARA_ATTACK",
+    "confidence": 0.910315990447998,
+    "probabilities": [
+      0.07540129125118256,
+      0.910315990447998,
+      0.0012375330552458763,
+      0.000416865135775879,
+      0.012628315016627312
+    ],
+    "topPredictions": [
+      {
+        "label": "ALLOCARIDARA_ATTACK",
+        "confidence": 91.0315990447998
+      },
+      {
+        "label": "ALGAL_LEAF_SPOT",
+        "confidence": 7.540129125118256
+      },
+      {
+        "label": "PHOMOPSIS_LEAF_SPOT",
+        "confidence": 1.2628315016627312
+      }
+    ],
+    "lowConfidence": false
+  }
+}

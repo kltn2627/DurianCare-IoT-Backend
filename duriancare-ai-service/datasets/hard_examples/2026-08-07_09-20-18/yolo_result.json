@@ -1,0 +1,331 @@
+{
+  "model": "/workspace/duriancare-ai-service/models/leaf_detector_best.pt",
+  "weights": "/workspace/duriancare-ai-service/models/leaf_detector_best.pt",
+  "device": "cpu",
+  "attempts": [
+    {
+      "variant": "clahe",
+      "preprocessing": "clahe",
+      "confidenceThreshold": 0.25,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 640,
+      "imageHeight": 480,
+      "processingTimeMs": 311.374,
+      "detections": [
+        {
+          "left": 80,
+          "top": 1,
+          "right": 640,
+          "bottom": 479,
+          "confidence": 0.6870768666267395,
+          "class_id": 3,
+          "class_name": "No Disease",
+          "source_variant": "clahe",
+          "confidence_threshold": 0.25,
+          "iou_threshold": 0.55,
+          "scale": 1.0,
+          "area_ratio": 0.871354,
+          "crop_quality": 0.147
+        }
+      ]
+    },
+    {
+      "variant": "clahe",
+      "preprocessing": "clahe",
+      "confidenceThreshold": 0.195,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 640,
+      "imageHeight": 480,
+      "processingTimeMs": 282.445,
+      "detections": [
+        {
+          "left": 80,
+          "top": 1,
+          "right": 640,
+          "bottom": 479,
+          "confidence": 0.6870768666267395,
+          "class_id": 3,
+          "class_name": "No Disease",
+          "source_variant": "clahe",
+          "confidence_threshold": 0.195,
+          "iou_threshold": 0.55,
+          "scale": 1.0,
+          "area_ratio": 0.871354,
+          "crop_quality": 0.147
+        }
+      ]
+    },
+    {
+      "variant": "original",
+      "preprocessing": "original",
+      "confidenceThreshold": 0.25,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 640,
+      "imageHeight": 480,
+      "processingTimeMs": 258.431,
+      "detections": [
+        {
+          "left": 80,
+          "top": 1,
+          "right": 640,
+          "bottom": 479,
+          "confidence": 0.6283912062644958,
+          "class_id": 3,
+          "class_name": "No Disease",
+          "source_variant": "original",
+          "confidence_threshold": 0.25,
+          "iou_threshold": 0.55,
+          "scale": 1.0,
+          "area_ratio": 0.871354,
+          "crop_quality": 0.147
+        }
+      ]
+    },
+    {
+      "variant": "original",
+      "preprocessing": "original",
+      "confidenceThreshold": 0.195,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 640,
+      "imageHeight": 480,
+      "processingTimeMs": 270.043,
+      "detections": [
+        {
+          "left": 80,
+          "top": 1,
+          "right": 640,
+          "bottom": 479,
+          "confidence": 0.6283912062644958,
+          "class_id": 3,
+          "class_name": "No Disease",
+          "source_variant": "original",
+          "confidence_threshold": 0.195,
+          "iou_threshold": 0.55,
+          "scale": 1.0,
+          "area_ratio": 0.871354,
+          "crop_quality": 0.147
+        }
+      ]
+    },
+    {
+      "variant": "gamma_0_85",
+      "preprocessing": "gamma_0_85",
+      "confidenceThreshold": 0.25,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 640,
+      "imageHeight": 480,
+      "processingTimeMs": 261.917,
+      "detections": [
+        {
+          "left": 80,
+          "top": 1,
+          "right": 640,
+          "bottom": 479,
+          "confidence": 0.6283912062644958,
+          "class_id": 3,
+          "class_name": "No Disease",
+          "source_variant": "gamma_0_85",
+          "confidence_threshold": 0.25,
+          "iou_threshold": 0.55,
+          "scale": 1.0,
+          "area_ratio": 0.871354,
+          "crop_quality": 0.147
+        }
+      ]
+    },
+    {
+      "variant": "gamma_0_85",
+      "preprocessing": "gamma_0_85",
+      "confidenceThreshold": 0.195,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 640,
+      "imageHeight": 480,
+      "processingTimeMs": 265.786,
+      "detections": [
+        {
+          "left": 80,
+          "top": 1,
+          "right": 640,
+          "bottom": 479,
+          "confidence": 0.6283912062644958,
+          "class_id": 3,
+          "class_name": "No Disease",
+          "source_variant": "gamma_0_85",
+          "confidence_threshold": 0.195,
+          "iou_threshold": 0.55,
+          "scale": 1.0,
+          "area_ratio": 0.871354,
+          "crop_quality": 0.147
+        }
+      ]
+    },
+    {
+      "variant": "gamma_1_15",
+      "preprocessing": "gamma_1_15",
+      "confidenceThreshold": 0.25,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 640,
+      "imageHeight": 480,
+      "processingTimeMs": 245.65,
+      "detections": [
+        {
+          "left": 80,
+          "top": 1,
+          "right": 640,
+          "bottom": 479,
+          "confidence": 0.6283912062644958,
+          "class_id": 3,
+          "class_name": "No Disease",
+          "source_variant": "gamma_1_15",
+          "confidence_threshold": 0.25,
+          "iou_threshold": 0.55,
+          "scale": 1.0,
+          "area_ratio": 0.871354,
+          "crop_quality": 0.147
+        }
+      ]
+    },
+    {
+      "variant": "gamma_1_15",
+      "preprocessing": "gamma_1_15",
+      "confidenceThreshold": 0.195,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 640,
+      "imageHeight": 480,
+      "processingTimeMs": 246.714,
+      "detections": [
+        {
+          "left": 80,
+          "top": 1,
+          "right": 640,
+          "bottom": 479,
+          "confidence": 0.6283912062644958,
+          "class_id": 3,
+          "class_name": "No Disease",
+          "source_variant": "gamma_1_15",
+          "confidence_threshold": 0.195,
+          "iou_threshold": 0.55,
+          "scale": 1.0,
+          "area_ratio": 0.871354,
+          "crop_quality": 0.147
+        }
+      ]
+    },
+    {
+      "variant": "awb",
+      "preprocessing": "awb",
+      "confidenceThreshold": 0.138,
+      "iouThreshold": 0.45,
+      "scale": 1.0,
+      "imageWidth": 640,
+      "imageHeight": 480,
+      "processingTimeMs": 243.444,
+      "detections": [
+        {
+          "left": 80,
+          "top": 1,
+          "right": 640,
+          "bottom": 479,
+          "confidence": 0.6283912062644958,
+          "class_id": 3,
+          "class_name": "No Disease",
+          "source_variant": "awb",
+          "confidence_threshold": 0.138,
+          "iou_threshold": 0.45,
+          "scale": 1.0,
+          "area_ratio": 0.871354,
+          "crop_quality": 0.147
+        }
+      ]
+    },
+    {
+      "variant": "awb",
+      "preprocessing": "awb",
+      "confidenceThreshold": 0.113,
+      "iouThreshold": 0.45,
+      "scale": 1.0,
+      "imageWidth": 640,
+      "imageHeight": 480,
+      "processingTimeMs": 252.19,
+      "detections": [
+        {
+          "left": 80,
+          "top": 1,
+          "right": 640,
+          "bottom": 479,
+          "confidence": 0.6283912062644958,
+          "class_id": 3,
+          "class_name": "No Disease",
+          "source_variant": "awb",
+          "confidence_threshold": 0.113,
+          "iou_threshold": 0.45,
+          "scale": 1.0,
+          "area_ratio": 0.871354,
+          "crop_quality": 0.147
+        }
+      ]
+    },
+    {
+      "variant": "gray_world",
+      "preprocessing": "gray_world",
+      "confidenceThreshold": 0.138,
+      "iouThreshold": 0.45,
+      "scale": 1.0,
+      "imageWidth": 640,
+      "imageHeight": 480,
+      "processingTimeMs": 252.263,
+      "detections": [
+        {
+          "left": 80,
+          "top": 1,
+          "right": 640,
+          "bottom": 479,
+          "confidence": 0.6283912062644958,
+          "class_id": 3,
+          "class_name": "No Disease",
+          "source_variant": "gray_world",
+          "confidence_threshold": 0.138,
+          "iou_threshold": 0.45,
+          "scale": 1.0,
+          "area_ratio": 0.871354,
+          "crop_quality": 0.147
+        }
+      ]
+    },
+    {
+      "variant": "gray_world",
+      "preprocessing": "gray_world",
+      "confidenceThreshold": 0.113,
+      "iouThreshold": 0.45,
+      "scale": 1.0,
+      "imageWidth": 640,
+      "imageHeight": 480,
+      "processingTimeMs": 250.369,
+      "detections": [
+        {
+          "left": 80,
+          "top": 1,
+          "right": 640,
+          "bottom": 479,
+          "confidence": 0.6283912062644958,
+          "class_id": 3,
+          "class_name": "No Disease",
+          "source_variant": "gray_world",
+          "confidence_threshold": 0.113,
+          "iou_threshold": 0.45,
+          "scale": 1.0,
+          "area_ratio": 0.871354,
+          "crop_quality": 0.147
+        }
+      ]
+    }
+  ]
+}

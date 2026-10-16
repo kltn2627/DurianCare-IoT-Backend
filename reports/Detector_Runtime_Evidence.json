@@ -1,0 +1,4490 @@
+{
+  "summary": {
+    "total_images": 17,
+    "all_passed": 17,
+    "detector_failures": 0,
+    "validator_failures": 0,
+    "classifier_low_confidence": 0,
+    "other_failures": 0,
+    "rescued_by_adaptive_detector": 8,
+    "success_rate": 100.0,
+    "mean_latency_ms": 7452.314,
+    "max_latency_ms": 14746.002,
+    "min_latency_ms": 1303.037,
+    "images_with_rescue": 8,
+    "all_images_pass_detector": true
+  },
+  "records": [
+    {
+      "image": "20260803212305.jpg",
+      "image_path": "C:\\Users\\minhd\\OneDrive\\Desktop\\Test Fail\\20260803212305.jpg",
+      "stage_failed": "none",
+      "reason": "passed_all_stages",
+      "fix_suggestion": "none required",
+      "status": "ok",
+      "rescue_used": false,
+      "detector_attempts": 1,
+      "detector_boxes": 1,
+      "primary_attempt_boxes": 1,
+      "final_prediction": {
+        "label": "LEAF_BLIGHT",
+        "confidence": 99.01937246322632,
+        "usedDetectionCrop": true,
+        "boundingBox": [
+          145,
+          0,
+          286,
+          120
+        ],
+        "topPredictions": [
+          {
+            "label": "LEAF_BLIGHT",
+            "confidence": 99.01937246322632
+          },
+          {
+            "label": "HEALTHY_LEAF",
+            "confidence": 0.5596868228167295
+          },
+          {
+            "label": "ALGAL_LEAF_SPOT",
+            "confidence": 0.27456621173769236
+          }
+        ],
+        "lowConfidence": false
+      },
+      "debug_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803212305\\2026-08-06_07-25-13_025",
+      "stable_artifact_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_artifacts\\20260803212305",
+      "artifacts": {
+        "original_image": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803212305\\2026-08-06_07-25-13_025\\original_image.jpg",
+        "yolo_result": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803212305\\2026-08-06_07-25-13_025\\yolo_result.json",
+        "detector_heatmap": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803212305\\2026-08-06_07-25-13_025\\detector_heatmap.jpg",
+        "yolo_visualization": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803212305\\2026-08-06_07-25-13_025\\yolo_visualization.jpg",
+        "crops_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803212305\\2026-08-06_07-25-13_025\\crops",
+        "validator_output": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803212305\\2026-08-06_07-25-13_025\\validator_result.json",
+        "classifier_output": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803212305\\2026-08-06_07-25-13_025\\classifier_result.json",
+        "final_decision": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803212305\\2026-08-06_07-25-13_025\\final_decision.json",
+        "pipeline_log": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803212305\\2026-08-06_07-25-13_025\\pipeline_log.txt"
+      },
+      "validator_output": [
+        {
+          "crop": "crop_01.jpg",
+          "score": 0.4166,
+          "threshold": 0.26,
+          "accepted": true,
+          "reason": "candidate_selected",
+          "bbox": [
+            145,
+            0,
+            286,
+            120
+          ],
+          "detectorConfidence": 0.3132323622703552,
+          "variant": "contrast_stretch"
+        }
+      ],
+      "classifier_output": {
+        "temperature": 1.0,
+        "cropPredictions": [
+          {
+            "bbox": [
+              145,
+              0,
+              286,
+              120
+            ],
+            "detectorConfidence": 0.3132323622703552,
+            "cropQuality": 0.4166,
+            "qualityProfile": {
+              "brightness": 0.42654707272980114,
+              "contrast": 0.23183954660795816,
+              "blur": 282.9656671640706,
+              "saturation": 0.3586242061836555,
+              "sharpness": 1.0,
+              "greenRatio": 0.1402482269503546,
+              "entropy": 0.9066125277591403,
+              "dynamicRange": 0.9725490196078431,
+              "width": 141,
+              "height": 120
+            },
+            "viewWeights": {
+              "brightness_norm": 0.25084131956100464,
+              "gamma_1_15": 0.25015631318092346,
+              "clahe": 0.24985314905643463,
+              "original": 0.2491491734981537
+            },
+            "viewVariants": [
+              {
+                "name": "brightness_norm",
+                "score": 0.7737081549581232,
+                "metrics": {
+                  "brightness": 0.44487252584248826,
+                  "contrast": 0.2348089414598693,
+                  "blur": 319.78236554373524,
+                  "saturation": 0.36221503731516247,
+                  "sharpness": 1.0,
+                  "greenRatio": 0.14066193853427897,
+                  "entropy": 0.9081590056759905,
+                  "dynamicRange": 0.9725490196078431,
+                  "width": 141.0,
+                  "height": 120.0
+                }
+              },
+              {
+                "name": "gamma_1_15",
+                "score": 0.7715952942243555,
+                "metrics": {
+                  "brightness": 0.4668476799703333,
+                  "contrast": 0.21986964844198292,
+                  "blur": 262.0382802117041,
+                  "saturation": 0.32381982107263707,
+                  "sharpness": 1.0,
+                  "greenRatio": 0.13977541371158392,
+                  "entropy": 0.9052564327325672,
+                  "dynamicRange": 0.9607843137254902,
+                  "width": 141.0,
+                  "height": 120.0
+                }
+              },
+              {
+                "name": "clahe",
+                "score": 0.7706602289334505,
+                "metrics": {
+                  "brightness": 0.5110624391600612,
+                  "contrast": 0.2240394287664133,
+                  "blur": 559.2266339721342,
+                  "saturation": 0.3145350669818755,
+                  "sharpness": 1.0,
+                  "greenRatio": 0.14343971631205674,
+                  "entropy": 0.9513405028425996,
+                  "dynamicRange": 0.9725490196078431,
+                  "width": 141.0,
+                  "height": 120.0
+                }
+              },
+              {
+                "name": "original",
+                "score": 0.7684888077330567,
+                "metrics": {
+                  "brightness": 0.42654707272980114,
+                  "contrast": 0.23183954660795816,
+                  "blur": 282.9656671640706,
+                  "saturation": 0.3586242061836555,
+                  "sharpness": 1.0,
+                  "greenRatio": 0.1402482269503546,
+                  "entropy": 0.9066125277591403,
+                  "dynamicRange": 0.9725490196078431,
+                  "width": 141.0,
+                  "height": 120.0
+                }
+              }
+            ],
+            "weight": 0.3342829376080947,
+            "predictedIndex": 3,
+            "predictedLabel": "LEAF_BLIGHT",
+            "confidence": 0.9901937246322632,
+            "top5": [
+              {
+                "class": "LEAF_BLIGHT",
+                "prob": 0.9901937246322632
+              },
+              {
+                "class": "HEALTHY_LEAF",
+                "prob": 0.0055968682281672955
+              },
+              {
+                "class": "ALGAL_LEAF_SPOT",
+                "prob": 0.0027456621173769236
+              },
+              {
+                "class": "PHOMOPSIS_LEAF_SPOT",
+                "prob": 0.0010483046062290668
+              },
+              {
+                "class": "ALLOCARIDARA_ATTACK",
+                "prob": 0.000415341550251469
+              }
+            ],
+            "rawLogits": [
+              -2.0647757053375244,
+              -3.7582802772521973,
+              -1.6536715030670166,
+              4.153841018676758,
+              -2.7675583362579346
+            ],
+            "softmax": [
+              0.0027456621173769236,
+              0.000415341550251469,
+              0.0055968682281672955,
+              0.9901937246322632,
+              0.0010483046062290668
+            ]
+          }
+        ],
+        "finalPrediction": {
+          "label": "LEAF_BLIGHT",
+          "confidence": 0.9901937246322632,
+          "probabilities": [
+            0.0027456621173769236,
+            0.000415341550251469,
+            0.0055968682281672955,
+            0.9901937246322632,
+            0.0010483046062290668
+          ],
+          "topPredictions": [
+            {
+              "label": "LEAF_BLIGHT",
+              "confidence": 99.01937246322632
+            },
+            {
+              "label": "HEALTHY_LEAF",
+              "confidence": 0.5596868228167295
+            },
+            {
+              "label": "ALGAL_LEAF_SPOT",
+              "confidence": 0.27456621173769236
+            }
+          ],
+          "lowConfidence": false
+        }
+      },
+      "final_decision": {
+        "pipeline_stage_failed": null,
+        "failure_reason": null,
+        "prediction": {
+          "label": "LEAF_BLIGHT",
+          "confidence": 0.9901937246322632,
+          "probabilities": [
+            0.0027456621173769236,
+            0.000415341550251469,
+            0.0055968682281672955,
+            0.9901937246322632,
+            0.0010483046062290668
+          ],
+          "topPredictions": [
+            {
+              "label": "LEAF_BLIGHT",
+              "confidence": 99.01937246322632
+            },
+            {
+              "label": "HEALTHY_LEAF",
+              "confidence": 0.5596868228167295
+            },
+            {
+              "label": "ALGAL_LEAF_SPOT",
+              "confidence": 0.27456621173769236
+            }
+          ],
+          "lowConfidence": false
+        }
+      }
+    },
+    {
+      "image": "20260803212351.jpg",
+      "image_path": "C:\\Users\\minhd\\OneDrive\\Desktop\\Test Fail\\20260803212351.jpg",
+      "stage_failed": "none",
+      "reason": "passed_all_stages",
+      "fix_suggestion": "none required",
+      "status": "ok",
+      "rescue_used": false,
+      "detector_attempts": 1,
+      "detector_boxes": 1,
+      "primary_attempt_boxes": 1,
+      "final_prediction": {
+        "label": "ALGAL_LEAF_SPOT",
+        "confidence": 39.74840044975281,
+        "usedDetectionCrop": true,
+        "boundingBox": [
+          137,
+          127,
+          522,
+          480
+        ],
+        "topPredictions": [
+          {
+            "label": "ALGAL_LEAF_SPOT",
+            "confidence": 39.74840044975281
+          },
+          {
+            "label": "LEAF_BLIGHT",
+            "confidence": 34.57389175891876
+          },
+          {
+            "label": "ALLOCARIDARA_ATTACK",
+            "confidence": 25.419655442237854
+          }
+        ],
+        "lowConfidence": false
+      },
+      "debug_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803212351\\2026-08-06_07-25-14_799",
+      "stable_artifact_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_artifacts\\20260803212351",
+      "artifacts": {
+        "original_image": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803212351\\2026-08-06_07-25-14_799\\original_image.jpg",
+        "yolo_result": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803212351\\2026-08-06_07-25-14_799\\yolo_result.json",
+        "detector_heatmap": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803212351\\2026-08-06_07-25-14_799\\detector_heatmap.jpg",
+        "yolo_visualization": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803212351\\2026-08-06_07-25-14_799\\yolo_visualization.jpg",
+        "crops_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803212351\\2026-08-06_07-25-14_799\\crops",
+        "validator_output": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803212351\\2026-08-06_07-25-14_799\\validator_result.json",
+        "classifier_output": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803212351\\2026-08-06_07-25-14_799\\classifier_result.json",
+        "final_decision": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803212351\\2026-08-06_07-25-14_799\\final_decision.json",
+        "pipeline_log": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803212351\\2026-08-06_07-25-14_799\\pipeline_log.txt"
+      },
+      "validator_output": [
+        {
+          "crop": "crop_01.jpg",
+          "score": 0.6356,
+          "threshold": 0.26,
+          "accepted": true,
+          "reason": "candidate_selected",
+          "bbox": [
+            137,
+            127,
+            522,
+            480
+          ],
+          "detectorConfidence": 0.7937536835670471,
+          "variant": "clahe"
+        }
+      ],
+      "classifier_output": {
+        "temperature": 1.0,
+        "cropPredictions": [
+          {
+            "bbox": [
+              137,
+              127,
+              522,
+              480
+            ],
+            "detectorConfidence": 0.7937536835670471,
+            "cropQuality": 0.6356,
+            "qualityProfile": {
+              "brightness": 0.6437007107761982,
+              "contrast": 0.27900512145204925,
+              "blur": 118.85324713502452,
+              "saturation": 0.29388152479637236,
+              "sharpness": 0.9904437261252043,
+              "greenRatio": 0.4839115558662301,
+              "entropy": 0.9091785625172366,
+              "dynamicRange": 1.0,
+              "width": 385,
+              "height": 353
+            },
+            "viewWeights": {
+              "clahe": 0.25653594732284546,
+              "gamma_0_85": 0.2515578866004944,
+              "contrast_stretch": 0.24721433222293854,
+              "original": 0.2446918487548828
+            },
+            "viewVariants": [
+              {
+                "name": "clahe",
+                "score": 0.8393596789418741,
+                "metrics": {
+                  "brightness": 0.5651876202451106,
+                  "contrast": 0.28185712587546685,
+                  "blur": 191.75159666055086,
+                  "saturation": 0.328639483606989,
+                  "sharpness": 1.0,
+                  "greenRatio": 0.4868474301902064,
+                  "entropy": 0.9643047794867808,
+                  "dynamicRange": 0.996078431372549,
+                  "width": 385.0,
+                  "height": 353.0
+                }
+              },
+              {
+                "name": "gamma_0_85",
+                "score": 0.8230720034377771,
+                "metrics": {
+                  "brightness": 0.6096552739045656,
+                  "contrast": 0.2853552465665558,
+                  "blur": 120.24274599100482,
+                  "saturation": 0.3343149590508364,
+                  "sharpness": 1.0,
+                  "greenRatio": 0.4877598322357529,
+                  "entropy": 0.9182465436668168,
+                  "dynamicRange": 1.0,
+                  "width": 385.0,
+                  "height": 353.0
+                }
+              },
+              {
+                "name": "contrast_stretch",
+                "score": 0.8088602727506081,
+                "metrics": {
+                  "brightness": 0.6362320565620015,
+                  "contrast": 0.2826090743086458,
+                  "blur": 122.62451522129477,
+                  "saturation": 0.31383242764012637,
+                  "sharpness": 1.0,
+                  "greenRatio": 0.4841690887016666,
+                  "entropy": 0.9129932020160179,
+                  "dynamicRange": 1.0,
+                  "width": 385.0,
+                  "height": 353.0
+                }
+              },
+              {
+                "name": "original",
+                "score": 0.8006070134326717,
+                "metrics": {
+                  "brightness": 0.6437007107761982,
+                  "contrast": 0.27900512145204925,
+                  "blur": 118.85324713502452,
+                  "saturation": 0.29388152479637236,
+                  "sharpness": 0.9904437261252043,
+                  "greenRatio": 0.4839115558662301,
+                  "entropy": 0.9091785625172366,
+                  "dynamicRange": 1.0,
+                  "width": 385.0,
+                  "height": 353.0
+                }
+              }
+            ],
+            "weight": 0.658151106161476,
+            "predictedIndex": 0,
+            "predictedLabel": "ALGAL_LEAF_SPOT",
+            "confidence": 0.3974840044975281,
+            "top5": [
+              {
+                "class": "ALGAL_LEAF_SPOT",
+                "prob": 0.3974840044975281
+              },
+              {
+                "class": "LEAF_BLIGHT",
+                "prob": 0.3457389175891876
+              },
+              {
+                "class": "ALLOCARIDARA_ATTACK",
+                "prob": 0.25419655442237854
+              },
+              {
+                "class": "PHOMOPSIS_LEAF_SPOT",
+                "prob": 0.0013375594280660152
+              },
+              {
+                "class": "HEALTHY_LEAF",
+                "prob": 0.001243002712726593
+              }
+            ],
+            "rawLogits": [
+              1.422291874885559,
+              0.19312435388565063,
+              -4.31728982925415,
+              0.9514440894126892,
+              -4.242222785949707
+            ],
+            "softmax": [
+              0.3974840044975281,
+              0.25419655442237854,
+              0.001243002712726593,
+              0.3457389175891876,
+              0.0013375594280660152
+            ]
+          }
+        ],
+        "finalPrediction": {
+          "label": "ALGAL_LEAF_SPOT",
+          "confidence": 0.3974840044975281,
+          "probabilities": [
+            0.3974840044975281,
+            0.25419655442237854,
+            0.001243002712726593,
+            0.3457389175891876,
+            0.0013375594280660152
+          ],
+          "topPredictions": [
+            {
+              "label": "ALGAL_LEAF_SPOT",
+              "confidence": 39.74840044975281
+            },
+            {
+              "label": "LEAF_BLIGHT",
+              "confidence": 34.57389175891876
+            },
+            {
+              "label": "ALLOCARIDARA_ATTACK",
+              "confidence": 25.419655442237854
+            }
+          ],
+          "lowConfidence": false
+        }
+      },
+      "final_decision": {
+        "pipeline_stage_failed": null,
+        "failure_reason": null,
+        "prediction": {
+          "label": "ALGAL_LEAF_SPOT",
+          "confidence": 0.3974840044975281,
+          "probabilities": [
+            0.3974840044975281,
+            0.25419655442237854,
+            0.001243002712726593,
+            0.3457389175891876,
+            0.0013375594280660152
+          ],
+          "topPredictions": [
+            {
+              "label": "ALGAL_LEAF_SPOT",
+              "confidence": 39.74840044975281
+            },
+            {
+              "label": "LEAF_BLIGHT",
+              "confidence": 34.57389175891876
+            },
+            {
+              "label": "ALLOCARIDARA_ATTACK",
+              "confidence": 25.419655442237854
+            }
+          ],
+          "lowConfidence": false
+        }
+      }
+    },
+    {
+      "image": "20260803212427.jpg",
+      "image_path": "C:\\Users\\minhd\\OneDrive\\Desktop\\Test Fail\\20260803212427.jpg",
+      "stage_failed": "none",
+      "reason": "primary_detector_recovered_by_rescue_pass",
+      "fix_suggestion": "none required",
+      "status": "ok",
+      "rescue_used": true,
+      "detector_attempts": 4,
+      "detector_boxes": 1,
+      "primary_attempt_boxes": 0,
+      "final_prediction": {
+        "label": "ALGAL_LEAF_SPOT",
+        "confidence": 76.22963786125183,
+        "usedDetectionCrop": true,
+        "boundingBox": [
+          3,
+          64,
+          463,
+          439
+        ],
+        "topPredictions": [
+          {
+            "label": "ALGAL_LEAF_SPOT",
+            "confidence": 76.22963786125183
+          },
+          {
+            "label": "LEAF_BLIGHT",
+            "confidence": 10.822620242834091
+          },
+          {
+            "label": "HEALTHY_LEAF",
+            "confidence": 6.756965816020966
+          }
+        ],
+        "lowConfidence": false
+      },
+      "debug_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803212427\\2026-08-06_07-25-28_843",
+      "stable_artifact_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_artifacts\\20260803212427",
+      "artifacts": {
+        "original_image": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803212427\\2026-08-06_07-25-28_843\\original_image.jpg",
+        "yolo_result": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803212427\\2026-08-06_07-25-28_843\\yolo_result.json",
+        "detector_heatmap": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803212427\\2026-08-06_07-25-28_843\\detector_heatmap.jpg",
+        "yolo_visualization": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803212427\\2026-08-06_07-25-28_843\\yolo_visualization.jpg",
+        "crops_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803212427\\2026-08-06_07-25-28_843\\crops",
+        "validator_output": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803212427\\2026-08-06_07-25-28_843\\validator_result.json",
+        "classifier_output": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803212427\\2026-08-06_07-25-28_843\\classifier_result.json",
+        "final_decision": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803212427\\2026-08-06_07-25-28_843\\final_decision.json",
+        "pipeline_log": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803212427\\2026-08-06_07-25-28_843\\pipeline_log.txt"
+      },
+      "validator_output": [
+        {
+          "crop": "crop_01.jpg",
+          "score": 0.4696,
+          "threshold": 0.26,
+          "accepted": true,
+          "reason": "candidate_selected",
+          "bbox": [
+            3,
+            64,
+            463,
+            439
+          ],
+          "detectorConfidence": 0.23058761656284332,
+          "variant": "contrast_stretch"
+        }
+      ],
+      "classifier_output": {
+        "temperature": 1.0,
+        "cropPredictions": [
+          {
+            "bbox": [
+              3,
+              64,
+              463,
+              439
+            ],
+            "detectorConfidence": 0.23058761656284332,
+            "cropQuality": 0.4696,
+            "qualityProfile": {
+              "brightness": 0.5967375959079284,
+              "contrast": 0.1882054914644178,
+              "blur": 18.165531672136105,
+              "saturation": 0.37485169650468886,
+              "sharpness": 0.1513794306011342,
+              "greenRatio": 0.7020231884057971,
+              "entropy": 0.9402965515737409,
+              "dynamicRange": 0.9215686274509803,
+              "width": 460,
+              "height": 375
+            },
+            "viewWeights": {
+              "clahe": 0.2769384980201721,
+              "contrast_stretch": 0.24402444064617157,
+              "gamma_0_85": 0.24387849867343903,
+              "original": 0.2351585179567337
+            },
+            "viewVariants": [
+              {
+                "name": "clahe",
+                "score": 0.8560893296279865,
+                "metrics": {
+                  "brightness": 0.5155844501278772,
+                  "contrast": 0.21450702758342027,
+                  "blur": 85.570634823138,
+                  "saturation": 0.43937548167092927,
+                  "sharpness": 0.71308862352615,
+                  "greenRatio": 0.7046608695652173,
+                  "entropy": 0.96415075995472,
+                  "dynamicRange": 0.9647058823529412,
+                  "width": 460.0,
+                  "height": 375.0
+                }
+              },
+              {
+                "name": "contrast_stretch",
+                "score": 0.7543433137777301,
+                "metrics": {
+                  "brightness": 0.5648788633134414,
+                  "contrast": 0.20376260343143826,
+                  "blur": 23.199302817895397,
+                  "saturation": 0.4323538050582552,
+                  "sharpness": 0.19332752348246166,
+                  "greenRatio": 0.7014840579710145,
+                  "entropy": 0.9544243621556052,
+                  "dynamicRange": 0.9764705882352941,
+                  "width": 460.0,
+                  "height": 375.0
+                }
+              },
+              {
+                "name": "gamma_0_85",
+                "score": 0.7538921873954341,
+                "metrics": {
+                  "brightness": 0.5507941801648195,
+                  "contrast": 0.19933833370932963,
+                  "blur": 22.58751764069733,
+                  "saturation": 0.41669228758169935,
+                  "sharpness": 0.18822931367247778,
+                  "greenRatio": 0.7021101449275362,
+                  "entropy": 0.9501626459142268,
+                  "dynamicRange": 0.9529411764705882,
+                  "width": 460.0,
+                  "height": 375.0
+                }
+              },
+              {
+                "name": "original",
+                "score": 0.7269364360981474,
+                "metrics": {
+                  "brightness": 0.5967375959079284,
+                  "contrast": 0.1882054914644178,
+                  "blur": 18.165531672136105,
+                  "saturation": 0.37485169650468886,
+                  "sharpness": 0.1513794306011342,
+                  "greenRatio": 0.7020231884057971,
+                  "entropy": 0.9402965515737409,
+                  "dynamicRange": 0.9215686274509803,
+                  "width": 460.0,
+                  "height": 375.0
+                }
+              }
+            ],
+            "weight": 0.42571896654532704,
+            "predictedIndex": 0,
+            "predictedLabel": "ALGAL_LEAF_SPOT",
+            "confidence": 0.7622963786125183,
+            "top5": [
+              {
+                "class": "ALGAL_LEAF_SPOT",
+                "prob": 0.7622963786125183
+              },
+              {
+                "class": "LEAF_BLIGHT",
+                "prob": 0.10822620242834091
+              },
+              {
+                "class": "HEALTHY_LEAF",
+                "prob": 0.06756965816020966
+              },
+              {
+                "class": "ALLOCARIDARA_ATTACK",
+                "prob": 0.047193340957164764
+              },
+              {
+                "class": "PHOMOPSIS_LEAF_SPOT",
+                "prob": 0.014714349061250687
+              }
+            ],
+            "rawLogits": [
+              1.671720266342163,
+              -1.4123249053955078,
+              -0.9530383348464966,
+              -0.3154352009296417,
+              -2.432046890258789
+            ],
+            "softmax": [
+              0.7622963786125183,
+              0.047193340957164764,
+              0.06756965816020966,
+              0.10822620242834091,
+              0.014714349061250687
+            ]
+          }
+        ],
+        "finalPrediction": {
+          "label": "ALGAL_LEAF_SPOT",
+          "confidence": 0.7622963786125183,
+          "probabilities": [
+            0.7622963786125183,
+            0.047193340957164764,
+            0.06756965816020966,
+            0.10822620242834091,
+            0.014714349061250687
+          ],
+          "topPredictions": [
+            {
+              "label": "ALGAL_LEAF_SPOT",
+              "confidence": 76.22963786125183
+            },
+            {
+              "label": "LEAF_BLIGHT",
+              "confidence": 10.822620242834091
+            },
+            {
+              "label": "HEALTHY_LEAF",
+              "confidence": 6.756965816020966
+            }
+          ],
+          "lowConfidence": false
+        }
+      },
+      "final_decision": {
+        "pipeline_stage_failed": null,
+        "failure_reason": null,
+        "prediction": {
+          "label": "ALGAL_LEAF_SPOT",
+          "confidence": 0.7622963786125183,
+          "probabilities": [
+            0.7622963786125183,
+            0.047193340957164764,
+            0.06756965816020966,
+            0.10822620242834091,
+            0.014714349061250687
+          ],
+          "topPredictions": [
+            {
+              "label": "ALGAL_LEAF_SPOT",
+              "confidence": 76.22963786125183
+            },
+            {
+              "label": "LEAF_BLIGHT",
+              "confidence": 10.822620242834091
+            },
+            {
+              "label": "HEALTHY_LEAF",
+              "confidence": 6.756965816020966
+            }
+          ],
+          "lowConfidence": false
+        }
+      }
+    },
+    {
+      "image": "20260803213133.jpg",
+      "image_path": "C:\\Users\\minhd\\OneDrive\\Desktop\\Test Fail\\20260803213133.jpg",
+      "stage_failed": "none",
+      "reason": "passed_all_stages",
+      "fix_suggestion": "none required",
+      "status": "ok",
+      "rescue_used": false,
+      "detector_attempts": 1,
+      "detector_boxes": 1,
+      "primary_attempt_boxes": 1,
+      "final_prediction": {
+        "label": "HEALTHY_LEAF",
+        "confidence": 52.159857749938965,
+        "usedDetectionCrop": true,
+        "boundingBox": [
+          522,
+          0,
+          640,
+          480
+        ],
+        "topPredictions": [
+          {
+            "label": "HEALTHY_LEAF",
+            "confidence": 52.159857749938965
+          },
+          {
+            "label": "LEAF_BLIGHT",
+            "confidence": 26.177746057510376
+          },
+          {
+            "label": "ALGAL_LEAF_SPOT",
+            "confidence": 15.148580074310303
+          }
+        ],
+        "lowConfidence": false
+      },
+      "debug_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803213133\\2026-08-06_07-25-31_129",
+      "stable_artifact_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_artifacts\\20260803213133",
+      "artifacts": {
+        "original_image": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803213133\\2026-08-06_07-25-31_129\\original_image.jpg",
+        "yolo_result": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803213133\\2026-08-06_07-25-31_129\\yolo_result.json",
+        "detector_heatmap": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803213133\\2026-08-06_07-25-31_129\\detector_heatmap.jpg",
+        "yolo_visualization": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803213133\\2026-08-06_07-25-31_129\\yolo_visualization.jpg",
+        "crops_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803213133\\2026-08-06_07-25-31_129\\crops",
+        "validator_output": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803213133\\2026-08-06_07-25-31_129\\validator_result.json",
+        "classifier_output": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803213133\\2026-08-06_07-25-31_129\\classifier_result.json",
+        "final_decision": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803213133\\2026-08-06_07-25-31_129\\final_decision.json",
+        "pipeline_log": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803213133\\2026-08-06_07-25-31_129\\pipeline_log.txt"
+      },
+      "validator_output": [
+        {
+          "crop": "crop_01.jpg",
+          "score": 0.4551,
+          "threshold": 0.26,
+          "accepted": true,
+          "reason": "candidate_selected",
+          "bbox": [
+            522,
+            0,
+            640,
+            480
+          ],
+          "detectorConfidence": 0.6116052865982056,
+          "variant": "clahe"
+        }
+      ],
+      "classifier_output": {
+        "temperature": 1.0,
+        "cropPredictions": [
+          {
+            "bbox": [
+              522,
+              0,
+              640,
+              480
+            ],
+            "detectorConfidence": 0.6116052865982056,
+            "cropQuality": 0.4551,
+            "qualityProfile": {
+              "brightness": 0.10482067685831395,
+              "contrast": 0.1802339030821366,
+              "blur": 8.3994027087024,
+              "saturation": 0.698833361028027,
+              "sharpness": 0.06999502257252001,
+              "greenRatio": 0.6792196327683616,
+              "entropy": 0.5522267598507474,
+              "dynamicRange": 0.7568627450980392,
+              "width": 118,
+              "height": 480
+            },
+            "viewWeights": {
+              "brightness_norm": 0.29552459716796875,
+              "contrast_stretch": 0.2467193901538849,
+              "gamma_1_15": 0.2304164618253708,
+              "clahe": 0.22733953595161438
+            },
+            "viewVariants": [
+              {
+                "name": "brightness_norm",
+                "score": 0.7330306785909116,
+                "metrics": {
+                  "brightness": 0.26109054780104135,
+                  "contrast": 0.35175415310767494,
+                  "blur": 88.17796190729835,
+                  "saturation": 0.7043477207267087,
+                  "sharpness": 0.7348163492274863,
+                  "greenRatio": 0.6777189265536723,
+                  "entropy": 0.6430524785747294,
+                  "dynamicRange": 0.9921568627450981,
+                  "width": 118.0,
+                  "height": 480.0
+                }
+              },
+              {
+                "name": "contrast_stretch",
+                "score": 0.6119723285326718,
+                "metrics": {
+                  "brightness": 0.15613728259665446,
+                  "contrast": 0.26634848965559477,
+                  "blur": 19.077856301457413,
+                  "saturation": 0.7125063697795503,
+                  "sharpness": 0.15898213584547843,
+                  "greenRatio": 0.6801024011299435,
+                  "entropy": 0.6045469781439643,
+                  "dynamicRange": 0.996078431372549,
+                  "width": 118.0,
+                  "height": 480.0
+                }
+              },
+              {
+                "name": "gamma_1_15",
+                "score": 0.571533872227327,
+                "metrics": {
+                  "brightness": 0.12149205162290905,
+                  "contrast": 0.19368269885249223,
+                  "blur": 10.70092186826702,
+                  "saturation": 0.6752075024925225,
+                  "sharpness": 0.08917434890222517,
+                  "greenRatio": 0.6809851694915254,
+                  "entropy": 0.5847938394431328,
+                  "dynamicRange": 0.7843137254901961,
+                  "width": 118.0,
+                  "height": 480.0
+                }
+              },
+              {
+                "name": "clahe",
+                "score": 0.5639017864683331,
+                "metrics": {
+                  "brightness": 0.1448803589232303,
+                  "contrast": 0.2076162444783504,
+                  "blur": 30.558439484981964,
+                  "saturation": 0.28094335050404345,
+                  "sharpness": 0.2546536623748497,
+                  "greenRatio": 0.43350988700564974,
+                  "entropy": 0.6154662059468723,
+                  "dynamicRange": 0.9019607843137255,
+                  "width": 118.0,
+                  "height": 480.0
+                }
+              }
+            ],
+            "weight": 0.4557997974128488,
+            "predictedIndex": 2,
+            "predictedLabel": "HEALTHY_LEAF",
+            "confidence": 0.5215985774993896,
+            "top5": [
+              {
+                "class": "HEALTHY_LEAF",
+                "prob": 0.5215985774993896
+              },
+              {
+                "class": "LEAF_BLIGHT",
+                "prob": 0.26177746057510376
+              },
+              {
+                "class": "ALGAL_LEAF_SPOT",
+                "prob": 0.15148580074310303
+              },
+              {
+                "class": "PHOMOPSIS_LEAF_SPOT",
+                "prob": 0.04343382269144058
+              },
+              {
+                "class": "ALLOCARIDARA_ATTACK",
+                "prob": 0.02170431613922119
+              }
+            ],
+            "rawLogits": [
+              -0.058710791170597076,
+              -2.020852565765381,
+              1.1773340702056885,
+              0.48531460762023926,
+              -1.3130306005477905
+            ],
+            "softmax": [
+              0.15148580074310303,
+              0.02170431613922119,
+              0.5215985774993896,
+              0.26177746057510376,
+              0.04343382269144058
+            ]
+          }
+        ],
+        "finalPrediction": {
+          "label": "HEALTHY_LEAF",
+          "confidence": 0.5215985774993896,
+          "probabilities": [
+            0.15148580074310303,
+            0.02170431613922119,
+            0.5215985774993896,
+            0.26177746057510376,
+            0.04343382269144058
+          ],
+          "topPredictions": [
+            {
+              "label": "HEALTHY_LEAF",
+              "confidence": 52.159857749938965
+            },
+            {
+              "label": "LEAF_BLIGHT",
+              "confidence": 26.177746057510376
+            },
+            {
+              "label": "ALGAL_LEAF_SPOT",
+              "confidence": 15.148580074310303
+            }
+          ],
+          "lowConfidence": false
+        }
+      },
+      "final_decision": {
+        "pipeline_stage_failed": null,
+        "failure_reason": null,
+        "prediction": {
+          "label": "HEALTHY_LEAF",
+          "confidence": 0.5215985774993896,
+          "probabilities": [
+            0.15148580074310303,
+            0.02170431613922119,
+            0.5215985774993896,
+            0.26177746057510376,
+            0.04343382269144058
+          ],
+          "topPredictions": [
+            {
+              "label": "HEALTHY_LEAF",
+              "confidence": 52.159857749938965
+            },
+            {
+              "label": "LEAF_BLIGHT",
+              "confidence": 26.177746057510376
+            },
+            {
+              "label": "ALGAL_LEAF_SPOT",
+              "confidence": 15.148580074310303
+            }
+          ],
+          "lowConfidence": false
+        }
+      }
+    },
+    {
+      "image": "20260803213401.jpg",
+      "image_path": "C:\\Users\\minhd\\OneDrive\\Desktop\\Test Fail\\20260803213401.jpg",
+      "stage_failed": "none",
+      "reason": "passed_all_stages",
+      "fix_suggestion": "none required",
+      "status": "ok",
+      "rescue_used": false,
+      "detector_attempts": 1,
+      "detector_boxes": 1,
+      "primary_attempt_boxes": 1,
+      "final_prediction": {
+        "label": "LEAF_BLIGHT",
+        "confidence": 35.85302233695984,
+        "usedDetectionCrop": true,
+        "boundingBox": [
+          101,
+          12,
+          637,
+          479
+        ],
+        "topPredictions": [
+          {
+            "label": "LEAF_BLIGHT",
+            "confidence": 35.85302233695984
+          },
+          {
+            "label": "ALGAL_LEAF_SPOT",
+            "confidence": 34.867674112319946
+          },
+          {
+            "label": "PHOMOPSIS_LEAF_SPOT",
+            "confidence": 12.939547002315521
+          }
+        ],
+        "lowConfidence": false
+      },
+      "debug_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803213401\\2026-08-06_07-25-42_788",
+      "stable_artifact_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_artifacts\\20260803213401",
+      "artifacts": {
+        "original_image": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803213401\\2026-08-06_07-25-42_788\\original_image.jpg",
+        "yolo_result": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803213401\\2026-08-06_07-25-42_788\\yolo_result.json",
+        "detector_heatmap": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803213401\\2026-08-06_07-25-42_788\\detector_heatmap.jpg",
+        "yolo_visualization": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803213401\\2026-08-06_07-25-42_788\\yolo_visualization.jpg",
+        "crops_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803213401\\2026-08-06_07-25-42_788\\crops",
+        "validator_output": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803213401\\2026-08-06_07-25-42_788\\validator_result.json",
+        "classifier_output": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803213401\\2026-08-06_07-25-42_788\\classifier_result.json",
+        "final_decision": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803213401\\2026-08-06_07-25-42_788\\final_decision.json",
+        "pipeline_log": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260803213401\\2026-08-06_07-25-42_788\\pipeline_log.txt"
+      },
+      "validator_output": [
+        {
+          "crop": "crop_01.jpg",
+          "score": 0.5786,
+          "threshold": 0.26,
+          "accepted": true,
+          "reason": "candidate_selected",
+          "bbox": [
+            101,
+            12,
+            637,
+            479
+          ],
+          "detectorConfidence": 0.58564293384552,
+          "variant": "clahe"
+        }
+      ],
+      "classifier_output": {
+        "temperature": 1.0,
+        "cropPredictions": [
+          {
+            "bbox": [
+              101,
+              12,
+              637,
+              479
+            ],
+            "detectorConfidence": 0.58564293384552,
+            "cropQuality": 0.5786,
+            "qualityProfile": {
+              "brightness": 0.35129969562691643,
+              "contrast": 0.16010374973018202,
+              "blur": 15.848450794806656,
+              "saturation": 0.41538053842138345,
+              "sharpness": 0.13207042329005547,
+              "greenRatio": 0.6934425836555979,
+              "entropy": 0.9111943515301213,
+              "dynamicRange": 0.9529411764705882,
+              "width": 536,
+              "height": 467
+            },
+            "viewWeights": {
+              "clahe": 0.26199454069137573,
+              "brightness_norm": 0.2532631754875183,
+              "contrast_stretch": 0.251975953578949,
+              "gamma_1_15": 0.23276637494564056
+            },
+            "viewVariants": [
+              {
+                "name": "clahe",
+                "score": 0.8140258778810223,
+                "metrics": {
+                  "brightness": 0.38062349168629706,
+                  "contrast": 0.19649441675510068,
+                  "blur": 68.8101834188666,
+                  "saturation": 0.4154367506214989,
+                  "sharpness": 0.5734181951572217,
+                  "greenRatio": 0.6953082552973888,
+                  "entropy": 0.9448835554747742,
+                  "dynamicRange": 0.9764705882352941,
+                  "width": 536.0,
+                  "height": 467.0
+                }
+              },
+              {
+                "name": "brightness_norm",
+                "score": 0.7868971880112138,
+                "metrics": {
+                  "brightness": 0.4570680731623405,
+                  "contrast": 0.19837373284906895,
+                  "blur": 29.706026908827837,
+                  "saturation": 0.41945842960534274,
+                  "sharpness": 0.247550224240232,
+                  "greenRatio": 0.693318738214708,
+                  "entropy": 0.9519636542685549,
+                  "dynamicRange": 0.9764705882352941,
+                  "width": 536.0,
+                  "height": 467.0
+                }
+              },
+              {
+                "name": "contrast_stretch",
+                "score": 0.7828977658560964,
+                "metrics": {
+                  "brightness": 0.41209046404205196,
+                  "contrast": 0.20928044799375062,
+                  "blur": 30.510151866952516,
+                  "saturation": 0.4850292560374848,
+                  "sharpness": 0.25425126555793764,
+                  "greenRatio": 0.6924158650004794,
+                  "entropy": 0.9507526411076539,
+                  "dynamicRange": 1.0,
+                  "width": 536.0,
+                  "height": 467.0
+                }
+              },
+              {
+                "name": "gamma_1_15",
+                "score": 0.7232129309284235,
+                "metrics": {
+                  "brightness": 0.39490113984805786,
+                  "contrast": 0.1594814584174991,
+                  "blur": 17.41440567395132,
+                  "saturation": 0.37997358903931033,
+                  "sharpness": 0.14512004728292768,
+                  "greenRatio": 0.6949487040173863,
+                  "entropy": 0.9142454490955184,
+                  "dynamicRange": 0.9490196078431372,
+                  "width": 536.0,
+                  "height": 467.0
+                }
+              }
+            ],
+            "weight": 0.6126986576228279,
+            "predictedIndex": 3,
+            "predictedLabel": "LEAF_BLIGHT",
+            "confidence": 0.3585302233695984,
+            "top5": [
+              {
+                "class": "LEAF_BLIGHT",
+                "prob": 0.3585302233695984
+              },
+              {
+                "class": "ALGAL_LEAF_SPOT",
+                "prob": 0.34867674112319946
+              },
+              {
+                "class": "PHOMOPSIS_LEAF_SPOT",
+                "prob": 0.1293954700231552
+              },
+              {
+                "class": "ALLOCARIDARA_ATTACK",
+                "prob": 0.08633032441139221
+              },
+              {
+                "class": "HEALTHY_LEAF",
+                "prob": 0.07706724852323532
+              }
+            ],
+            "rawLogits": [
+              0.4352142810821533,
+              -0.973156750202179,
+              -1.0777549743652344,
+              0.4929957985877991,
+              -0.6816427707672119
+            ],
+            "softmax": [
+              0.34867674112319946,
+              0.08633032441139221,
+              0.07706724852323532,
+              0.3585302233695984,
+              0.1293954700231552
+            ]
+          }
+        ],
+        "finalPrediction": {
+          "label": "LEAF_BLIGHT",
+          "confidence": 0.3585302233695984,
+          "probabilities": [
+            0.34867674112319946,
+            0.08633032441139221,
+            0.07706724852323532,
+            0.3585302233695984,
+            0.1293954700231552
+          ],
+          "topPredictions": [
+            {
+              "label": "LEAF_BLIGHT",
+              "confidence": 35.85302233695984
+            },
+            {
+              "label": "ALGAL_LEAF_SPOT",
+              "confidence": 34.867674112319946
+            },
+            {
+              "label": "PHOMOPSIS_LEAF_SPOT",
+              "confidence": 12.939547002315521
+            }
+          ],
+          "lowConfidence": false
+        }
+      },
+      "final_decision": {
+        "pipeline_stage_failed": null,
+        "failure_reason": null,
+        "prediction": {
+          "label": "LEAF_BLIGHT",
+          "confidence": 0.3585302233695984,
+          "probabilities": [
+            0.34867674112319946,
+            0.08633032441139221,
+            0.07706724852323532,
+            0.3585302233695984,
+            0.1293954700231552
+          ],
+          "topPredictions": [
+            {
+              "label": "LEAF_BLIGHT",
+              "confidence": 35.85302233695984
+            },
+            {
+              "label": "ALGAL_LEAF_SPOT",
+              "confidence": 34.867674112319946
+            },
+            {
+              "label": "PHOMOPSIS_LEAF_SPOT",
+              "confidence": 12.939547002315521
+            }
+          ],
+          "lowConfidence": false
+        }
+      }
+    },
+    {
+      "image": "20260805151406.jpg",
+      "image_path": "C:\\Users\\minhd\\OneDrive\\Desktop\\Test Fail\\20260805151406.jpg",
+      "stage_failed": "none",
+      "reason": "passed_all_stages",
+      "fix_suggestion": "none required",
+      "status": "ok",
+      "rescue_used": false,
+      "detector_attempts": 1,
+      "detector_boxes": 2,
+      "primary_attempt_boxes": 2,
+      "final_prediction": {
+        "label": "HEALTHY_LEAF",
+        "confidence": 99.04316663742065,
+        "usedDetectionCrop": true,
+        "boundingBox": [
+          328,
+          223,
+          493,
+          289
+        ],
+        "topPredictions": [
+          {
+            "label": "HEALTHY_LEAF",
+            "confidence": 99.04316663742065
+          },
+          {
+            "label": "LEAF_BLIGHT",
+            "confidence": 0.9493861347436905
+          },
+          {
+            "label": "ALGAL_LEAF_SPOT",
+            "confidence": 0.005022497498430312
+          }
+        ],
+        "lowConfidence": false
+      },
+      "debug_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805151406\\2026-08-06_07-25-55_217",
+      "stable_artifact_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_artifacts\\20260805151406",
+      "artifacts": {
+        "original_image": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805151406\\2026-08-06_07-25-55_217\\original_image.jpg",
+        "yolo_result": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805151406\\2026-08-06_07-25-55_217\\yolo_result.json",
+        "detector_heatmap": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805151406\\2026-08-06_07-25-55_217\\detector_heatmap.jpg",
+        "yolo_visualization": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805151406\\2026-08-06_07-25-55_217\\yolo_visualization.jpg",
+        "crops_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805151406\\2026-08-06_07-25-55_217\\crops",
+        "validator_output": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805151406\\2026-08-06_07-25-55_217\\validator_result.json",
+        "classifier_output": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805151406\\2026-08-06_07-25-55_217\\classifier_result.json",
+        "final_decision": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805151406\\2026-08-06_07-25-55_217\\final_decision.json",
+        "pipeline_log": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805151406\\2026-08-06_07-25-55_217\\pipeline_log.txt"
+      },
+      "validator_output": [
+        {
+          "crop": "crop_01.jpg",
+          "score": 0.4785,
+          "threshold": 0.26,
+          "accepted": true,
+          "reason": "candidate_selected",
+          "bbox": [
+            328,
+            223,
+            493,
+            289
+          ],
+          "detectorConfidence": 0.3390825688838959,
+          "variant": "clahe"
+        }
+      ],
+      "classifier_output": {
+        "temperature": 1.0,
+        "cropPredictions": [
+          {
+            "bbox": [
+              328,
+              223,
+              493,
+              289
+            ],
+            "detectorConfidence": 0.3390825688838959,
+            "cropQuality": 0.4785,
+            "qualityProfile": {
+              "brightness": 0.7643374925727867,
+              "contrast": 0.14579202371097882,
+              "blur": 52.700423586394024,
+              "saturation": 0.2604933470174112,
+              "sharpness": 0.43917019655328354,
+              "greenRatio": 0.8762167125803489,
+              "entropy": 0.8774765581035562,
+              "dynamicRange": 0.8274509803921568,
+              "width": 165,
+              "height": 66
+            },
+            "viewWeights": {
+              "contrast_stretch": 0.29166796803474426,
+              "gamma_0_85": 0.24189142882823944,
+              "clahe": 0.24065884947776794,
+              "original": 0.22578173875808716
+            },
+            "viewVariants": [
+              {
+                "name": "contrast_stretch",
+                "score": 0.8099555615529377,
+                "metrics": {
+                  "brightness": 0.6280051855452925,
+                  "contrast": 0.2276035138695935,
+                  "blur": 99.88279941075335,
+                  "saturation": 0.5012168026071769,
+                  "sharpness": 0.8323566617562779,
+                  "greenRatio": 0.8915518824609734,
+                  "entropy": 0.9530253762951876,
+                  "dynamicRange": 1.0,
+                  "width": 165.0,
+                  "height": 66.0
+                }
+              },
+              {
+                "name": "gamma_0_85",
+                "score": 0.67172719888042,
+                "metrics": {
+                  "brightness": 0.7308133023641046,
+                  "contrast": 0.16175421836602188,
+                  "blur": 61.53187623796189,
+                  "saturation": 0.2985545292497164,
+                  "sharpness": 0.5127656353163491,
+                  "greenRatio": 0.8829201101928374,
+                  "entropy": 0.8979292764216044,
+                  "dynamicRange": 0.8745098039215686,
+                  "width": 165.0,
+                  "height": 66.0
+                }
+              },
+              {
+                "name": "clahe",
+                "score": 0.6683043024010865,
+                "metrics": {
+                  "brightness": 0.8155335890095249,
+                  "contrast": 0.15779533132409623,
+                  "blur": 94.31757423976809,
+                  "saturation": 0.24835556995984803,
+                  "sharpness": 0.7859797853314008,
+                  "greenRatio": 0.874931129476584,
+                  "entropy": 0.8582118157566578,
+                  "dynamicRange": 0.8705882352941177,
+                  "width": 165.0,
+                  "height": 66.0
+                }
+              },
+              {
+                "name": "original",
+                "score": 0.626990908637632,
+                "metrics": {
+                  "brightness": 0.7643374925727867,
+                  "contrast": 0.14579202371097882,
+                  "blur": 52.700423586394024,
+                  "saturation": 0.2604933470174112,
+                  "sharpness": 0.43917019655328354,
+                  "greenRatio": 0.8762167125803489,
+                  "entropy": 0.8774765581035562,
+                  "dynamicRange": 0.8274509803921568,
+                  "width": 165.0,
+                  "height": 66.0
+                }
+              }
+            ],
+            "weight": 0.3709713971130545,
+            "predictedIndex": 2,
+            "predictedLabel": "HEALTHY_LEAF",
+            "confidence": 0.9904316663742065,
+            "top5": [
+              {
+                "class": "HEALTHY_LEAF",
+                "prob": 0.9904316663742065
+              },
+              {
+                "class": "LEAF_BLIGHT",
+                "prob": 0.009493861347436905
+              },
+              {
+                "class": "ALGAL_LEAF_SPOT",
+                "prob": 5.022497498430312e-05
+              },
+              {
+                "class": "PHOMOPSIS_LEAF_SPOT",
+                "prob": 2.1678200937458314e-05
+              },
+              {
+                "class": "ALLOCARIDARA_ATTACK",
+                "prob": 2.640282218635548e-06
+              }
+            ],
+            "rawLogits": [
+              -3.804473876953125,
+              -6.890913486480713,
+              6.11830997467041,
+              1.4231367111206055,
+              -4.817387104034424
+            ],
+            "softmax": [
+              5.022497498430312e-05,
+              2.640282218635548e-06,
+              0.9904316663742065,
+              0.009493861347436905,
+              2.1678200937458314e-05
+            ]
+          }
+        ],
+        "finalPrediction": {
+          "label": "HEALTHY_LEAF",
+          "confidence": 0.9904316663742065,
+          "probabilities": [
+            5.022497498430312e-05,
+            2.640282218635548e-06,
+            0.9904316663742065,
+            0.009493861347436905,
+            2.1678200937458314e-05
+          ],
+          "topPredictions": [
+            {
+              "label": "HEALTHY_LEAF",
+              "confidence": 99.04316663742065
+            },
+            {
+              "label": "LEAF_BLIGHT",
+              "confidence": 0.9493861347436905
+            },
+            {
+              "label": "ALGAL_LEAF_SPOT",
+              "confidence": 0.005022497498430312
+            }
+          ],
+          "lowConfidence": false
+        }
+      },
+      "final_decision": {
+        "pipeline_stage_failed": null,
+        "failure_reason": null,
+        "prediction": {
+          "label": "HEALTHY_LEAF",
+          "confidence": 0.9904316663742065,
+          "probabilities": [
+            5.022497498430312e-05,
+            2.640282218635548e-06,
+            0.9904316663742065,
+            0.009493861347436905,
+            2.1678200937458314e-05
+          ],
+          "topPredictions": [
+            {
+              "label": "HEALTHY_LEAF",
+              "confidence": 99.04316663742065
+            },
+            {
+              "label": "LEAF_BLIGHT",
+              "confidence": 0.9493861347436905
+            },
+            {
+              "label": "ALGAL_LEAF_SPOT",
+              "confidence": 0.005022497498430312
+            }
+          ],
+          "lowConfidence": false
+        }
+      }
+    },
+    {
+      "image": "20260805151536.jpg",
+      "image_path": "C:\\Users\\minhd\\OneDrive\\Desktop\\Test Fail\\20260805151536.jpg",
+      "stage_failed": "none",
+      "reason": "passed_all_stages",
+      "fix_suggestion": "none required",
+      "status": "ok",
+      "rescue_used": false,
+      "detector_attempts": 3,
+      "detector_boxes": 3,
+      "primary_attempt_boxes": 1,
+      "final_prediction": {
+        "label": "LEAF_BLIGHT",
+        "confidence": 29.838883876800537,
+        "usedDetectionCrop": true,
+        "boundingBox": [
+          64,
+          1,
+          638,
+          335
+        ],
+        "topPredictions": [
+          {
+            "label": "LEAF_BLIGHT",
+            "confidence": 29.838883876800537
+          },
+          {
+            "label": "HEALTHY_LEAF",
+            "confidence": 29.614844918251038
+          },
+          {
+            "label": "ALGAL_LEAF_SPOT",
+            "confidence": 18.586507439613342
+          }
+        ],
+        "lowConfidence": false
+      },
+      "debug_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805151536\\2026-08-06_07-26-07_177",
+      "stable_artifact_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_artifacts\\20260805151536",
+      "artifacts": {
+        "original_image": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805151536\\2026-08-06_07-26-07_177\\original_image.jpg",
+        "yolo_result": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805151536\\2026-08-06_07-26-07_177\\yolo_result.json",
+        "detector_heatmap": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805151536\\2026-08-06_07-26-07_177\\detector_heatmap.jpg",
+        "yolo_visualization": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805151536\\2026-08-06_07-26-07_177\\yolo_visualization.jpg",
+        "crops_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805151536\\2026-08-06_07-26-07_177\\crops",
+        "validator_output": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805151536\\2026-08-06_07-26-07_177\\validator_result.json",
+        "classifier_output": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805151536\\2026-08-06_07-26-07_177\\classifier_result.json",
+        "final_decision": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805151536\\2026-08-06_07-26-07_177\\final_decision.json",
+        "pipeline_log": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805151536\\2026-08-06_07-26-07_177\\pipeline_log.txt"
+      },
+      "validator_output": [
+        {
+          "crop": "crop_01.jpg",
+          "score": 0.4802,
+          "threshold": 0.26,
+          "accepted": true,
+          "reason": "candidate_selected",
+          "bbox": [
+            64,
+            1,
+            638,
+            335
+          ],
+          "detectorConfidence": 0.3110584318637848,
+          "variant": "brightness_norm"
+        }
+      ],
+      "classifier_output": {
+        "temperature": 1.0,
+        "cropPredictions": [
+          {
+            "bbox": [
+              64,
+              1,
+              638,
+              335
+            ],
+            "detectorConfidence": 0.3110584318637848,
+            "cropQuality": 0.4802,
+            "qualityProfile": {
+              "brightness": 0.4334769280868474,
+              "contrast": 0.26524003061221396,
+              "blur": 30.536769359717443,
+              "saturation": 0.3261590776225782,
+              "sharpness": 0.25447307799764535,
+              "greenRatio": 0.4130797638173131,
+              "entropy": 0.9605955891047573,
+              "dynamicRange": 1.0,
+              "width": 574,
+              "height": 334
+            },
+            "viewWeights": {
+              "clahe": 0.2607506215572357,
+              "brightness_norm": 0.2511031925678253,
+              "contrast_stretch": 0.2453150600194931,
+              "gamma_1_15": 0.24283111095428467
+            },
+            "viewVariants": [
+              {
+                "name": "clahe",
+                "score": 0.7936662382307466,
+                "metrics": {
+                  "brightness": 0.4246265615929445,
+                  "contrast": 0.275209261703952,
+                  "blur": 80.7962304933789,
+                  "saturation": 0.3092850372221329,
+                  "sharpness": 0.6733019207781575,
+                  "greenRatio": 0.4151140228254293,
+                  "entropy": 0.9727068667801022,
+                  "dynamicRange": 0.9921568627450981,
+                  "width": 574.0,
+                  "height": 334.0
+                }
+              },
+              {
+                "name": "brightness_norm",
+                "score": 0.7643016160504156,
+                "metrics": {
+                  "brightness": 0.4792798702656176,
+                  "contrast": 0.28922704627396373,
+                  "blur": 41.17489565587737,
+                  "saturation": 0.33386003152538946,
+                  "sharpness": 0.34312413046564477,
+                  "greenRatio": 0.41053954808153725,
+                  "entropy": 0.9715460706706059,
+                  "dynamicRange": 1.0,
+                  "width": 574.0,
+                  "height": 334.0
+                }
+              },
+              {
+                "name": "contrast_stretch",
+                "score": 0.7466838601544977,
+                "metrics": {
+                  "brightness": 0.43574349558722275,
+                  "contrast": 0.2719694224393512,
+                  "blur": 33.68132966304274,
+                  "saturation": 0.35037891014445793,
+                  "sharpness": 0.2806777471920228,
+                  "greenRatio": 0.41135325168478376,
+                  "entropy": 0.9637822092137016,
+                  "dynamicRange": 1.0,
+                  "width": 574.0,
+                  "height": 334.0
+                }
+              },
+              {
+                "name": "gamma_1_15",
+                "score": 0.7391232766435882,
+                "metrics": {
+                  "brightness": 0.46769570103490493,
+                  "contrast": 0.266223338941061,
+                  "blur": 31.914182489563768,
+                  "saturation": 0.2985408972994777,
+                  "sharpness": 0.26595152074636474,
+                  "greenRatio": 0.4146237142439859,
+                  "entropy": 0.966100129828857,
+                  "dynamicRange": 0.996078431372549,
+                  "width": 574.0,
+                  "height": 334.0
+                }
+              }
+            ],
+            "weight": 0.45886177503408065,
+            "predictedIndex": 3,
+            "predictedLabel": "LEAF_BLIGHT",
+            "confidence": 0.29838883876800537,
+            "top5": [
+              {
+                "class": "LEAF_BLIGHT",
+                "prob": 0.29838883876800537
+              },
+              {
+                "class": "HEALTHY_LEAF",
+                "prob": 0.2961484491825104
+              },
+              {
+                "class": "ALGAL_LEAF_SPOT",
+                "prob": 0.18586507439613342
+              },
+              {
+                "class": "PHOMOPSIS_LEAF_SPOT",
+                "prob": 0.13414064049720764
+              },
+              {
+                "class": "ALLOCARIDARA_ATTACK",
+                "prob": 0.08545700460672379
+              }
+            ],
+            "rawLogits": [
+              -0.1487569361925125,
+              -0.9215968251228333,
+              0.2933443486690521,
+              0.307319700717926,
+              -0.47189298272132874
+            ],
+            "softmax": [
+              0.18586507439613342,
+              0.08545700460672379,
+              0.2961484491825104,
+              0.29838883876800537,
+              0.13414064049720764
+            ]
+          }
+        ],
+        "finalPrediction": {
+          "label": "LEAF_BLIGHT",
+          "confidence": 0.29838883876800537,
+          "probabilities": [
+            0.18586507439613342,
+            0.08545700460672379,
+            0.2961484491825104,
+            0.29838883876800537,
+            0.13414064049720764
+          ],
+          "topPredictions": [
+            {
+              "label": "LEAF_BLIGHT",
+              "confidence": 29.838883876800537
+            },
+            {
+              "label": "HEALTHY_LEAF",
+              "confidence": 29.614844918251038
+            },
+            {
+              "label": "ALGAL_LEAF_SPOT",
+              "confidence": 18.586507439613342
+            }
+          ],
+          "lowConfidence": false
+        }
+      },
+      "final_decision": {
+        "pipeline_stage_failed": null,
+        "failure_reason": null,
+        "prediction": {
+          "label": "LEAF_BLIGHT",
+          "confidence": 0.29838883876800537,
+          "probabilities": [
+            0.18586507439613342,
+            0.08545700460672379,
+            0.2961484491825104,
+            0.29838883876800537,
+            0.13414064049720764
+          ],
+          "topPredictions": [
+            {
+              "label": "LEAF_BLIGHT",
+              "confidence": 29.838883876800537
+            },
+            {
+              "label": "HEALTHY_LEAF",
+              "confidence": 29.614844918251038
+            },
+            {
+              "label": "ALGAL_LEAF_SPOT",
+              "confidence": 18.586507439613342
+            }
+          ],
+          "lowConfidence": false
+        }
+      }
+    },
+    {
+      "image": "20260805151618.jpg",
+      "image_path": "C:\\Users\\minhd\\OneDrive\\Desktop\\Test Fail\\20260805151618.jpg",
+      "stage_failed": "none",
+      "reason": "primary_detector_recovered_by_rescue_pass",
+      "fix_suggestion": "none required",
+      "status": "ok",
+      "rescue_used": true,
+      "detector_attempts": 3,
+      "detector_boxes": 1,
+      "primary_attempt_boxes": 0,
+      "final_prediction": {
+        "label": "HEALTHY_LEAF",
+        "confidence": 99.67821836471558,
+        "usedDetectionCrop": true,
+        "boundingBox": [
+          1,
+          0,
+          542,
+          409
+        ],
+        "topPredictions": [
+          {
+            "label": "HEALTHY_LEAF",
+            "confidence": 99.67821836471558
+          },
+          {
+            "label": "LEAF_BLIGHT",
+            "confidence": 0.23878226056694984
+          },
+          {
+            "label": "ALGAL_LEAF_SPOT",
+            "confidence": 0.08068496244959533
+          }
+        ],
+        "lowConfidence": false
+      },
+      "debug_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805151618\\2026-08-06_07-26-10_381",
+      "stable_artifact_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_artifacts\\20260805151618",
+      "artifacts": {
+        "original_image": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805151618\\2026-08-06_07-26-10_381\\original_image.jpg",
+        "yolo_result": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805151618\\2026-08-06_07-26-10_381\\yolo_result.json",
+        "detector_heatmap": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805151618\\2026-08-06_07-26-10_381\\detector_heatmap.jpg",
+        "yolo_visualization": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805151618\\2026-08-06_07-26-10_381\\yolo_visualization.jpg",
+        "crops_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805151618\\2026-08-06_07-26-10_381\\crops",
+        "validator_output": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805151618\\2026-08-06_07-26-10_381\\validator_result.json",
+        "classifier_output": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805151618\\2026-08-06_07-26-10_381\\classifier_result.json",
+        "final_decision": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805151618\\2026-08-06_07-26-10_381\\final_decision.json",
+        "pipeline_log": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805151618\\2026-08-06_07-26-10_381\\pipeline_log.txt"
+      },
+      "validator_output": [
+        {
+          "crop": "crop_01.jpg",
+          "score": 0.4506,
+          "threshold": 0.26,
+          "accepted": true,
+          "reason": "candidate_selected",
+          "bbox": [
+            1,
+            0,
+            542,
+            409
+          ],
+          "detectorConfidence": 0.27211952209472656,
+          "variant": "contrast_stretch"
+        }
+      ],
+      "classifier_output": {
+        "temperature": 1.0,
+        "cropPredictions": [
+          {
+            "bbox": [
+              1,
+              0,
+              542,
+              409
+            ],
+            "detectorConfidence": 0.27211952209472656,
+            "cropQuality": 0.4506,
+            "qualityProfile": {
+              "brightness": 0.5815743218772217,
+              "contrast": 0.19829270152112138,
+              "blur": 18.671307979838588,
+              "saturation": 0.20154990124255642,
+              "sharpness": 0.15559423316532156,
+              "greenRatio": 0.43733193533662645,
+              "entropy": 0.9297498277344808,
+              "dynamicRange": 0.9803921568627451,
+              "width": 541,
+              "height": 409
+            },
+            "viewWeights": {
+              "clahe": 0.2728489339351654,
+              "gamma_0_85": 0.24630846083164215,
+              "contrast_stretch": 0.24526551365852356,
+              "original": 0.23557709157466888
+            },
+            "viewVariants": [
+              {
+                "name": "clahe",
+                "score": 0.769211588358122,
+                "metrics": {
+                  "brightness": 0.5232190362914664,
+                  "contrast": 0.21937640192197283,
+                  "blur": 66.06519922778676,
+                  "saturation": 0.2337077954710259,
+                  "sharpness": 0.550543326898223,
+                  "greenRatio": 0.44131351431967425,
+                  "entropy": 0.9671193629586197,
+                  "dynamicRange": 0.984313725490196,
+                  "width": 541.0,
+                  "height": 409.0
+                }
+              },
+              {
+                "name": "gamma_0_85",
+                "score": 0.6943890986363433,
+                "metrics": {
+                  "brightness": 0.5344536625147689,
+                  "contrast": 0.20348978076326943,
+                  "blur": 21.780896068504465,
+                  "saturation": 0.23297969581697162,
+                  "sharpness": 0.18150746723753722,
+                  "greenRatio": 0.4366449886789383,
+                  "entropy": 0.9382297294451841,
+                  "dynamicRange": 0.9921568627450981,
+                  "width": 541.0,
+                  "height": 409.0
+                }
+              },
+              {
+                "name": "contrast_stretch",
+                "score": 0.6914488108597651,
+                "metrics": {
+                  "brightness": 0.5732889405575805,
+                  "contrast": 0.2119518432373373,
+                  "blur": 22.769631317547034,
+                  "saturation": 0.23777915958740312,
+                  "sharpness": 0.18974692764622528,
+                  "greenRatio": 0.4355061034306658,
+                  "entropy": 0.9330774037734528,
+                  "dynamicRange": 1.0,
+                  "width": 541.0,
+                  "height": 409.0
+                }
+              },
+              {
+                "name": "original",
+                "score": 0.6641353970636311,
+                "metrics": {
+                  "brightness": 0.5815743218772217,
+                  "contrast": 0.19829270152112138,
+                  "blur": 18.671307979838588,
+                  "saturation": 0.20154990124255642,
+                  "sharpness": 0.15559423316532156,
+                  "greenRatio": 0.43733193533662645,
+                  "entropy": 0.9297498277344808,
+                  "dynamicRange": 0.9803921568627451,
+                  "width": 541.0,
+                  "height": 409.0
+                }
+              }
+            ],
+            "weight": 0.43751571389046684,
+            "predictedIndex": 2,
+            "predictedLabel": "HEALTHY_LEAF",
+            "confidence": 0.9967821836471558,
+            "top5": [
+              {
+                "class": "HEALTHY_LEAF",
+                "prob": 0.9967821836471558
+              },
+              {
+                "class": "LEAF_BLIGHT",
+                "prob": 0.0023878226056694984
+              },
+              {
+                "class": "ALGAL_LEAF_SPOT",
+                "prob": 0.0008068496244959533
+              },
+              {
+                "class": "PHOMOPSIS_LEAF_SPOT",
+                "prob": 2.0099203538848087e-05
+              },
+              {
+                "class": "ALLOCARIDARA_ATTACK",
+                "prob": 3.0262394830060657e-06
+              }
+            ],
+            "rawLogits": [
+              -2.664750576019287,
+              -6.695919513702393,
+              6.011196136474609,
+              -0.026258468627929688,
+              -4.804910182952881
+            ],
+            "softmax": [
+              0.0008068496244959533,
+              3.0262394830060657e-06,
+              0.9967821836471558,
+              0.0023878226056694984,
+              2.0099203538848087e-05
+            ]
+          }
+        ],
+        "finalPrediction": {
+          "label": "HEALTHY_LEAF",
+          "confidence": 0.9967821836471558,
+          "probabilities": [
+            0.0008068496244959533,
+            3.0262394830060657e-06,
+            0.9967821836471558,
+            0.0023878226056694984,
+            2.0099203538848087e-05
+          ],
+          "topPredictions": [
+            {
+              "label": "HEALTHY_LEAF",
+              "confidence": 99.67821836471558
+            },
+            {
+              "label": "LEAF_BLIGHT",
+              "confidence": 0.23878226056694984
+            },
+            {
+              "label": "ALGAL_LEAF_SPOT",
+              "confidence": 0.08068496244959533
+            }
+          ],
+          "lowConfidence": false
+        }
+      },
+      "final_decision": {
+        "pipeline_stage_failed": null,
+        "failure_reason": null,
+        "prediction": {
+          "label": "HEALTHY_LEAF",
+          "confidence": 0.9967821836471558,
+          "probabilities": [
+            0.0008068496244959533,
+            3.0262394830060657e-06,
+            0.9967821836471558,
+            0.0023878226056694984,
+            2.0099203538848087e-05
+          ],
+          "topPredictions": [
+            {
+              "label": "HEALTHY_LEAF",
+              "confidence": 99.67821836471558
+            },
+            {
+              "label": "LEAF_BLIGHT",
+              "confidence": 0.23878226056694984
+            },
+            {
+              "label": "ALGAL_LEAF_SPOT",
+              "confidence": 0.08068496244959533
+            }
+          ],
+          "lowConfidence": false
+        }
+      }
+    },
+    {
+      "image": "20260805151957.jpg",
+      "image_path": "C:\\Users\\minhd\\OneDrive\\Desktop\\Test Fail\\20260805151957.jpg",
+      "stage_failed": "none",
+      "reason": "primary_detector_recovered_by_rescue_pass",
+      "fix_suggestion": "none required",
+      "status": "ok",
+      "rescue_used": true,
+      "detector_attempts": 7,
+      "detector_boxes": 1,
+      "primary_attempt_boxes": 0,
+      "final_prediction": {
+        "label": "HEALTHY_LEAF",
+        "confidence": 99.97923374176025,
+        "usedDetectionCrop": true,
+        "boundingBox": [
+          0,
+          1,
+          199,
+          234
+        ],
+        "topPredictions": [
+          {
+            "label": "HEALTHY_LEAF",
+            "confidence": 99.97923374176025
+          },
+          {
+            "label": "ALGAL_LEAF_SPOT",
+            "confidence": 0.008529657498002052
+          },
+          {
+            "label": "LEAF_BLIGHT",
+            "confidence": 0.007349882071139291
+          }
+        ],
+        "lowConfidence": false
+      },
+      "debug_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805151957\\2026-08-06_07-26-14_851",
+      "stable_artifact_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_artifacts\\20260805151957",
+      "artifacts": {
+        "original_image": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805151957\\2026-08-06_07-26-14_851\\original_image.jpg",
+        "yolo_result": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805151957\\2026-08-06_07-26-14_851\\yolo_result.json",
+        "detector_heatmap": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805151957\\2026-08-06_07-26-14_851\\detector_heatmap.jpg",
+        "yolo_visualization": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805151957\\2026-08-06_07-26-14_851\\yolo_visualization.jpg",
+        "crops_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805151957\\2026-08-06_07-26-14_851\\crops",
+        "validator_output": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805151957\\2026-08-06_07-26-14_851\\validator_result.json",
+        "classifier_output": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805151957\\2026-08-06_07-26-14_851\\classifier_result.json",
+        "final_decision": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805151957\\2026-08-06_07-26-14_851\\final_decision.json",
+        "pipeline_log": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805151957\\2026-08-06_07-26-14_851\\pipeline_log.txt"
+      },
+      "validator_output": [
+        {
+          "crop": "crop_01.jpg",
+          "score": 0.4635,
+          "threshold": 0.26,
+          "accepted": true,
+          "reason": "candidate_selected",
+          "bbox": [
+            0,
+            1,
+            199,
+            234
+          ],
+          "detectorConfidence": 0.2606179118156433,
+          "variant": "original"
+        }
+      ],
+      "classifier_output": {
+        "temperature": 1.0,
+        "cropPredictions": [
+          {
+            "bbox": [
+              0,
+              1,
+              199,
+              234
+            ],
+            "detectorConfidence": 0.2606179118156433,
+            "cropQuality": 0.4635,
+            "qualityProfile": {
+              "brightness": 0.6024592371941335,
+              "contrast": 0.19680065226691165,
+              "blur": 56.86824461243253,
+              "saturation": 0.11824315552347278,
+              "sharpness": 0.47390203843693773,
+              "greenRatio": 0.5144391485323614,
+              "entropy": 0.9291123264459178,
+              "dynamicRange": 0.9490196078431372,
+              "width": 199,
+              "height": 233
+            },
+            "viewWeights": {
+              "clahe": 0.26707395911216736,
+              "contrast_stretch": 0.2545619010925293,
+              "gamma_0_85": 0.24540574848651886,
+              "original": 0.23295840620994568
+            },
+            "viewVariants": [
+              {
+                "name": "clahe",
+                "score": 0.7609656833782915,
+                "metrics": {
+                  "brightness": 0.5621292526759016,
+                  "contrast": 0.2122040711466518,
+                  "blur": 151.76285925629494,
+                  "saturation": 0.13062493313153328,
+                  "sharpness": 1.0,
+                  "greenRatio": 0.5206288955507149,
+                  "entropy": 0.958298476088264,
+                  "dynamicRange": 0.9686274509803922,
+                  "width": 199.0,
+                  "height": 233.0
+                }
+              },
+              {
+                "name": "contrast_stretch",
+                "score": 0.7253154845719219,
+                "metrics": {
+                  "brightness": 0.5670010407165,
+                  "contrast": 0.21855143304266123,
+                  "blur": 72.38696027968972,
+                  "saturation": 0.1706765756748059,
+                  "sharpness": 0.6032246689974143,
+                  "greenRatio": 0.5251148446093127,
+                  "entropy": 0.9365383647098912,
+                  "dynamicRange": 1.0,
+                  "width": 199.0,
+                  "height": 233.0
+                }
+              },
+              {
+                "name": "gamma_0_85",
+                "score": 0.6992271301433683,
+                "metrics": {
+                  "brightness": 0.5560437041726346,
+                  "contrast": 0.2051394630806786,
+                  "blur": 63.65811090180165,
+                  "saturation": 0.13761502962088065,
+                  "sharpness": 0.5304842575150137,
+                  "greenRatio": 0.5275303556408653,
+                  "entropy": 0.9390159885985752,
+                  "dynamicRange": 0.9725490196078431,
+                  "width": 199.0,
+                  "height": 233.0
+                }
+              },
+              {
+                "name": "original",
+                "score": 0.6637612642528251,
+                "metrics": {
+                  "brightness": 0.6024592371941335,
+                  "contrast": 0.19680065226691165,
+                  "blur": 56.86824461243253,
+                  "saturation": 0.11824315552347278,
+                  "sharpness": 0.47390203843693773,
+                  "greenRatio": 0.5144391485323614,
+                  "entropy": 0.9291123264459178,
+                  "dynamicRange": 0.9490196078431372,
+                  "width": 199.0,
+                  "height": 233.0
+                }
+              }
+            ],
+            "weight": 0.4424835550369099,
+            "predictedIndex": 2,
+            "predictedLabel": "HEALTHY_LEAF",
+            "confidence": 0.9997923374176025,
+            "top5": [
+              {
+                "class": "HEALTHY_LEAF",
+                "prob": 0.9997923374176025
+              },
+              {
+                "class": "ALGAL_LEAF_SPOT",
+                "prob": 8.529657498002052e-05
+              },
+              {
+                "class": "LEAF_BLIGHT",
+                "prob": 7.349882071139291e-05
+              },
+              {
+                "class": "PHOMOPSIS_LEAF_SPOT",
+                "prob": 4.71754974569194e-05
+              },
+              {
+                "class": "ALLOCARIDARA_ATTACK",
+                "prob": 1.743781695040525e-06
+              }
+            ],
+            "rawLogits": [
+              -3.067739725112915,
+              -6.554105281829834,
+              6.818394660949707,
+              -2.7259058952331543,
+              -3.3128910064697266
+            ],
+            "softmax": [
+              8.529657498002052e-05,
+              1.743781695040525e-06,
+              0.9997923374176025,
+              7.349882071139291e-05,
+              4.71754974569194e-05
+            ]
+          }
+        ],
+        "finalPrediction": {
+          "label": "HEALTHY_LEAF",
+          "confidence": 0.9997923374176025,
+          "probabilities": [
+            8.529657498002052e-05,
+            1.743781695040525e-06,
+            0.9997923374176025,
+            7.349882071139291e-05,
+            4.71754974569194e-05
+          ],
+          "topPredictions": [
+            {
+              "label": "HEALTHY_LEAF",
+              "confidence": 99.97923374176025
+            },
+            {
+              "label": "ALGAL_LEAF_SPOT",
+              "confidence": 0.008529657498002052
+            },
+            {
+              "label": "LEAF_BLIGHT",
+              "confidence": 0.007349882071139291
+            }
+          ],
+          "lowConfidence": false
+        }
+      },
+      "final_decision": {
+        "pipeline_stage_failed": null,
+        "failure_reason": null,
+        "prediction": {
+          "label": "HEALTHY_LEAF",
+          "confidence": 0.9997923374176025,
+          "probabilities": [
+            8.529657498002052e-05,
+            1.743781695040525e-06,
+            0.9997923374176025,
+            7.349882071139291e-05,
+            4.71754974569194e-05
+          ],
+          "topPredictions": [
+            {
+              "label": "HEALTHY_LEAF",
+              "confidence": 99.97923374176025
+            },
+            {
+              "label": "ALGAL_LEAF_SPOT",
+              "confidence": 0.008529657498002052
+            },
+            {
+              "label": "LEAF_BLIGHT",
+              "confidence": 0.007349882071139291
+            }
+          ],
+          "lowConfidence": false
+        }
+      }
+    },
+    {
+      "image": "20260805152001.jpg",
+      "image_path": "C:\\Users\\minhd\\OneDrive\\Desktop\\Test Fail\\20260805152001.jpg",
+      "stage_failed": "none",
+      "reason": "primary_detector_recovered_by_rescue_pass",
+      "fix_suggestion": "none required",
+      "status": "ok",
+      "rescue_used": true,
+      "detector_attempts": 3,
+      "detector_boxes": 1,
+      "primary_attempt_boxes": 0,
+      "final_prediction": {
+        "label": "HEALTHY_LEAF",
+        "confidence": 99.97579455375671,
+        "usedDetectionCrop": true,
+        "boundingBox": [
+          0,
+          0,
+          203,
+          234
+        ],
+        "topPredictions": [
+          {
+            "label": "HEALTHY_LEAF",
+            "confidence": 99.97579455375671
+          },
+          {
+            "label": "LEAF_BLIGHT",
+            "confidence": 0.009392631909577176
+          },
+          {
+            "label": "PHOMOPSIS_LEAF_SPOT",
+            "confidence": 0.008840695954859257
+          }
+        ],
+        "lowConfidence": false
+      },
+      "debug_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805152001\\2026-08-06_07-26-16_741",
+      "stable_artifact_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_artifacts\\20260805152001",
+      "artifacts": {
+        "original_image": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805152001\\2026-08-06_07-26-16_741\\original_image.jpg",
+        "yolo_result": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805152001\\2026-08-06_07-26-16_741\\yolo_result.json",
+        "detector_heatmap": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805152001\\2026-08-06_07-26-16_741\\detector_heatmap.jpg",
+        "yolo_visualization": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805152001\\2026-08-06_07-26-16_741\\yolo_visualization.jpg",
+        "crops_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805152001\\2026-08-06_07-26-16_741\\crops",
+        "validator_output": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805152001\\2026-08-06_07-26-16_741\\validator_result.json",
+        "classifier_output": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805152001\\2026-08-06_07-26-16_741\\classifier_result.json",
+        "final_decision": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805152001\\2026-08-06_07-26-16_741\\final_decision.json",
+        "pipeline_log": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805152001\\2026-08-06_07-26-16_741\\pipeline_log.txt"
+      },
+      "validator_output": [
+        {
+          "crop": "crop_01.jpg",
+          "score": 0.6247,
+          "threshold": 0.26,
+          "accepted": true,
+          "reason": "candidate_selected",
+          "bbox": [
+            0,
+            0,
+            203,
+            234
+          ],
+          "detectorConfidence": 0.6911404728889465,
+          "variant": "contrast_stretch"
+        }
+      ],
+      "classifier_output": {
+        "temperature": 1.0,
+        "cropPredictions": [
+          {
+            "bbox": [
+              0,
+              0,
+              203,
+              234
+            ],
+            "detectorConfidence": 0.6911404728889465,
+            "cropQuality": 0.6247,
+            "qualityProfile": {
+              "brightness": 0.5905854944394497,
+              "contrast": 0.18874073722191648,
+              "blur": 67.54002997945432,
+              "saturation": 0.11819531231295938,
+              "sharpness": 0.5628335831621193,
+              "greenRatio": 0.5149888425750495,
+              "entropy": 0.9345319234384478,
+              "dynamicRange": 0.9529411764705882,
+              "width": 203,
+              "height": 234
+            },
+            "viewWeights": {
+              "clahe": 0.2636930048465729,
+              "contrast_stretch": 0.2606012523174286,
+              "gamma_0_85": 0.24383707344532013,
+              "original": 0.23186872899532318
+            },
+            "viewVariants": [
+              {
+                "name": "clahe",
+                "score": 0.7692083340899609,
+                "metrics": {
+                  "brightness": 0.548250434863011,
+                  "contrast": 0.2132980171789195,
+                  "blur": 178.78620033542003,
+                  "saturation": 0.1352560593939904,
+                  "sharpness": 1.0,
+                  "greenRatio": 0.5260620605448192,
+                  "entropy": 0.967094291431384,
+                  "dynamicRange": 0.9764705882352941,
+                  "width": 203.0,
+                  "height": 234.0
+                }
+              },
+              {
+                "name": "contrast_stretch",
+                "score": 0.7601895198133413,
+                "metrics": {
+                  "brightness": 0.5425790947089122,
+                  "contrast": 0.21818343026756132,
+                  "blur": 92.73019741764868,
+                  "saturation": 0.1717933032334655,
+                  "sharpness": 0.7727516451470724,
+                  "greenRatio": 0.5279777693570797,
+                  "entropy": 0.9470892350423502,
+                  "dynamicRange": 1.0,
+                  "width": 203.0,
+                  "height": 234.0
+                }
+              },
+              {
+                "name": "gamma_0_85",
+                "score": 0.711287394850583,
+                "metrics": {
+                  "brightness": 0.5425889188566674,
+                  "contrast": 0.19766359097388983,
+                  "blur": 73.11071501637852,
+                  "saturation": 0.13765430722834374,
+                  "sharpness": 0.6092559584698211,
+                  "greenRatio": 0.5291145635973222,
+                  "entropy": 0.9445047110767163,
+                  "dynamicRange": 0.9764705882352941,
+                  "width": 203.0,
+                  "height": 234.0
+                }
+              },
+              {
+                "name": "original",
+                "score": 0.6763749909052674,
+                "metrics": {
+                  "brightness": 0.5905854944394497,
+                  "contrast": 0.18874073722191648,
+                  "blur": 67.54002997945432,
+                  "saturation": 0.11819531231295938,
+                  "sharpness": 0.5628335831621193,
+                  "greenRatio": 0.5149888425750495,
+                  "entropy": 0.9345319234384478,
+                  "dynamicRange": 0.9529411764705882,
+                  "width": 203.0,
+                  "height": 234.0
+                }
+              }
+            ],
+            "weight": 0.6863317386044011,
+            "predictedIndex": 2,
+            "predictedLabel": "HEALTHY_LEAF",
+            "confidence": 0.9997579455375671,
+            "top5": [
+              {
+                "class": "HEALTHY_LEAF",
+                "prob": 0.9997579455375671
+              },
+              {
+                "class": "LEAF_BLIGHT",
+                "prob": 9.392631909577176e-05
+              },
+              {
+                "class": "PHOMOPSIS_LEAF_SPOT",
+                "prob": 8.840695954859257e-05
+              },
+              {
+                "class": "ALGAL_LEAF_SPOT",
+                "prob": 5.647736179525964e-05
+              },
+              {
+                "class": "ALLOCARIDARA_ATTACK",
+                "prob": 3.347978918100125e-06
+              }
+            ],
+            "rawLogits": [
+              -3.349569082260132,
+              -6.130591869354248,
+              6.610907077789307,
+              -2.7242236137390137,
+              -2.900519371032715
+            ],
+            "softmax": [
+              5.647736179525964e-05,
+              3.347978918100125e-06,
+              0.9997579455375671,
+              9.392631909577176e-05,
+              8.840695954859257e-05
+            ]
+          }
+        ],
+        "finalPrediction": {
+          "label": "HEALTHY_LEAF",
+          "confidence": 0.9997579455375671,
+          "probabilities": [
+            5.647736179525964e-05,
+            3.347978918100125e-06,
+            0.9997579455375671,
+            9.392631909577176e-05,
+            8.840695954859257e-05
+          ],
+          "topPredictions": [
+            {
+              "label": "HEALTHY_LEAF",
+              "confidence": 99.97579455375671
+            },
+            {
+              "label": "LEAF_BLIGHT",
+              "confidence": 0.009392631909577176
+            },
+            {
+              "label": "PHOMOPSIS_LEAF_SPOT",
+              "confidence": 0.008840695954859257
+            }
+          ],
+          "lowConfidence": false
+        }
+      },
+      "final_decision": {
+        "pipeline_stage_failed": null,
+        "failure_reason": null,
+        "prediction": {
+          "label": "HEALTHY_LEAF",
+          "confidence": 0.9997579455375671,
+          "probabilities": [
+            5.647736179525964e-05,
+            3.347978918100125e-06,
+            0.9997579455375671,
+            9.392631909577176e-05,
+            8.840695954859257e-05
+          ],
+          "topPredictions": [
+            {
+              "label": "HEALTHY_LEAF",
+              "confidence": 99.97579455375671
+            },
+            {
+              "label": "LEAF_BLIGHT",
+              "confidence": 0.009392631909577176
+            },
+            {
+              "label": "PHOMOPSIS_LEAF_SPOT",
+              "confidence": 0.008840695954859257
+            }
+          ],
+          "lowConfidence": false
+        }
+      }
+    },
+    {
+      "image": "20260805152005.jpg",
+      "image_path": "C:\\Users\\minhd\\OneDrive\\Desktop\\Test Fail\\20260805152005.jpg",
+      "stage_failed": "none",
+      "reason": "primary_detector_recovered_by_rescue_pass",
+      "fix_suggestion": "none required",
+      "status": "ok",
+      "rescue_used": true,
+      "detector_attempts": 3,
+      "detector_boxes": 1,
+      "primary_attempt_boxes": 0,
+      "final_prediction": {
+        "label": "HEALTHY_LEAF",
+        "confidence": 99.92412328720093,
+        "usedDetectionCrop": true,
+        "boundingBox": [
+          0,
+          0,
+          203,
+          233
+        ],
+        "topPredictions": [
+          {
+            "label": "HEALTHY_LEAF",
+            "confidence": 99.92412328720093
+          },
+          {
+            "label": "LEAF_BLIGHT",
+            "confidence": 0.030798572697676718
+          },
+          {
+            "label": "PHOMOPSIS_LEAF_SPOT",
+            "confidence": 0.02215135609731078
+          }
+        ],
+        "lowConfidence": false
+      },
+      "debug_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805152005\\2026-08-06_07-26-18_824",
+      "stable_artifact_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_artifacts\\20260805152005",
+      "artifacts": {
+        "original_image": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805152005\\2026-08-06_07-26-18_824\\original_image.jpg",
+        "yolo_result": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805152005\\2026-08-06_07-26-18_824\\yolo_result.json",
+        "detector_heatmap": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805152005\\2026-08-06_07-26-18_824\\detector_heatmap.jpg",
+        "yolo_visualization": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805152005\\2026-08-06_07-26-18_824\\yolo_visualization.jpg",
+        "crops_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805152005\\2026-08-06_07-26-18_824\\crops",
+        "validator_output": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805152005\\2026-08-06_07-26-18_824\\validator_result.json",
+        "classifier_output": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805152005\\2026-08-06_07-26-18_824\\classifier_result.json",
+        "final_decision": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805152005\\2026-08-06_07-26-18_824\\final_decision.json",
+        "pipeline_log": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805152005\\2026-08-06_07-26-18_824\\pipeline_log.txt"
+      },
+      "validator_output": [
+        {
+          "crop": "crop_01.jpg",
+          "score": 0.6067,
+          "threshold": 0.26,
+          "accepted": true,
+          "reason": "candidate_selected",
+          "bbox": [
+            0,
+            0,
+            203,
+            233
+          ],
+          "detectorConfidence": 0.6456184387207031,
+          "variant": "contrast_stretch"
+        }
+      ],
+      "classifier_output": {
+        "temperature": 1.0,
+        "cropPredictions": [
+          {
+            "bbox": [
+              0,
+              0,
+              203,
+              233
+            ],
+            "detectorConfidence": 0.6456184387207031,
+            "cropQuality": 0.6067,
+            "qualityProfile": {
+              "brightness": 0.5828793793675529,
+              "contrast": 0.19363366701174917,
+              "blur": 59.19433885963008,
+              "saturation": 0.12204121547982816,
+              "sharpness": 0.493286157163584,
+              "greenRatio": 0.4969238250280133,
+              "entropy": 0.9371227500474869,
+              "dynamicRange": 0.9647058823529412,
+              "width": 203,
+              "height": 233
+            },
+            "viewWeights": {
+              "clahe": 0.26619070768356323,
+              "contrast_stretch": 0.25742819905281067,
+              "gamma_0_85": 0.24434340000152588,
+              "original": 0.232037752866745
+            },
+            "viewVariants": [
+              {
+                "name": "clahe",
+                "score": 0.7688486024061044,
+                "metrics": {
+                  "brightness": 0.5464408524990579,
+                  "contrast": 0.21462367235382582,
+                  "blur": 163.92835773042967,
+                  "saturation": 0.137109643324549,
+                  "sharpness": 1.0,
+                  "greenRatio": 0.5093553774921246,
+                  "entropy": 0.9666656731477583,
+                  "dynamicRange": 0.9764705882352941,
+                  "width": 203.0,
+                  "height": 233.0
+                }
+              },
+              {
+                "name": "contrast_stretch",
+                "score": 0.7435395540802988,
+                "metrics": {
+                  "brightness": 0.5401033641220289,
+                  "contrast": 0.22080935761485268,
+                  "blur": 80.0370279404128,
+                  "saturation": 0.1689373692350997,
+                  "sharpness": 0.6669752328367733,
+                  "greenRatio": 0.515296306475824,
+                  "entropy": 0.9478795385691019,
+                  "dynamicRange": 1.0,
+                  "width": 203.0,
+                  "height": 233.0
+                }
+              },
+              {
+                "name": "gamma_0_85",
+                "score": 0.7057461858703821,
+                "metrics": {
+                  "brightness": 0.5348489314328662,
+                  "contrast": 0.2018180111694318,
+                  "blur": 64.88128501476389,
+                  "saturation": 0.14215829294571164,
+                  "sharpness": 0.5406773751230324,
+                  "greenRatio": 0.517833357999112,
+                  "entropy": 0.9462055794459286,
+                  "dynamicRange": 0.9803921568627451,
+                  "width": 203.0,
+                  "height": 233.0
+                }
+              },
+              {
+                "name": "original",
+                "score": 0.6702033314615009,
+                "metrics": {
+                  "brightness": 0.5828793793675529,
+                  "contrast": 0.19363366701174917,
+                  "blur": 59.19433885963008,
+                  "saturation": 0.12204121547982816,
+                  "sharpness": 0.493286157163584,
+                  "greenRatio": 0.4969238250280133,
+                  "entropy": 0.9371227500474869,
+                  "dynamicRange": 0.9647058823529412,
+                  "width": 203.0,
+                  "height": 233.0
+                }
+              }
+            ],
+            "weight": 0.6599080272452301,
+            "predictedIndex": 2,
+            "predictedLabel": "HEALTHY_LEAF",
+            "confidence": 0.9992412328720093,
+            "top5": [
+              {
+                "class": "HEALTHY_LEAF",
+                "prob": 0.9992412328720093
+              },
+              {
+                "class": "LEAF_BLIGHT",
+                "prob": 0.0003079857269767672
+              },
+              {
+                "class": "PHOMOPSIS_LEAF_SPOT",
+                "prob": 0.00022151356097310781
+              },
+              {
+                "class": "ALGAL_LEAF_SPOT",
+                "prob": 0.0002183667675126344
+              },
+              {
+                "class": "ALLOCARIDARA_ATTACK",
+                "prob": 1.0917047802649904e-05
+              }
+            ],
+            "rawLogits": [
+              -2.9821276664733887,
+              -5.6701340675354,
+              5.869733810424805,
+              -2.2234046459198,
+              -2.716768503189087
+            ],
+            "softmax": [
+              0.0002183667675126344,
+              1.0917047802649904e-05,
+              0.9992412328720093,
+              0.0003079857269767672,
+              0.00022151356097310781
+            ]
+          }
+        ],
+        "finalPrediction": {
+          "label": "HEALTHY_LEAF",
+          "confidence": 0.9992412328720093,
+          "probabilities": [
+            0.0002183667675126344,
+            1.0917047802649904e-05,
+            0.9992412328720093,
+            0.0003079857269767672,
+            0.00022151356097310781
+          ],
+          "topPredictions": [
+            {
+              "label": "HEALTHY_LEAF",
+              "confidence": 99.92412328720093
+            },
+            {
+              "label": "LEAF_BLIGHT",
+              "confidence": 0.030798572697676718
+            },
+            {
+              "label": "PHOMOPSIS_LEAF_SPOT",
+              "confidence": 0.02215135609731078
+            }
+          ],
+          "lowConfidence": false
+        }
+      },
+      "final_decision": {
+        "pipeline_stage_failed": null,
+        "failure_reason": null,
+        "prediction": {
+          "label": "HEALTHY_LEAF",
+          "confidence": 0.9992412328720093,
+          "probabilities": [
+            0.0002183667675126344,
+            1.0917047802649904e-05,
+            0.9992412328720093,
+            0.0003079857269767672,
+            0.00022151356097310781
+          ],
+          "topPredictions": [
+            {
+              "label": "HEALTHY_LEAF",
+              "confidence": 99.92412328720093
+            },
+            {
+              "label": "LEAF_BLIGHT",
+              "confidence": 0.030798572697676718
+            },
+            {
+              "label": "PHOMOPSIS_LEAF_SPOT",
+              "confidence": 0.02215135609731078
+            }
+          ],
+          "lowConfidence": false
+        }
+      }
+    },
+    {
+      "image": "20260805152315.jpg",
+      "image_path": "C:\\Users\\minhd\\OneDrive\\Desktop\\Test Fail\\20260805152315.jpg",
+      "stage_failed": "none",
+      "reason": "passed_all_stages",
+      "fix_suggestion": "none required",
+      "status": "ok",
+      "rescue_used": false,
+      "detector_attempts": 1,
+      "detector_boxes": 1,
+      "primary_attempt_boxes": 1,
+      "final_prediction": {
+        "label": "HEALTHY_LEAF",
+        "confidence": 86.96357607841492,
+        "usedDetectionCrop": true,
+        "boundingBox": [
+          44,
+          5,
+          113,
+          234
+        ],
+        "topPredictions": [
+          {
+            "label": "HEALTHY_LEAF",
+            "confidence": 86.96357607841492
+          },
+          {
+            "label": "LEAF_BLIGHT",
+            "confidence": 11.181192100048065
+          },
+          {
+            "label": "ALGAL_LEAF_SPOT",
+            "confidence": 1.70234777033329
+          }
+        ],
+        "lowConfidence": false
+      },
+      "debug_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805152315\\2026-08-06_07-26-30_228",
+      "stable_artifact_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_artifacts\\20260805152315",
+      "artifacts": {
+        "original_image": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805152315\\2026-08-06_07-26-30_228\\original_image.jpg",
+        "yolo_result": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805152315\\2026-08-06_07-26-30_228\\yolo_result.json",
+        "detector_heatmap": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805152315\\2026-08-06_07-26-30_228\\detector_heatmap.jpg",
+        "yolo_visualization": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805152315\\2026-08-06_07-26-30_228\\yolo_visualization.jpg",
+        "crops_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805152315\\2026-08-06_07-26-30_228\\crops",
+        "validator_output": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805152315\\2026-08-06_07-26-30_228\\validator_result.json",
+        "classifier_output": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805152315\\2026-08-06_07-26-30_228\\classifier_result.json",
+        "final_decision": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805152315\\2026-08-06_07-26-30_228\\final_decision.json",
+        "pipeline_log": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805152315\\2026-08-06_07-26-30_228\\pipeline_log.txt"
+      },
+      "validator_output": [
+        {
+          "crop": "crop_01.jpg",
+          "score": 0.5144,
+          "threshold": 0.26,
+          "accepted": true,
+          "reason": "candidate_selected",
+          "bbox": [
+            44,
+            5,
+            113,
+            234
+          ],
+          "detectorConfidence": 0.40752917528152466,
+          "variant": "clahe"
+        }
+      ],
+      "classifier_output": {
+        "temperature": 1.0,
+        "cropPredictions": [
+          {
+            "bbox": [
+              44,
+              5,
+              113,
+              234
+            ],
+            "detectorConfidence": 0.40752917528152466,
+            "cropQuality": 0.5144,
+            "qualityProfile": {
+              "brightness": 0.5080475174691104,
+              "contrast": 0.18384194100138157,
+              "blur": 109.04969880815561,
+              "saturation": 0.11880459290861461,
+              "sharpness": 0.9087474900679634,
+              "greenRatio": 0.45845199670906905,
+              "entropy": 0.9345156112076776,
+              "dynamicRange": 0.8705882352941177,
+              "width": 69,
+              "height": 229
+            },
+            "viewWeights": {
+              "contrast_stretch": 0.26560768485069275,
+              "gamma_0_85": 0.24794836342334747,
+              "brightness_norm": 0.24410495162010193,
+              "original": 0.24233902990818024
+            },
+            "viewVariants": [
+              {
+                "name": "contrast_stretch",
+                "score": 0.7919081743681121,
+                "metrics": {
+                  "brightness": 0.4318053833773241,
+                  "contrast": 0.25142796963117847,
+                  "blur": 208.646069073751,
+                  "saturation": 0.2563751859835131,
+                  "sharpness": 1.0,
+                  "greenRatio": 0.488070375292703,
+                  "entropy": 0.9784706623813834,
+                  "dynamicRange": 1.0,
+                  "width": 69.0,
+                  "height": 229.0
+                }
+              },
+              {
+                "name": "gamma_0_85",
+                "score": 0.7392570080473068,
+                "metrics": {
+                  "brightness": 0.4548582802528011,
+                  "contrast": 0.1935752290501187,
+                  "blur": 121.52149371605944,
+                  "saturation": 0.13842261162423328,
+                  "sharpness": 1.0,
+                  "greenRatio": 0.4717422947914689,
+                  "entropy": 0.9400094546184361,
+                  "dynamicRange": 0.9058823529411765,
+                  "width": 69.0,
+                  "height": 229.0
+                }
+              },
+              {
+                "name": "brightness_norm",
+                "score": 0.7277979116934512,
+                "metrics": {
+                  "brightness": 0.5261245565247173,
+                  "contrast": 0.19062328582159677,
+                  "blur": 121.28231845639505,
+                  "saturation": 0.1225087516178549,
+                  "sharpness": 1.0,
+                  "greenRatio": 0.47864059236757167,
+                  "entropy": 0.9389593621016892,
+                  "dynamicRange": 0.8705882352941177,
+                  "width": 69.0,
+                  "height": 229.0
+                }
+              },
+              {
+                "name": "original",
+                "score": 0.7225328265674397,
+                "metrics": {
+                  "brightness": 0.5080475174691104,
+                  "contrast": 0.18384194100138157,
+                  "blur": 109.04969880815561,
+                  "saturation": 0.11880459290861461,
+                  "sharpness": 0.9087474900679634,
+                  "greenRatio": 0.45845199670906905,
+                  "entropy": 0.9345156112076776,
+                  "dynamicRange": 0.8705882352941177,
+                  "width": 69.0,
+                  "height": 229.0
+                }
+              }
+            ],
+            "weight": 0.4356625975970449,
+            "predictedIndex": 2,
+            "predictedLabel": "HEALTHY_LEAF",
+            "confidence": 0.8696357607841492,
+            "top5": [
+              {
+                "class": "HEALTHY_LEAF",
+                "prob": 0.8696357607841492
+              },
+              {
+                "class": "LEAF_BLIGHT",
+                "prob": 0.11181192100048065
+              },
+              {
+                "class": "ALGAL_LEAF_SPOT",
+                "prob": 0.0170234777033329
+              },
+              {
+                "class": "PHOMOPSIS_LEAF_SPOT",
+                "prob": 0.0009884298779070377
+              },
+              {
+                "class": "ALLOCARIDARA_ATTACK",
+                "prob": 0.0005404160474427044
+              }
+            ],
+            "rawLogits": [
+              -0.7402504682540894,
+              -4.20543098449707,
+              3.199618101119995,
+              1.1445841789245605,
+              -3.5937869548797607
+            ],
+            "softmax": [
+              0.0170234777033329,
+              0.0005404160474427044,
+              0.8696357607841492,
+              0.11181192100048065,
+              0.0009884298779070377
+            ]
+          }
+        ],
+        "finalPrediction": {
+          "label": "HEALTHY_LEAF",
+          "confidence": 0.8696357607841492,
+          "probabilities": [
+            0.0170234777033329,
+            0.0005404160474427044,
+            0.8696357607841492,
+            0.11181192100048065,
+            0.0009884298779070377
+          ],
+          "topPredictions": [
+            {
+              "label": "HEALTHY_LEAF",
+              "confidence": 86.96357607841492
+            },
+            {
+              "label": "LEAF_BLIGHT",
+              "confidence": 11.181192100048065
+            },
+            {
+              "label": "ALGAL_LEAF_SPOT",
+              "confidence": 1.70234777033329
+            }
+          ],
+          "lowConfidence": false
+        }
+      },
+      "final_decision": {
+        "pipeline_stage_failed": null,
+        "failure_reason": null,
+        "prediction": {
+          "label": "HEALTHY_LEAF",
+          "confidence": 0.8696357607841492,
+          "probabilities": [
+            0.0170234777033329,
+            0.0005404160474427044,
+            0.8696357607841492,
+            0.11181192100048065,
+            0.0009884298779070377
+          ],
+          "topPredictions": [
+            {
+              "label": "HEALTHY_LEAF",
+              "confidence": 86.96357607841492
+            },
+            {
+              "label": "LEAF_BLIGHT",
+              "confidence": 11.181192100048065
+            },
+            {
+              "label": "ALGAL_LEAF_SPOT",
+              "confidence": 1.70234777033329
+            }
+          ],
+          "lowConfidence": false
+        }
+      }
+    },
+    {
+      "image": "20260805155857.jpg",
+      "image_path": "C:\\Users\\minhd\\OneDrive\\Desktop\\Test Fail\\20260805155857.jpg",
+      "stage_failed": "none",
+      "reason": "primary_detector_recovered_by_rescue_pass",
+      "fix_suggestion": "none required",
+      "status": "ok",
+      "rescue_used": true,
+      "detector_attempts": 11,
+      "detector_boxes": 10,
+      "primary_attempt_boxes": 0,
+      "final_prediction": {
+        "label": "ALGAL_LEAF_SPOT",
+        "confidence": 49.38841164112091,
+        "usedDetectionCrop": true,
+        "boundingBox": [
+          0,
+          1,
+          239,
+          235
+        ],
+        "topPredictions": [
+          {
+            "label": "ALGAL_LEAF_SPOT",
+            "confidence": 49.38841164112091
+          },
+          {
+            "label": "HEALTHY_LEAF",
+            "confidence": 33.93235206604004
+          },
+          {
+            "label": "LEAF_BLIGHT",
+            "confidence": 14.517948031425476
+          }
+        ],
+        "lowConfidence": false
+      },
+      "debug_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805155857\\2026-08-06_07-26-43_262",
+      "stable_artifact_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_artifacts\\20260805155857",
+      "artifacts": {
+        "original_image": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805155857\\2026-08-06_07-26-43_262\\original_image.jpg",
+        "yolo_result": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805155857\\2026-08-06_07-26-43_262\\yolo_result.json",
+        "detector_heatmap": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805155857\\2026-08-06_07-26-43_262\\detector_heatmap.jpg",
+        "yolo_visualization": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805155857\\2026-08-06_07-26-43_262\\yolo_visualization.jpg",
+        "crops_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805155857\\2026-08-06_07-26-43_262\\crops",
+        "validator_output": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805155857\\2026-08-06_07-26-43_262\\validator_result.json",
+        "classifier_output": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805155857\\2026-08-06_07-26-43_262\\classifier_result.json",
+        "final_decision": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805155857\\2026-08-06_07-26-43_262\\final_decision.json",
+        "pipeline_log": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\20260805155857\\2026-08-06_07-26-43_262\\pipeline_log.txt"
+      },
+      "validator_output": [
+        {
+          "crop": "crop_01.jpg",
+          "score": 0.4768,
+          "threshold": 0.26,
+          "accepted": true,
+          "reason": "candidate_selected",
+          "bbox": [
+            0,
+            1,
+            239,
+            235
+          ],
+          "detectorConfidence": 0.2280706763267517,
+          "variant": "gamma_0_85"
+        }
+      ],
+      "classifier_output": {
+        "temperature": 1.0,
+        "cropPredictions": [
+          {
+            "bbox": [
+              0,
+              1,
+              239,
+              235
+            ],
+            "detectorConfidence": 0.2280706763267517,
+            "cropQuality": 0.4768,
+            "qualityProfile": {
+              "brightness": 0.40406854155315886,
+              "contrast": 0.2808288725057621,
+              "blur": 137.1187163814664,
+              "saturation": 0.2512666247345056,
+              "sharpness": 1.0,
+              "greenRatio": 0.3633551478739763,
+              "entropy": 0.9225303457532538,
+              "dynamicRange": 0.9764705882352941,
+              "width": 239,
+              "height": 234
+            },
+            "viewWeights": {
+              "contrast_stretch": 0.25394150614738464,
+              "brightness_norm": 0.25305691361427307,
+              "gamma_1_15": 0.2468874752521515,
+              "denoise": 0.24611413478851318
+            },
+            "viewVariants": [
+              {
+                "name": "contrast_stretch",
+                "score": 0.8070389160868073,
+                "metrics": {
+                  "brightness": 0.3915128745057369,
+                  "contrast": 0.3151666840622397,
+                  "blur": 175.65791089533815,
+                  "saturation": 0.3728477336648639,
+                  "sharpness": 1.0,
+                  "greenRatio": 0.35757965883488896,
+                  "entropy": 0.9333438761296284,
+                  "dynamicRange": 1.0,
+                  "width": 239.0,
+                  "height": 234.0
+                }
+              },
+              {
+                "name": "brightness_norm",
+                "score": 0.8042276396197247,
+                "metrics": {
+                  "brightness": 0.4841560942225476,
+                  "contrast": 0.3287783003520553,
+                  "blur": 208.25971900442838,
+                  "saturation": 0.25625620129681165,
+                  "sharpness": 1.0,
+                  "greenRatio": 0.3644995172191825,
+                  "entropy": 0.9349620602235803,
+                  "dynamicRange": 0.9725490196078431,
+                  "width": 239.0,
+                  "height": 234.0
+                }
+              },
+              {
+                "name": "gamma_1_15",
+                "score": 0.7846208625478597,
+                "metrics": {
+                  "brightness": 0.4384799801979226,
+                  "contrast": 0.278604985421594,
+                  "blur": 132.23472707801565,
+                  "saturation": 0.2272184602482412,
+                  "sharpness": 1.0,
+                  "greenRatio": 0.36244322855201516,
+                  "entropy": 0.9279104348696994,
+                  "dynamicRange": 0.9647058823529412,
+                  "width": 239.0,
+                  "height": 234.0
+                }
+              },
+              {
+                "name": "denoise",
+                "score": 0.7821631674518202,
+                "metrics": {
+                  "brightness": 0.4026768566025273,
+                  "contrast": 0.2806295807020895,
+                  "blur": 124.47551039996812,
+                  "saturation": 0.24479715141787503,
+                  "sharpness": 1.0,
+                  "greenRatio": 0.38282730751349997,
+                  "entropy": 0.9240536950609155,
+                  "dynamicRange": 0.9686274509803922,
+                  "width": 239.0,
+                  "height": 234.0
+                }
+              }
+            ],
+            "weight": 0.4470667070564587,
+            "predictedIndex": 0,
+            "predictedLabel": "ALGAL_LEAF_SPOT",
+            "confidence": 0.4938841164112091,
+            "top5": [
+              {
+                "class": "ALGAL_LEAF_SPOT",
+                "prob": 0.4938841164112091
+              },
+              {
+                "class": "HEALTHY_LEAF",
+                "prob": 0.3393235206604004
+              },
+              {
+                "class": "LEAF_BLIGHT",
+                "prob": 0.14517948031425476
+              },
+              {
+                "class": "PHOMOPSIS_LEAF_SPOT",
+                "prob": 0.011615239083766937
+              },
+              {
+                "class": "ALLOCARIDARA_ATTACK",
+                "prob": 0.00999763235449791
+              }
+            ],
+            "rawLogits": [
+              0.3566807508468628,
+              -2.9841485023498535,
+              0.5016238689422607,
+              -0.5331088304519653,
+              -2.478708505630493
+            ],
+            "softmax": [
+              0.4938841164112091,
+              0.00999763235449791,
+              0.3393235206604004,
+              0.14517948031425476,
+              0.011615239083766937
+            ]
+          }
+        ],
+        "finalPrediction": {
+          "label": "ALGAL_LEAF_SPOT",
+          "confidence": 0.4938841164112091,
+          "probabilities": [
+            0.4938841164112091,
+            0.00999763235449791,
+            0.3393235206604004,
+            0.14517948031425476,
+            0.011615239083766937
+          ],
+          "topPredictions": [
+            {
+              "label": "ALGAL_LEAF_SPOT",
+              "confidence": 49.38841164112091
+            },
+            {
+              "label": "HEALTHY_LEAF",
+              "confidence": 33.93235206604004
+            },
+            {
+              "label": "LEAF_BLIGHT",
+              "confidence": 14.517948031425476
+            }
+          ],
+          "lowConfidence": false
+        }
+      },
+      "final_decision": {
+        "pipeline_stage_failed": null,
+        "failure_reason": null,
+        "prediction": {
+          "label": "ALGAL_LEAF_SPOT",
+          "confidence": 0.4938841164112091,
+          "probabilities": [
+            0.4938841164112091,
+            0.00999763235449791,
+            0.3393235206604004,
+            0.14517948031425476,
+            0.011615239083766937
+          ],
+          "topPredictions": [
+            {
+              "label": "ALGAL_LEAF_SPOT",
+              "confidence": 49.38841164112091
+            },
+            {
+              "label": "HEALTHY_LEAF",
+              "confidence": 33.93235206604004
+            },
+            {
+              "label": "LEAF_BLIGHT",
+              "confidence": 14.517948031425476
+            }
+          ],
+          "lowConfidence": false
+        }
+      }
+    },
+    {
+      "image": "benh-dom-la-cay-sau-rieng-02.jpg",
+      "image_path": "C:\\Users\\minhd\\OneDrive\\Desktop\\Test Fail\\benh-dom-la-cay-sau-rieng-02.jpg",
+      "stage_failed": "none",
+      "reason": "passed_all_stages",
+      "fix_suggestion": "none required",
+      "status": "ok",
+      "rescue_used": false,
+      "detector_attempts": 1,
+      "detector_boxes": 1,
+      "primary_attempt_boxes": 1,
+      "final_prediction": {
+        "label": "ALLOCARIDARA_ATTACK",
+        "confidence": 91.0315990447998,
+        "usedDetectionCrop": true,
+        "boundingBox": [
+          71,
+          73,
+          800,
+          595
+        ],
+        "topPredictions": [
+          {
+            "label": "ALLOCARIDARA_ATTACK",
+            "confidence": 91.0315990447998
+          },
+          {
+            "label": "ALGAL_LEAF_SPOT",
+            "confidence": 7.540129125118256
+          },
+          {
+            "label": "PHOMOPSIS_LEAF_SPOT",
+            "confidence": 1.2628315016627312
+          }
+        ],
+        "lowConfidence": false
+      },
+      "debug_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\benh-dom-la-cay-sau-rieng-02\\2026-08-06_07-26-45_887",
+      "stable_artifact_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_artifacts\\benh-dom-la-cay-sau-rieng-02",
+      "artifacts": {
+        "original_image": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\benh-dom-la-cay-sau-rieng-02\\2026-08-06_07-26-45_887\\original_image.jpg",
+        "yolo_result": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\benh-dom-la-cay-sau-rieng-02\\2026-08-06_07-26-45_887\\yolo_result.json",
+        "detector_heatmap": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\benh-dom-la-cay-sau-rieng-02\\2026-08-06_07-26-45_887\\detector_heatmap.jpg",
+        "yolo_visualization": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\benh-dom-la-cay-sau-rieng-02\\2026-08-06_07-26-45_887\\yolo_visualization.jpg",
+        "crops_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\benh-dom-la-cay-sau-rieng-02\\2026-08-06_07-26-45_887\\crops",
+        "validator_output": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\benh-dom-la-cay-sau-rieng-02\\2026-08-06_07-26-45_887\\validator_result.json",
+        "classifier_output": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\benh-dom-la-cay-sau-rieng-02\\2026-08-06_07-26-45_887\\classifier_result.json",
+        "final_decision": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\benh-dom-la-cay-sau-rieng-02\\2026-08-06_07-26-45_887\\final_decision.json",
+        "pipeline_log": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\benh-dom-la-cay-sau-rieng-02\\2026-08-06_07-26-45_887\\pipeline_log.txt"
+      },
+      "validator_output": [
+        {
+          "crop": "crop_01.jpg",
+          "score": 0.6192,
+          "threshold": 0.26,
+          "accepted": true,
+          "reason": "candidate_selected",
+          "bbox": [
+            71,
+            73,
+            800,
+            595
+          ],
+          "detectorConfidence": 0.5657147169113159,
+          "variant": "clahe"
+        }
+      ],
+      "classifier_output": {
+        "temperature": 1.0,
+        "cropPredictions": [
+          {
+            "bbox": [
+              71,
+              73,
+              800,
+              595
+            ],
+            "detectorConfidence": 0.5657147169113159,
+            "cropQuality": 0.6192,
+            "qualityProfile": {
+              "brightness": 0.5531837844851031,
+              "contrast": 0.17836264192559967,
+              "blur": 133.57506290459878,
+              "saturation": 0.42880245192590594,
+              "sharpness": 1.0,
+              "greenRatio": 0.9010374785172571,
+              "entropy": 0.9381276620557246,
+              "dynamicRange": 1.0,
+              "width": 729,
+              "height": 522
+            },
+            "viewWeights": {
+              "clahe": 0.2563742399215698,
+              "contrast_stretch": 0.25076770782470703,
+              "gamma_0_85": 0.249164417386055,
+              "original": 0.24369366466999054
+            },
+            "viewVariants": [
+              {
+                "name": "clahe",
+                "score": 0.9206505761131297,
+                "metrics": {
+                  "brightness": 0.48605371816723053,
+                  "contrast": 0.21280053358260878,
+                  "blur": 416.04799416817775,
+                  "saturation": 0.5108249115622577,
+                  "sharpness": 1.0,
+                  "greenRatio": 0.9015157487557091,
+                  "entropy": 0.9679358798937545,
+                  "dynamicRange": 0.9921568627450981,
+                  "width": 729.0,
+                  "height": 522.0
+                }
+              },
+              {
+                "name": "contrast_stretch",
+                "score": 0.9005172381176171,
+                "metrics": {
+                  "brightness": 0.5618499154808584,
+                  "contrast": 0.2139667971031061,
+                  "blur": 192.52513382759517,
+                  "saturation": 0.5182559903063969,
+                  "sharpness": 1.0,
+                  "greenRatio": 0.8941761400963898,
+                  "entropy": 0.9648560268465383,
+                  "dynamicRange": 1.0,
+                  "width": 729.0,
+                  "height": 522.0
+                }
+              },
+              {
+                "name": "gamma_0_85",
+                "score": 0.894759786119978,
+                "metrics": {
+                  "brightness": 0.5039018339257351,
+                  "contrast": 0.1861115655897987,
+                  "blur": 151.54517855713226,
+                  "saturation": 0.47928724028385405,
+                  "sharpness": 1.0,
+                  "greenRatio": 0.9024644056572537,
+                  "entropy": 0.9459366362237898,
+                  "dynamicRange": 1.0,
+                  "width": 729.0,
+                  "height": 522.0
+                }
+              },
+              {
+                "name": "original",
+                "score": 0.8751140674911951,
+                "metrics": {
+                  "brightness": 0.5531837844851031,
+                  "contrast": 0.17836264192559967,
+                  "blur": 133.57506290459878,
+                  "saturation": 0.42880245192590594,
+                  "sharpness": 1.0,
+                  "greenRatio": 0.9010374785172571,
+                  "entropy": 0.9381276620557246,
+                  "dynamicRange": 1.0,
+                  "width": 729.0,
+                  "height": 522.0
+                }
+              }
+            ],
+            "weight": 0.6220526713509134,
+            "predictedIndex": 1,
+            "predictedLabel": "ALLOCARIDARA_ATTACK",
+            "confidence": 0.910315990447998,
+            "top5": [
+              {
+                "class": "ALLOCARIDARA_ATTACK",
+                "prob": 0.910315990447998
+              },
+              {
+                "class": "ALGAL_LEAF_SPOT",
+                "prob": 0.07540129125118256
+              },
+              {
+                "class": "PHOMOPSIS_LEAF_SPOT",
+                "prob": 0.012628315016627312
+              },
+              {
+                "class": "HEALTHY_LEAF",
+                "prob": 0.0012375330552458763
+              },
+              {
+                "class": "LEAF_BLIGHT",
+                "prob": 0.000416865135775879
+              }
+            ],
+            "rawLogits": [
+              -0.018756356090307236,
+              3.087153673171997,
+              -5.837827682495117,
+              -5.252335548400879,
+              -1.6745775938034058
+            ],
+            "softmax": [
+              0.07540129125118256,
+              0.910315990447998,
+              0.0012375330552458763,
+              0.000416865135775879,
+              0.012628315016627312
+            ]
+          }
+        ],
+        "finalPrediction": {
+          "label": "ALLOCARIDARA_ATTACK",
+          "confidence": 0.910315990447998,
+          "probabilities": [
+            0.07540129125118256,
+            0.910315990447998,
+            0.0012375330552458763,
+            0.000416865135775879,
+            0.012628315016627312
+          ],
+          "topPredictions": [
+            {
+              "label": "ALLOCARIDARA_ATTACK",
+              "confidence": 91.0315990447998
+            },
+            {
+              "label": "ALGAL_LEAF_SPOT",
+              "confidence": 7.540129125118256
+            },
+            {
+              "label": "PHOMOPSIS_LEAF_SPOT",
+              "confidence": 1.2628315016627312
+            }
+          ],
+          "lowConfidence": false
+        }
+      },
+      "final_decision": {
+        "pipeline_stage_failed": null,
+        "failure_reason": null,
+        "prediction": {
+          "label": "ALLOCARIDARA_ATTACK",
+          "confidence": 0.910315990447998,
+          "probabilities": [
+            0.07540129125118256,
+            0.910315990447998,
+            0.0012375330552458763,
+            0.000416865135775879,
+            0.012628315016627312
+          ],
+          "topPredictions": [
+            {
+              "label": "ALLOCARIDARA_ATTACK",
+              "confidence": 91.0315990447998
+            },
+            {
+              "label": "ALGAL_LEAF_SPOT",
+              "confidence": 7.540129125118256
+            },
+            {
+              "label": "PHOMOPSIS_LEAF_SPOT",
+              "confidence": 1.2628315016627312
+            }
+          ],
+          "lowConfidence": false
+        }
+      }
+    },
+    {
+      "image": "benh-dom-la-sau-rieng-va-bien-phap-phong-tri-kimnonggolstar-vn-1.jpg",
+      "image_path": "C:\\Users\\minhd\\OneDrive\\Desktop\\Test Fail\\benh-dom-la-sau-rieng-va-bien-phap-phong-tri-kimnonggolstar-vn-1.jpg",
+      "stage_failed": "none",
+      "reason": "primary_detector_recovered_by_rescue_pass",
+      "fix_suggestion": "none required",
+      "status": "ok",
+      "rescue_used": true,
+      "detector_attempts": 12,
+      "detector_boxes": 1,
+      "primary_attempt_boxes": 0,
+      "final_prediction": {
+        "label": "PHOMOPSIS_LEAF_SPOT",
+        "confidence": 99.99045729637146,
+        "usedDetectionCrop": true,
+        "boundingBox": [
+          123,
+          132,
+          861,
+          431
+        ],
+        "topPredictions": [
+          {
+            "label": "PHOMOPSIS_LEAF_SPOT",
+            "confidence": 99.99045729637146
+          },
+          {
+            "label": "ALGAL_LEAF_SPOT",
+            "confidence": 0.003514906347845681
+          },
+          {
+            "label": "LEAF_BLIGHT",
+            "confidence": 0.0032028547138907015
+          }
+        ],
+        "lowConfidence": false
+      },
+      "debug_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\benh-dom-la-sau-rieng-va-bien-phap-phong-tri-kimnonggolstar-vn-1\\2026-08-06_07-27-01_261",
+      "stable_artifact_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_artifacts\\benh-dom-la-sau-rieng-va-bien-phap-phong-tri-kimnonggolstar-vn-1",
+      "artifacts": {
+        "original_image": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\benh-dom-la-sau-rieng-va-bien-phap-phong-tri-kimnonggolstar-vn-1\\2026-08-06_07-27-01_261\\original_image.jpg",
+        "yolo_result": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\benh-dom-la-sau-rieng-va-bien-phap-phong-tri-kimnonggolstar-vn-1\\2026-08-06_07-27-01_261\\yolo_result.json",
+        "detector_heatmap": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\benh-dom-la-sau-rieng-va-bien-phap-phong-tri-kimnonggolstar-vn-1\\2026-08-06_07-27-01_261\\detector_heatmap.jpg",
+        "yolo_visualization": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\benh-dom-la-sau-rieng-va-bien-phap-phong-tri-kimnonggolstar-vn-1\\2026-08-06_07-27-01_261\\yolo_visualization.jpg",
+        "crops_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\benh-dom-la-sau-rieng-va-bien-phap-phong-tri-kimnonggolstar-vn-1\\2026-08-06_07-27-01_261\\crops",
+        "validator_output": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\benh-dom-la-sau-rieng-va-bien-phap-phong-tri-kimnonggolstar-vn-1\\2026-08-06_07-27-01_261\\validator_result.json",
+        "classifier_output": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\benh-dom-la-sau-rieng-va-bien-phap-phong-tri-kimnonggolstar-vn-1\\2026-08-06_07-27-01_261\\classifier_result.json",
+        "final_decision": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\benh-dom-la-sau-rieng-va-bien-phap-phong-tri-kimnonggolstar-vn-1\\2026-08-06_07-27-01_261\\final_decision.json",
+        "pipeline_log": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\benh-dom-la-sau-rieng-va-bien-phap-phong-tri-kimnonggolstar-vn-1\\2026-08-06_07-27-01_261\\pipeline_log.txt"
+      },
+      "validator_output": [
+        {
+          "crop": "crop_01.jpg",
+          "score": 0.4833,
+          "threshold": 0.26,
+          "accepted": true,
+          "reason": "candidate_selected",
+          "bbox": [
+            123,
+            132,
+            861,
+            431
+          ],
+          "detectorConfidence": 0.11605298519134521,
+          "variant": "gamma_0_85"
+        }
+      ],
+      "classifier_output": {
+        "temperature": 1.0,
+        "cropPredictions": [
+          {
+            "bbox": [
+              123,
+              132,
+              861,
+              431
+            ],
+            "detectorConfidence": 0.11605298519134521,
+            "cropQuality": 0.4833,
+            "qualityProfile": {
+              "brightness": 0.4316929396587559,
+              "contrast": 0.15996279622727205,
+              "blur": 222.12125511509808,
+              "saturation": 0.6857953633638245,
+              "sharpness": 1.0,
+              "greenRatio": 0.8082769122005601,
+              "entropy": 0.9144059031270104,
+              "dynamicRange": 0.984313725490196,
+              "width": 738,
+              "height": 299
+            },
+            "viewWeights": {
+              "clahe": 0.25299814343452454,
+              "contrast_stretch": 0.251887708902359,
+              "brightness_norm": 0.24799317121505737,
+              "gamma_1_15": 0.24712099134922028
+            },
+            "viewVariants": [
+              {
+                "name": "clahe",
+                "score": 0.8645724608276629,
+                "metrics": {
+                  "brightness": 0.4332942175247708,
+                  "contrast": 0.19494189611450102,
+                  "blur": 906.4658141161984,
+                  "saturation": 0.6715168492100686,
+                  "sharpness": 1.0,
+                  "greenRatio": 0.8081092349385033,
+                  "entropy": 0.9494469858645609,
+                  "dynamicRange": 0.984313725490196,
+                  "width": 738.0,
+                  "height": 299.0
+                }
+              },
+              {
+                "name": "contrast_stretch",
+                "score": 0.8607777002620606,
+                "metrics": {
+                  "brightness": 0.5326385789925182,
+                  "contrast": 0.19242670926520994,
+                  "blur": 342.0917983692751,
+                  "saturation": 0.6847168973361974,
+                  "sharpness": 1.0,
+                  "greenRatio": 0.7995214400304538,
+                  "entropy": 0.9458080521390234,
+                  "dynamicRange": 0.996078431372549,
+                  "width": 738.0,
+                  "height": 299.0
+                }
+              },
+              {
+                "name": "brightness_norm",
+                "score": 0.8474688884448401,
+                "metrics": {
+                  "brightness": 0.4520473242636551,
+                  "contrast": 0.1676577671119094,
+                  "blur": 249.27562843598466,
+                  "saturation": 0.6886293312405221,
+                  "sharpness": 1.0,
+                  "greenRatio": 0.8098177302843262,
+                  "entropy": 0.9219106507704766,
+                  "dynamicRange": 0.984313725490196,
+                  "width": 738.0,
+                  "height": 299.0
+                }
+              },
+              {
+                "name": "gamma_1_15",
+                "score": 0.8444883800229872,
+                "metrics": {
+                  "brightness": 0.47245347822354866,
+                  "contrast": 0.1570454004212415,
+                  "blur": 212.29878686882844,
+                  "saturation": 0.6582967722260343,
+                  "sharpness": 1.0,
+                  "greenRatio": 0.8068992395609574,
+                  "entropy": 0.9121301080204376,
+                  "dynamicRange": 0.984313725490196,
+                  "width": 738.0,
+                  "height": 299.0
+                }
+              }
+            ],
+            "weight": 0.3350872640165057,
+            "predictedIndex": 4,
+            "predictedLabel": "PHOMOPSIS_LEAF_SPOT",
+            "confidence": 0.9999045729637146,
+            "top5": [
+              {
+                "class": "PHOMOPSIS_LEAF_SPOT",
+                "prob": 0.9999045729637146
+              },
+              {
+                "class": "ALGAL_LEAF_SPOT",
+                "prob": 3.514906347845681e-05
+              },
+              {
+                "class": "LEAF_BLIGHT",
+                "prob": 3.2028547138907015e-05
+              },
+              {
+                "class": "ALLOCARIDARA_ATTACK",
+                "prob": 2.2607322534895502e-05
+              },
+              {
+                "class": "HEALTHY_LEAF",
+                "prob": 5.559645614994224e-06
+              }
+            ],
+            "rawLogits": [
+              -4.970879554748535,
+              -4.777755260467529,
+              -6.737750053405762,
+              -4.069364547729492,
+              6.587915420532227
+            ],
+            "softmax": [
+              3.514906347845681e-05,
+              2.2607322534895502e-05,
+              5.559645614994224e-06,
+              3.2028547138907015e-05,
+              0.9999045729637146
+            ]
+          }
+        ],
+        "finalPrediction": {
+          "label": "PHOMOPSIS_LEAF_SPOT",
+          "confidence": 0.9999045729637146,
+          "probabilities": [
+            3.514906347845681e-05,
+            2.2607322534895502e-05,
+            5.559645614994224e-06,
+            3.2028547138907015e-05,
+            0.9999045729637146
+          ],
+          "topPredictions": [
+            {
+              "label": "PHOMOPSIS_LEAF_SPOT",
+              "confidence": 99.99045729637146
+            },
+            {
+              "label": "ALGAL_LEAF_SPOT",
+              "confidence": 0.003514906347845681
+            },
+            {
+              "label": "LEAF_BLIGHT",
+              "confidence": 0.0032028547138907015
+            }
+          ],
+          "lowConfidence": false
+        }
+      },
+      "final_decision": {
+        "pipeline_stage_failed": null,
+        "failure_reason": null,
+        "prediction": {
+          "label": "PHOMOPSIS_LEAF_SPOT",
+          "confidence": 0.9999045729637146,
+          "probabilities": [
+            3.514906347845681e-05,
+            2.2607322534895502e-05,
+            5.559645614994224e-06,
+            3.2028547138907015e-05,
+            0.9999045729637146
+          ],
+          "topPredictions": [
+            {
+              "label": "PHOMOPSIS_LEAF_SPOT",
+              "confidence": 99.99045729637146
+            },
+            {
+              "label": "ALGAL_LEAF_SPOT",
+              "confidence": 0.003514906347845681
+            },
+            {
+              "label": "LEAF_BLIGHT",
+              "confidence": 0.0032028547138907015
+            }
+          ],
+          "lowConfidence": false
+        }
+      }
+    },
+    {
+      "image": "sau-rieng-bi-dom-la.jpg",
+      "image_path": "C:\\Users\\minhd\\OneDrive\\Desktop\\Test Fail\\sau-rieng-bi-dom-la.jpg",
+      "stage_failed": "none",
+      "reason": "primary_detector_recovered_by_rescue_pass",
+      "fix_suggestion": "none required",
+      "status": "ok",
+      "rescue_used": true,
+      "detector_attempts": 3,
+      "detector_boxes": 1,
+      "primary_attempt_boxes": 0,
+      "final_prediction": {
+        "label": "PHOMOPSIS_LEAF_SPOT",
+        "confidence": 87.40302920341492,
+        "usedDetectionCrop": true,
+        "boundingBox": [
+          173,
+          68,
+          307,
+          428
+        ],
+        "topPredictions": [
+          {
+            "label": "PHOMOPSIS_LEAF_SPOT",
+            "confidence": 87.40302920341492
+          },
+          {
+            "label": "ALLOCARIDARA_ATTACK",
+            "confidence": 4.160941019654274
+          },
+          {
+            "label": "HEALTHY_LEAF",
+            "confidence": 3.9487987756729126
+          }
+        ],
+        "lowConfidence": false
+      },
+      "debug_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\sau-rieng-bi-dom-la\\2026-08-06_07-27-04_336",
+      "stable_artifact_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_artifacts\\sau-rieng-bi-dom-la",
+      "artifacts": {
+        "original_image": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\sau-rieng-bi-dom-la\\2026-08-06_07-27-04_336\\original_image.jpg",
+        "yolo_result": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\sau-rieng-bi-dom-la\\2026-08-06_07-27-04_336\\yolo_result.json",
+        "detector_heatmap": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\sau-rieng-bi-dom-la\\2026-08-06_07-27-04_336\\detector_heatmap.jpg",
+        "yolo_visualization": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\sau-rieng-bi-dom-la\\2026-08-06_07-27-04_336\\yolo_visualization.jpg",
+        "crops_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\sau-rieng-bi-dom-la\\2026-08-06_07-27-04_336\\crops",
+        "validator_output": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\sau-rieng-bi-dom-la\\2026-08-06_07-27-04_336\\validator_result.json",
+        "classifier_output": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\sau-rieng-bi-dom-la\\2026-08-06_07-27-04_336\\classifier_result.json",
+        "final_decision": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\sau-rieng-bi-dom-la\\2026-08-06_07-27-04_336\\final_decision.json",
+        "pipeline_log": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\sau-rieng-bi-dom-la\\2026-08-06_07-27-04_336\\pipeline_log.txt"
+      },
+      "validator_output": [
+        {
+          "crop": "crop_01.jpg",
+          "score": 0.5351,
+          "threshold": 0.26,
+          "accepted": true,
+          "reason": "candidate_selected",
+          "bbox": [
+            173,
+            68,
+            307,
+            428
+          ],
+          "detectorConfidence": 0.2711782455444336,
+          "variant": "gamma_0_85"
+        }
+      ],
+      "classifier_output": {
+        "temperature": 1.0,
+        "cropPredictions": [
+          {
+            "bbox": [
+              173,
+              68,
+              307,
+              428
+            ],
+            "detectorConfidence": 0.2711782455444336,
+            "cropQuality": 0.5351,
+            "qualityProfile": {
+              "brightness": 0.5199770754072773,
+              "contrast": 0.17570552313028953,
+              "blur": 754.6659387964647,
+              "saturation": 0.7592752739570123,
+              "sharpness": 1.0,
+              "greenRatio": 0.9332504145936982,
+              "entropy": 0.9363899992808027,
+              "dynamicRange": 0.984313725490196,
+              "width": 134,
+              "height": 360
+            },
+            "viewWeights": {
+              "clahe": 0.2555334270000458,
+              "gamma_0_85": 0.2509993016719818,
+              "original": 0.24682024121284485,
+              "denoise": 0.24664701521396637
+            },
+            "viewVariants": [
+              {
+                "name": "clahe",
+                "score": 0.8582890736149766,
+                "metrics": {
+                  "brightness": 0.4961382629336975,
+                  "contrast": 0.2040963756177586,
+                  "blur": 1909.9908529453169,
+                  "saturation": 0.7502384320228921,
+                  "sharpness": 1.0,
+                  "greenRatio": 0.9334577114427861,
+                  "entropy": 0.9629455455395299,
+                  "dynamicRange": 0.9764705882352941,
+                  "width": 134.0,
+                  "height": 360.0
+                }
+              },
+              {
+                "name": "gamma_0_85",
+                "score": 0.8430597936517427,
+                "metrics": {
+                  "brightness": 0.4730925438168634,
+                  "contrast": 0.18194680011229908,
+                  "blur": 814.5561362922638,
+                  "saturation": 0.79119866354502,
+                  "sharpness": 1.0,
+                  "greenRatio": 0.9343490878938641,
+                  "entropy": 0.9427354930343965,
+                  "dynamicRange": 0.9803921568627451,
+                  "width": 134.0,
+                  "height": 360.0
+                }
+              },
+              {
+                "name": "original",
+                "score": 0.8290231081331398,
+                "metrics": {
+                  "brightness": 0.5199770754072773,
+                  "contrast": 0.17570552313028953,
+                  "blur": 754.6659387964647,
+                  "saturation": 0.7592752739570123,
+                  "sharpness": 1.0,
+                  "greenRatio": 0.9332504145936982,
+                  "entropy": 0.9363899992808027,
+                  "dynamicRange": 0.984313725490196,
+                  "width": 134.0,
+                  "height": 360.0
+                }
+              },
+              {
+                "name": "denoise",
+                "score": 0.828441252994324,
+                "metrics": {
+                  "brightness": 0.518545263876695,
+                  "contrast": 0.1751709899898613,
+                  "blur": 720.8890664624465,
+                  "saturation": 0.7618584365752935,
+                  "sharpness": 1.0,
+                  "greenRatio": 0.9385572139303483,
+                  "entropy": 0.931734745323724,
+                  "dynamicRange": 0.9764705882352941,
+                  "width": 134.0,
+                  "height": 360.0
+                }
+              }
+            ],
+            "weight": 0.3709630184882279,
+            "predictedIndex": 4,
+            "predictedLabel": "PHOMOPSIS_LEAF_SPOT",
+            "confidence": 0.8740302920341492,
+            "top5": [
+              {
+                "class": "PHOMOPSIS_LEAF_SPOT",
+                "prob": 0.8740302920341492
+              },
+              {
+                "class": "ALLOCARIDARA_ATTACK",
+                "prob": 0.04160941019654274
+              },
+              {
+                "class": "HEALTHY_LEAF",
+                "prob": 0.039487987756729126
+              },
+              {
+                "class": "ALGAL_LEAF_SPOT",
+                "prob": 0.02815896086394787
+              },
+              {
+                "class": "LEAF_BLIGHT",
+                "prob": 0.016713393852114677
+              }
+            ],
+            "rawLogits": [
+              -2.2704594135284424,
+              -1.428314447402954,
+              -2.4031426906585693,
+              -2.595086097717285,
+              2.5117056369781494
+            ],
+            "softmax": [
+              0.02815896086394787,
+              0.04160941019654274,
+              0.039487987756729126,
+              0.016713393852114677,
+              0.8740302920341492
+            ]
+          }
+        ],
+        "finalPrediction": {
+          "label": "PHOMOPSIS_LEAF_SPOT",
+          "confidence": 0.8740302920341492,
+          "probabilities": [
+            0.02815896086394787,
+            0.04160941019654274,
+            0.039487987756729126,
+            0.016713393852114677,
+            0.8740302920341492
+          ],
+          "topPredictions": [
+            {
+              "label": "PHOMOPSIS_LEAF_SPOT",
+              "confidence": 87.40302920341492
+            },
+            {
+              "label": "ALLOCARIDARA_ATTACK",
+              "confidence": 4.160941019654274
+            },
+            {
+              "label": "HEALTHY_LEAF",
+              "confidence": 3.9487987756729126
+            }
+          ],
+          "lowConfidence": false
+        }
+      },
+      "final_decision": {
+        "pipeline_stage_failed": null,
+        "failure_reason": null,
+        "prediction": {
+          "label": "PHOMOPSIS_LEAF_SPOT",
+          "confidence": 0.8740302920341492,
+          "probabilities": [
+            0.02815896086394787,
+            0.04160941019654274,
+            0.039487987756729126,
+            0.016713393852114677,
+            0.8740302920341492
+          ],
+          "topPredictions": [
+            {
+              "label": "PHOMOPSIS_LEAF_SPOT",
+              "confidence": 87.40302920341492
+            },
+            {
+              "label": "ALLOCARIDARA_ATTACK",
+              "confidence": 4.160941019654274
+            },
+            {
+              "label": "HEALTHY_LEAF",
+              "confidence": 3.9487987756729126
+            }
+          ],
+          "lowConfidence": false
+        }
+      }
+    },
+    {
+      "image": "sầu riêng xì đọt sau cháy lá.jpg",
+      "image_path": "C:\\Users\\minhd\\OneDrive\\Desktop\\Test Fail\\sầu riêng xì đọt sau cháy lá.jpg",
+      "stage_failed": "none",
+      "reason": "passed_all_stages",
+      "fix_suggestion": "none required",
+      "status": "ok",
+      "rescue_used": false,
+      "detector_attempts": 1,
+      "detector_boxes": 1,
+      "primary_attempt_boxes": 1,
+      "final_prediction": {
+        "label": "LEAF_BLIGHT",
+        "confidence": 92.17091202735901,
+        "usedDetectionCrop": true,
+        "boundingBox": [
+          1408,
+          390,
+          1745,
+          1321
+        ],
+        "topPredictions": [
+          {
+            "label": "LEAF_BLIGHT",
+            "confidence": 92.17091202735901
+          },
+          {
+            "label": "HEALTHY_LEAF",
+            "confidence": 4.979351535439491
+          },
+          {
+            "label": "PHOMOPSIS_LEAF_SPOT",
+            "confidence": 1.8968142569065094
+          }
+        ],
+        "lowConfidence": false
+      },
+      "debug_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\sầu riêng xì đọt sau cháy lá\\2026-08-06_07-27-17_256",
+      "stable_artifact_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_artifacts\\sầu riêng xì đọt sau cháy lá",
+      "artifacts": {
+        "original_image": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\sầu riêng xì đọt sau cháy lá\\2026-08-06_07-27-17_256\\original_image.jpg",
+        "yolo_result": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\sầu riêng xì đọt sau cháy lá\\2026-08-06_07-27-17_256\\yolo_result.json",
+        "detector_heatmap": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\sầu riêng xì đọt sau cháy lá\\2026-08-06_07-27-17_256\\detector_heatmap.jpg",
+        "yolo_visualization": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\sầu riêng xì đọt sau cháy lá\\2026-08-06_07-27-17_256\\yolo_visualization.jpg",
+        "crops_dir": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\sầu riêng xì đọt sau cháy lá\\2026-08-06_07-27-17_256\\crops",
+        "validator_output": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\sầu riêng xì đọt sau cháy lá\\2026-08-06_07-27-17_256\\validator_result.json",
+        "classifier_output": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\sầu riêng xì đọt sau cháy lá\\2026-08-06_07-27-17_256\\classifier_result.json",
+        "final_decision": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\sầu riêng xì đọt sau cháy lá\\2026-08-06_07-27-17_256\\final_decision.json",
+        "pipeline_log": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\reports\\detector_fail_debug_runs\\sầu riêng xì đọt sau cháy lá\\2026-08-06_07-27-17_256\\pipeline_log.txt"
+      },
+      "validator_output": [
+        {
+          "crop": "crop_01.jpg",
+          "score": 0.6826,
+          "threshold": 0.26,
+          "accepted": true,
+          "reason": "candidate_selected",
+          "bbox": [
+            1408,
+            390,
+            1745,
+            1321
+          ],
+          "detectorConfidence": 0.7235134840011597,
+          "variant": "brightness_norm"
+        }
+      ],
+      "classifier_output": {
+        "temperature": 1.0,
+        "cropPredictions": [
+          {
+            "bbox": [
+              1408,
+              390,
+              1745,
+              1321
+            ],
+            "detectorConfidence": 0.7235134840011597,
+            "cropQuality": 0.6826,
+            "qualityProfile": {
+              "brightness": 0.4576938693640817,
+              "contrast": 0.2572543589530348,
+              "blur": 1670.1204496673402,
+              "saturation": 0.6248733821187386,
+              "sharpness": 1.0,
+              "greenRatio": 0.7074999920317964,
+              "entropy": 0.9883822745445936,
+              "dynamicRange": 0.996078431372549,
+              "width": 337,
+              "height": 931
+            },
+            "viewWeights": {
+              "contrast_stretch": 0.2510055601596832,
+              "brightness_norm": 0.2499103844165802,
+              "gamma_1_15": 0.24988670647144318,
+              "original": 0.24919728934764862
+            },
+            "viewVariants": [
+              {
+                "name": "contrast_stretch",
+                "score": 0.899334897581256,
+                "metrics": {
+                  "brightness": 0.4796951359022447,
+                  "contrast": 0.2698089652609558,
+                  "blur": 1800.1929640700218,
+                  "saturation": 0.6261026228389216,
+                  "sharpness": 1.0,
+                  "greenRatio": 0.7068274756412013,
+                  "entropy": 0.9930737136325986,
+                  "dynamicRange": 1.0,
+                  "width": 337.0,
+                  "height": 931.0
+                }
+              },
+              {
+                "name": "brightness_norm",
+                "score": 0.895410951856452,
+                "metrics": {
+                  "brightness": 0.46529378579481145,
+                  "contrast": 0.2621522268773895,
+                  "blur": 1716.8045699281788,
+                  "saturation": 0.6293227145613829,
+                  "sharpness": 1.0,
+                  "greenRatio": 0.709243434996988,
+                  "entropy": 0.9904144214417347,
+                  "dynamicRange": 1.0,
+                  "width": 337.0,
+                  "height": 931.0
+                }
+              },
+              {
+                "name": "gamma_1_15",
+                "score": 0.8953261218509181,
+                "metrics": {
+                  "brightness": 0.4918459278135743,
+                  "contrast": 0.25162760895379566,
+                  "blur": 1498.515593179745,
+                  "saturation": 0.592706700046878,
+                  "sharpness": 1.0,
+                  "greenRatio": 0.7060720899323341,
+                  "entropy": 0.9870556145598716,
+                  "dynamicRange": 0.996078431372549,
+                  "width": 337.0,
+                  "height": 931.0
+                }
+              },
+              {
+                "name": "original",
+                "score": 0.8928560029978089,
+                "metrics": {
+                  "brightness": 0.4576938693640817,
+                  "contrast": 0.2572543589530348,
+                  "blur": 1670.1204496673402,
+                  "saturation": 0.6248733821187386,
+                  "sharpness": 1.0,
+                  "greenRatio": 0.7074999920317964,
+                  "entropy": 0.9883822745445936,
+                  "dynamicRange": 0.996078431372549,
+                  "width": 337.0,
+                  "height": 931.0
+                }
+              }
+            ],
+            "weight": 0.6089879433722054,
+            "predictedIndex": 3,
+            "predictedLabel": "LEAF_BLIGHT",
+            "confidence": 0.9217091202735901,
+            "top5": [
+              {
+                "class": "LEAF_BLIGHT",
+                "prob": 0.9217091202735901
+              },
+              {
+                "class": "HEALTHY_LEAF",
+                "prob": 0.04979351535439491
+              },
+              {
+                "class": "PHOMOPSIS_LEAF_SPOT",
+                "prob": 0.018968142569065094
+              },
+              {
+                "class": "ALGAL_LEAF_SPOT",
+                "prob": 0.007529671303927898
+              },
+              {
+                "class": "ALLOCARIDARA_ATTACK",
+                "prob": 0.0019995307084172964
+              }
+            ],
+            "rawLogits": [
+              -2.5065464973449707,
+              -3.820159673690796,
+              -0.6241827607154846,
+              2.330258369445801,
+              -1.5721538066864014
+            ],
+            "softmax": [
+              0.007529671303927898,
+              0.0019995307084172964,
+              0.04979351535439491,
+              0.9217091202735901,
+              0.018968142569065094
+            ]
+          }
+        ],
+        "finalPrediction": {
+          "label": "LEAF_BLIGHT",
+          "confidence": 0.9217091202735901,
+          "probabilities": [
+            0.007529671303927898,
+            0.0019995307084172964,
+            0.04979351535439491,
+            0.9217091202735901,
+            0.018968142569065094
+          ],
+          "topPredictions": [
+            {
+              "label": "LEAF_BLIGHT",
+              "confidence": 92.17091202735901
+            },
+            {
+              "label": "HEALTHY_LEAF",
+              "confidence": 4.979351535439491
+            },
+            {
+              "label": "PHOMOPSIS_LEAF_SPOT",
+              "confidence": 1.8968142569065094
+            }
+          ],
+          "lowConfidence": false
+        }
+      },
+      "final_decision": {
+        "pipeline_stage_failed": null,
+        "failure_reason": null,
+        "prediction": {
+          "label": "LEAF_BLIGHT",
+          "confidence": 0.9217091202735901,
+          "probabilities": [
+            0.007529671303927898,
+            0.0019995307084172964,
+            0.04979351535439491,
+            0.9217091202735901,
+            0.018968142569065094
+          ],
+          "topPredictions": [
+            {
+              "label": "LEAF_BLIGHT",
+              "confidence": 92.17091202735901
+            },
+            {
+              "label": "HEALTHY_LEAF",
+              "confidence": 4.979351535439491
+            },
+            {
+              "label": "PHOMOPSIS_LEAF_SPOT",
+              "confidence": 1.8968142569065094
+            }
+          ],
+          "lowConfidence": false
+        }
+      }
+    }
+  ]
+}

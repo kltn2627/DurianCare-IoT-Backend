@@ -16,8 +16,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
+@Tag(name = "Cultivation Schedules", description = "Daily cultivation scheduling and status tracking")
 @RequestMapping("/api/cultivation-schedules")
 public class CultivationScheduleController {
 
@@ -28,6 +31,7 @@ public class CultivationScheduleController {
     }
 
     @GetMapping
+    @Operation(summary = "List cultivation schedules", description = "Return cultivation schedules filtered by zone, task type, and status.")
     public List<CultivationScheduleResponse> list(
             @RequestParam(required = false) String zoneId,
             @RequestParam(required = false) CultivationTaskType type,
@@ -39,17 +43,20 @@ public class CultivationScheduleController {
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Get a cultivation schedule", description = "Return the cultivation schedule details by id.")
     public CultivationScheduleResponse get(@PathVariable String id) {
         return CultivationScheduleResponse.from(service.get(id));
     }
 
     @PostMapping
+    @Operation(summary = "Create a cultivation schedule", description = "Create a new cultivation schedule record.")
     public ResponseEntity<CultivationScheduleResponse> create(@Valid @RequestBody CreateCultivationScheduleRequest request) {
         CultivationScheduleResponse response = CultivationScheduleResponse.from(service.create(request));
         return ResponseEntity.created(URI.create("/api/cultivation-schedules/" + response.id())).body(response);
     }
 
     @PatchMapping("/{id}/status")
+    @Operation(summary = "Update cultivation schedule status", description = "Update the execution status of a cultivation schedule.")
     public CultivationScheduleResponse updateStatus(
             @PathVariable String id,
             @Valid @RequestBody UpdateCultivationStatusRequest request) {
@@ -57,6 +64,7 @@ public class CultivationScheduleController {
     }
 
     @DeleteMapping("/{id}")
+    @Operation(summary = "Delete a cultivation schedule", description = "Delete a cultivation schedule by id.")
     public ResponseEntity<Void> delete(@PathVariable String id) {
         service.delete(id);
         return ResponseEntity.noContent().build();

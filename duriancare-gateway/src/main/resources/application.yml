@@ -5,51 +5,63 @@ spring:
   application:
     name: duriancare-gateway
   config:
-    import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
+    import: optional:file:../.env[.properties],optional:file:.env[.properties],optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
+  http:
+    codecs:
+      max-in-memory-size: 12MB
+  webflux:
+    multipart:
+      max-in-memory-size: 12MB
+      max-disk-usage-per-part: 12MB
   data:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:}
+      password: ${REDIS_PASSWORD:${SPRING_REDIS_PASSWORD:}}
   cloud:
     gateway:
       server:
         webflux:
+          httpclient:
+            connect-timeout: 5000
+            response-timeout: 120s
           routes:
             - id: auth-service
-              uri: ${AUTH_SERVICE_URL:lb://duriancare-auth-service}
+              uri: ${AUTH_SERVICE_URL:http://localhost:8081}
               predicates:
-                - Path=/api/auth/**
+                - Path=/api/auth/**,/api/users/**,/api/connections/**,/api/community/**,/api/knowledge/**
             - id: farm-service
-              uri: ${FARM_SERVICE_URL:lb://duriancare-farm-service}
+              uri: ${FARM_SERVICE_URL:http://localhost:8082}
               predicates:
-                - Path=/api/farms/**,/api/zones/**,/api/trees/**,/api/regimens/**
+                - Path=/api/farms/**,/api/zones/**,/api/trees/**,/api/care-plans/**,/api/regimens/**,/api/v1/agronomists,/api/v1/agronomists/**,/api/v1/farms,/api/v1/farms/**,/api/v1/agronomist-invitations/**,/api/v1/farm-authorizations/**,/api/v1/me/agronomist-invitations,/api/v1/me/agronomist-invitations/**,/api/v1/me/authorized-farms,/api/v1/me/authorized-farms/**
             - id: cultivation-service
-              uri: ${CULTIVATION_SERVICE_URL:lb://duriancare-cultivation-service}
+              uri: ${CULTIVATION_SERVICE_URL:http://localhost:8084}
               predicates:
-                - Path=/api/cultivation-schedules/**
+                - Path=/api/cultivation-schedules/**,/api/v1/cultivation-plans/**,/api/v1/cultivation-activities/**,/api/v1/activity-executions/**,/api/v1/agricultural-inputs/**,/api/v1/residue-standards/**,/api/v1/lab-samples/**,/api/v1/lab-results/**,/api/v1/harvest-batches/**,/api/v1/export-releases/**,/api/v1/compliance-assessments/**,/api/v1/cultivation-seasons/**
             - id: iot-service
               uri: ${IOT_SERVICE_URL:http://localhost:3001}
               predicates:
-                - Path=/api/iot/**
+                - Path=/api/iot/**,/api/v1/sensors/**,/api/v1/camera/**,/api/v1/public/**,/api/v1/export-assessment/**
             - id: ai-service
               uri: ${AI_SERVICE_URL:http://localhost:8000}
               predicates:
-                - Path=/api/v1/predict,/api/v1/chat/**,/api/ai/**
+                - Path=/api/v1/predict,/api/v1/predict/**,/api/v1/recommendations/**,/api/v1/chat/**,/api/ai/**,/admin/rag/**,/api/v1/rag/**
+              filters:
+                - RequestSize=12MB
             - id: chat-service
               uri: ${CHAT_SERVICE_URL:http://localhost:3002}
               predicates:
                 - Path=/api/chat/**,/socket.io/**
             - id: traceability-service
-              uri: ${TRACEABILITY_SERVICE_URL:lb://duriancare-traceability-service}
+              uri: ${TRACEABILITY_SERVICE_URL:http://localhost:8083}
               predicates:
                 - Path=/api/traceability/**
             - id: notification-service
-              uri: ${NOTIFICATION_SERVICE_URL:lb://duriancare-notification-service}
+              uri: ${NOTIFICATION_SERVICE_URL:http://localhost:8085}
               predicates:
-                - Path=/api/v1/notification/**
+                - Path=/api/v1/notification/**,/api/notifications/**
             - id: search-service
-              uri: ${SEARCH_SERVICE_URL:lb://duriancare-search-service}
+              uri: ${SEARCH_SERVICE_URL:http://localhost:8086}
               predicates:
                 - Path=/api/search/**
 
@@ -60,9 +72,19 @@ eureka:
 
 duriancare:
   security:
+    cors:
+      allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
+    rate-limit:
+      login-limit: ${AUTH_LOGIN_RATE_LIMIT:10}
+      registration-limit: ${AUTH_REGISTRATION_RATE_LIMIT:5}
+      otp-verification-limit: ${AUTH_OTP_VERIFY_RATE_LIMIT:10}
+      otp-resend-limit: ${AUTH_OTP_RESEND_RATE_LIMIT:3}
+      refresh-limit: ${AUTH_REFRESH_RATE_LIMIT:30}
     jwt:
-      secret: ${JWT_SECRET:replace-with-at-least-32-characters}
+      secret: ${JWT_SECRET:}
       issuer: ${JWT_ISSUER:duriancare-auth-service}
+      revocation-timeout-ms: ${JWT_REVOCATION_TIMEOUT_MS:1500}
+      revocation-fail-open: ${JWT_REVOCATION_FAIL_OPEN:true}
 
 management:
   endpoints:

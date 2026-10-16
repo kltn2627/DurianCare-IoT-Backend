@@ -1,0 +1,30 @@
+{
+  "pipeline_stage_failed": null,
+  "failure_reason": null,
+  "prediction": {
+    "label": "LEAF_BLIGHT",
+    "confidence": 0.3585302233695984,
+    "probabilities": [
+      0.34867674112319946,
+      0.08633032441139221,
+      0.07706724852323532,
+      0.3585302233695984,
+      0.1293954700231552
+    ],
+    "topPredictions": [
+      {
+        "label": "LEAF_BLIGHT",
+        "confidence": 35.85302233695984
+      },
+      {
+        "label": "ALGAL_LEAF_SPOT",
+        "confidence": 34.867674112319946
+      },
+      {
+        "label": "PHOMOPSIS_LEAF_SPOT",
+        "confidence": 12.939547002315521
+      }
+    ],
+    "lowConfidence": false
+  }
+}

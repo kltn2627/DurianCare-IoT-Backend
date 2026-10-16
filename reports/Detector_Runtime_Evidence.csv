@@ -1,0 +1,18 @@
+image,stage_failed,reason,fix_suggestion,rescue_used,detector_attempts,elapsed_ms
+20260803212305.jpg,none,passed_all_stages,none required,False,1,1303.037
+20260803212351.jpg,none,passed_all_stages,none required,False,1,2164.443
+20260803212427.jpg,none,primary_detector_recovered_by_rescue_pass,none required,True,4,14188.937
+20260803213133.jpg,none,passed_all_stages,none required,False,1,1961.553
+20260803213401.jpg,none,passed_all_stages,none required,False,1,12301.351
+20260805151406.jpg,none,passed_all_stages,none required,False,1,11544.817
+20260805151536.jpg,none,passed_all_stages,none required,False,3,12590.595
+20260805151618.jpg,none,primary_detector_recovered_by_rescue_pass,none required,True,3,3423.341
+20260805151957.jpg,none,primary_detector_recovered_by_rescue_pass,none required,True,7,3709.638
+20260805152001.jpg,none,primary_detector_recovered_by_rescue_pass,none required,True,3,1974.938
+20260805152005.jpg,none,primary_detector_recovered_by_rescue_pass,none required,True,3,2033.779
+20260805152315.jpg,none,passed_all_stages,none required,False,1,11281.146
+20260805155857.jpg,none,primary_detector_recovered_by_rescue_pass,none required,True,11,13186.409
+benh-dom-la-cay-sau-rieng-02.jpg,none,passed_all_stages,none required,False,1,3807.019
+benh-dom-la-sau-rieng-va-bien-phap-phong-tri-kimnonggolstar-vn-1.jpg,none,primary_detector_recovered_by_rescue_pass,none required,True,12,14746.002
+sau-rieng-bi-dom-la.jpg,none,primary_detector_recovered_by_rescue_pass,none required,True,3,2608.725
+sầu riêng xì đọt sau cháy lá.jpg,none,passed_all_stages,none required,False,1,13863.616

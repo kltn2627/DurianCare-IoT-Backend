@@ -1,0 +1,17 @@
+[
+  {
+    "crop": "crop_01.jpg",
+    "score": 0.4506,
+    "threshold": 0.26,
+    "accepted": true,
+    "reason": "candidate_selected",
+    "bbox": [
+      1,
+      0,
+      542,
+      409
+    ],
+    "detectorConfidence": 0.27211952209472656,
+    "variant": "contrast_stretch"
+  }
+]

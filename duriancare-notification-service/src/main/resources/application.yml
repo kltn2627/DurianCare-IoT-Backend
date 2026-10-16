@@ -5,10 +5,10 @@ spring:
   application:
     name: duriancare-notification-service
   config:
-    import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
+    import: optional:file:../.env[.properties],optional:file:.env[.properties],optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
   data:
     mongodb:
-      uri: ${MONGODB_URI:mongodb://localhost:27017/duriancare_notification}
+      uri: ${NOTIFICATION_MONGODB_URI:${MONGODB_URI:mongodb://localhost:27018/duriancare_notification}}
       auto-index-creation: true
     redis:
       host: ${SPRING_REDIS_HOST}
@@ -26,11 +26,19 @@ spring:
       mail:
         smtp:
           auth: true
+          ssl:
+            trust: ${SPRING_MAIL_HOST}
+            protocols: TLSv1.2
           starttls:
             enable: true
             required: true
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP:duriancare-notification-service}
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
 
 eureka:
   client:
@@ -47,6 +55,8 @@ duriancare:
       enabled: ${MAIL_ENABLED}
       from-address: ${MAIL_FROM_ADDRESS}
       from-name: ${MAIL_FROM_NAME}
+    auth-events-topic: ${AUTH_EVENTS_TOPIC:duriancare.auth.events}
+    events-topic: ${KAFKA_ALERT_TOPIC:${NOTIFICATION_EVENTS_TOPIC:duriancare.notification.events}}
 
 management:
   endpoints:

@@ -15,6 +15,8 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./postgres/init.sql:/docker-entrypoint-initdb.d/001-init.sql:ro
       - ../duriancare-iot-service/db/migration/V1__init_iot_schema.sql:/docker-entrypoint-initdb.d/010-iot.sql:ro
+      - ../duriancare-iot-service/db/migration/V2__add_iot_device_registry.sql:/docker-entrypoint-initdb.d/011-iot-devices.sql:ro
+      - ../duriancare-iot-service/db/migration/V3__add_iot_alerts.sql:/docker-entrypoint-initdb.d/012-iot-alerts.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
@@ -28,12 +30,13 @@ services:
     container_name: duriancare-mongodb
     restart: unless-stopped
     ports:
-      - "27017:27017"
+      - "27018:27017"
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
     volumes:
       - mongodb_data:/data/db
+      - ./mongodb/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test:
         [
@@ -182,21 +185,46 @@ services:
     image: duriancare/auth-service:local
     container_name: duriancare-auth-service
     restart: unless-stopped
-    ports:
-      - "8081:8081"
+    expose:
+      - "8081"
     environment:
       CONFIG_SERVER_URL: http://config-server:8888
       EUREKA_DEFAULT_ZONE: http://discovery-server:8761/eureka/
-      MONGODB_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/${MONGODB_AUTH_DATABASE:-duriancare_auth}?authSource=admin
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      AUTH_DB_SCHEMA: ${AUTH_DB_SCHEMA:-duriancare_auth}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      AUTH_EVENTS_TOPIC: ${AUTH_EVENTS_TOPIC:-duriancare.auth.events}
+      AUTH_OTP_TTL: ${AUTH_OTP_TTL:-5m}
+      AUTH_OTP_MAX_ATTEMPTS: ${AUTH_OTP_MAX_ATTEMPTS:-5}
+      AUTH_OTP_RESEND_COOLDOWN: ${AUTH_OTP_RESEND_COOLDOWN:-60s}
       JWT_SECRET: ${JWT_SECRET}
+      JWT_ISSUER: ${JWT_ISSUER:-duriancare-auth-service}
+      JWT_ACCESS_TOKEN_TTL: ${JWT_ACCESS_TOKEN_TTL:-1h}
+      JWT_REFRESH_TOKEN_TTL: ${JWT_REFRESH_TOKEN_TTL:-7d}
+      S3_ENABLED: ${S3_ENABLED:-false}
+      AWS_REGION: ${AWS_REGION:-}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET:-}
+      AWS_S3_AVATAR_PREFIX: ${AWS_S3_AVATAR_PREFIX:-avatars}
+      AWS_S3_ENGINEER_DOCUMENTS_PREFIX: ${AWS_S3_ENGINEER_DOCUMENTS_PREFIX:-engineer-documents}
+      MAX_IMAGE_SIZE_BYTES: ${MAX_IMAGE_SIZE_BYTES:-10485760}
+      ENGINEER_DOCUMENT_MAX_UPLOAD_SIZE_BYTES: ${ENGINEER_DOCUMENT_MAX_UPLOAD_SIZE_BYTES:-10485760}
+      ENGINEER_DOCUMENT_MAX_REQUEST_SIZE_BYTES: ${ENGINEER_DOCUMENT_MAX_REQUEST_SIZE_BYTES:-20971520}
+      DEFAULT_ADMIN_ENABLED: ${DEFAULT_ADMIN_ENABLED:-true}
+      DEFAULT_ADMIN_EMAIL: ${DEFAULT_ADMIN_EMAIL:-admin@duriancare.local}
+      DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD:-Admin@12345}
+      DEFAULT_ADMIN_FULL_NAME: ${DEFAULT_ADMIN_FULL_NAME:-DurianCare Administrator}
+      DEFAULT_ADMIN_PHONE_NUMBER: ${DEFAULT_ADMIN_PHONE_NUMBER:-0900000000}
     depends_on:
       config-server:
         condition: service_started
-      mongodb:
+      postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -219,6 +247,8 @@ services:
       EUREKA_DEFAULT_ZONE: http://discovery-server:8761/eureka/
       MONGODB_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/${MONGODB_FARM_DATABASE:-duriancare_farm}?authSource=admin
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_ALERT_TOPIC: ${KAFKA_ALERT_TOPIC}
+      AUTH_SERVICE_URL: http://duriancare-auth-service:8081
     depends_on:
       config-server:
         condition: service_started
@@ -226,6 +256,8 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      duriancare-auth-service:
+        condition: service_started
     networks:
       - duriancare-network
 
@@ -244,6 +276,7 @@ services:
       MONGODB_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/${MONGODB_CULTIVATION_DATABASE:-duriancare_cultivation}?authSource=admin
       SERVER_PORT: 8084
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      FARM_SERVICE_URL: http://duriancare-farm-service:8082
     depends_on:
       config-server:
         condition: service_started
@@ -275,6 +308,11 @@ services:
       POSTGRES_SCHEMA: ${POSTGRES_SCHEMA:-duriancare_iot}
       KAFKA_BROKERS: kafka:29092
       KAFKA_TELEMETRY_TOPIC: iot.telemetry.received
+      ESP32_CAMERA_URL: ${ESP32_CAMERA_URL:-http://192.168.1.10}
+      ESP32_CAPTURE_PATH: ${ESP32_CAPTURE_PATH:-/capture}
+      DEFAULT_ESP32_IP: ${DEFAULT_ESP32_IP:-192.168.1.10}
+      FARM_SERVICE_URL: http://duriancare-farm-service:8082
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-local-internal-token}
     depends_on:
       postgres:
         condition: service_healthy
@@ -282,6 +320,8 @@ services:
         condition: service_healthy
       emqx:
         condition: service_healthy
+      duriancare-farm-service:
+        condition: service_started
     networks:
       - duriancare-network
 
@@ -292,19 +332,47 @@ services:
     image: duriancare/ai-service:local
     container_name: duriancare-ai-service
     restart: unless-stopped
+    ports:
+      - "8000:8000"
+    working_dir: /workspace/duriancare-ai-service
     environment:
-      YOLO_MODEL_PATH: yolov8m.pt
+      PYTHONPATH: /workspace/duriancare-ai-service
+      AI_DEBUG: ${AI_DEBUG:-true}
+      AI_GIT_COMMIT: ${AI_GIT_COMMIT:-}
+      YOLO_MODEL_PATH: ${YOLO_MODEL_PATH:-models/leaf_detector_best.pt}
+      YOLO_FALLBACK_MODEL_PATH: ${YOLO_FALLBACK_MODEL_PATH:-models/leaf_detector_best.pt}
       MOBILENET_WEIGHTS_PATH: models/mobilenetv2_classifier_high_acc.pth
       YOLO_CONFIDENCE: 0.25
-      ENABLE_YOLO_CROP: ${ENABLE_YOLO_CROP:-false}
+      ENABLE_YOLO_CROP: ${ENABLE_YOLO_CROP:-true}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       GEMINI_CHAT_MODEL: ${GEMINI_CHAT_MODEL}
       GEMINI_EMBEDDING_MODEL: ${GEMINI_EMBEDDING_MODEL}
-      KNOWLEDGE_BASE_PATH: /app/knowledge_base
-      CHROMA_PERSIST_PATH: /app/vector_store
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      KNOWLEDGE_DB_SCHEMA: ${KNOWLEDGE_DB_SCHEMA:-public}
+      KNOWLEDGE_BASE_PATH: knowledge_base
+      CHROMA_PERSIST_PATH: vector_store
       RAG_COLLECTION_NAME: duriancare_knowledge
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_DB: ${REDIS_DB:-0}
+      S3_ENABLED: ${S3_ENABLED:-false}
+      AWS_REGION: ${AWS_REGION:-ap-southeast-1}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET:-}
+      AWS_S3_IMAGE_PREFIX: ${AWS_S3_IMAGE_PREFIX:-disease-images}
+      AWS_S3_PRESIGNED_URL_EXPIRATION_SECONDS: ${AWS_S3_PRESIGNED_URL_EXPIRATION_SECONDS:-3600}
+      MAX_IMAGE_SIZE_BYTES: ${MAX_IMAGE_SIZE_BYTES:-10485760}
     volumes:
-      - ai_vector_store:/app/vector_store
+      - ..:/workspace
+      - ai_vector_store:/workspace/duriancare-ai-service/vector_store
+      - ai_artifacts:/workspace/duriancare-ai-service/artifacts
     networks:
       - duriancare-network
 
@@ -320,9 +388,12 @@ services:
     environment:
       PORT: 3002
       MONGO_URL: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/${MONGODB_CHAT_DATABASE:-duriancare_chat}?authSource=admin
+      AUTH_SERVICE_URL: http://duriancare-auth-service:8081
     depends_on:
       mongodb:
         condition: service_healthy
+      duriancare-auth-service:
+        condition: service_started
     networks:
       - duriancare-network
 
@@ -377,6 +448,8 @@ services:
       OTP_LENGTH: ${OTP_LENGTH}
       OTP_MAX_ATTEMPTS: ${OTP_MAX_ATTEMPTS}
       KAFKA_ALERT_TOPIC: ${KAFKA_ALERT_TOPIC}
+      AUTH_EVENTS_TOPIC: ${AUTH_EVENTS_TOPIC:-duriancare.auth.events}
+      KAFKA_CONSUMER_GROUP: ${KAFKA_CONSUMER_GROUP:-duriancare-notification-service}
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
     depends_on:
       config-server:
@@ -432,6 +505,18 @@ services:
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:5173}
+      AUTH_LOGIN_RATE_LIMIT: ${AUTH_LOGIN_RATE_LIMIT:-10}
+      AUTH_REGISTRATION_RATE_LIMIT: ${AUTH_REGISTRATION_RATE_LIMIT:-5}
+      AUTH_OTP_VERIFY_RATE_LIMIT: ${AUTH_OTP_VERIFY_RATE_LIMIT:-10}
+      AUTH_OTP_RESEND_RATE_LIMIT: ${AUTH_OTP_RESEND_RATE_LIMIT:-3}
+      AUTH_REFRESH_RATE_LIMIT: ${AUTH_REFRESH_RATE_LIMIT:-30}
+      AUTH_SERVICE_URL: http://duriancare-auth-service:8081
+      FARM_SERVICE_URL: http://duriancare-farm-service:8082
+      CULTIVATION_SERVICE_URL: http://duriancare-cultivation-service:8084
+      TRACEABILITY_SERVICE_URL: http://duriancare-traceability-service:8083
+      NOTIFICATION_SERVICE_URL: http://duriancare-notification-service:8085
+      SEARCH_SERVICE_URL: http://duriancare-search-service:8086
       IOT_SERVICE_URL: http://duriancare-iot-service:3001
       AI_SERVICE_URL: http://duriancare-ai-service:8000
       CHAT_SERVICE_URL: http://duriancare-chat-service:3002
@@ -473,4 +558,5 @@ volumes:
   emqx_data:
   emqx_log:
   ai_vector_store:
+  ai_artifacts:
   elasticsearch_data:

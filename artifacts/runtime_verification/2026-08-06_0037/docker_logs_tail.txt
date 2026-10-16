@@ -1,0 +1,27 @@
+INFO:     172.18.0.1:33738 - "POST /api/v1/predict HTTP/1.1" 200 OK
+INFO:     172.18.0.1:48372 - "POST /api/v1/predict HTTP/1.1" 422 Unprocessable Entity
+INFO:     172.18.0.1:41460 - "POST /api/v1/predict HTTP/1.1" 422 Unprocessable Entity
+INFO:     172.18.0.1:41460 - "POST /api/v1/predict HTTP/1.1" 422 Unprocessable Entity
+INFO:     172.18.0.1:41460 - "POST /api/v1/predict HTTP/1.1" 422 Unprocessable Entity
+INFO:     172.18.0.1:50594 - "POST /api/v1/predict HTTP/1.1" 200 OK
+INFO:     172.18.0.1:32850 - "POST /api/v1/predict HTTP/1.1" 200 OK
+INFO:     172.18.0.1:47372 - "POST /api/v1/predict HTTP/1.1" 422 Unprocessable Entity
+INFO:     172.18.0.1:40570 - "POST /api/v1/predict HTTP/1.1" 422 Unprocessable Entity
+INFO:     172.18.0.1:40570 - "POST /api/v1/predict HTTP/1.1" 422 Unprocessable Entity
+INFO:     172.18.0.1:40570 - "POST /api/v1/predict HTTP/1.1" 422 Unprocessable Entity
+INFO:     172.18.0.1:40570 - "POST /api/v1/predict HTTP/1.1" 422 Unprocessable Entity
+INFO:     172.18.0.1:40570 - "POST /api/v1/predict HTTP/1.1" 422 Unprocessable Entity
+INFO:     172.18.0.1:40570 - "POST /api/v1/predict HTTP/1.1" 422 Unprocessable Entity
+INFO:     172.18.0.1:40570 - "POST /api/v1/predict HTTP/1.1" 422 Unprocessable Entity
+INFO:     172.18.0.1:48386 - "POST /api/v1/predict HTTP/1.1" 422 Unprocessable Entity
+INFO:     172.18.0.1:48524 - "POST /api/v1/predict HTTP/1.1" 422 Unprocessable Entity
+INFO:     172.18.0.1:48524 - "POST /api/v1/predict HTTP/1.1" 422 Unprocessable Entity
+INFO:     172.18.0.1:48524 - "POST /api/v1/predict HTTP/1.1" 422 Unprocessable Entity
+INFO:     172.18.0.1:48524 - "POST /api/v1/predict HTTP/1.1" 422 Unprocessable Entity
+INFO:     172.18.0.1:48532 - "POST /api/v1/predict HTTP/1.1" 422 Unprocessable Entity
+INFO:     172.18.0.1:48532 - "POST /api/v1/predict HTTP/1.1" 422 Unprocessable Entity
+INFO:     172.18.0.1:48532 - "POST /api/v1/predict HTTP/1.1" 422 Unprocessable Entity
+INFO:     172.18.0.1:48532 - "POST /api/v1/predict HTTP/1.1" 422 Unprocessable Entity
+INFO:     172.18.0.1:54848 - "POST /api/v1/predict HTTP/1.1" 422 Unprocessable Entity
+INFO:     172.18.0.1:56500 - "POST /api/v1/predict HTTP/1.1" 422 Unprocessable Entity
+INFO:     172.18.0.1:45180 - "POST /api/v1/predict HTTP/1.1" 422 Unprocessable Entity

@@ -1,7 +1,10 @@
 from enum import Enum
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+from app.schemas.decision_support import CamelModel, DecisionSupport
+from app.schemas.recommendation import DiseaseRecommendation
 
 
 class PredictionSource(str, Enum):
@@ -10,22 +13,77 @@ class PredictionSource(str, Enum):
     IOT_CAMERA = "IOT_CAMERA"
 
 
-class BoundingBox(BaseModel):
+class BoundingBox(CamelModel):
     left: int
     top: int
     right: int
     bottom: int
 
 
-class PredictionData(BaseModel):
+class StoredImageInfo(CamelModel):
+    object_key: str
+    url: str
+
+
+class PredictionAlternative(CamelModel):
+    label: str
+    confidence: float
+
+
+class S3PredictionRequest(BaseModel):
+    object_key: str = Field(min_length=1, max_length=1024)
+    source: PredictionSource = PredictionSource.IOT_CAMERA
+    device_id: str | None = Field(default=None, max_length=150)
+
+
+class PredictionData(CamelModel):
     predicted_disease: str
     confidence: str
     source: PredictionSource
     device_id: str | None = None
     used_detection_crop: bool
     bounding_box: BoundingBox | None = None
+    image: StoredImageInfo | None = None
+    recommendation: DiseaseRecommendation | None = None
+    decision_support: DecisionSupport | None = Field(
+        default=None,
+        alias="decisionSupport",
+    )
+    top_predictions: list[PredictionAlternative] = Field(
+        default_factory=list,
+        alias="topPredictions",
+    )
 
 
-class PredictionResponse(BaseModel):
+class PredictionResponse(CamelModel):
     status: Literal["success"]
     data: PredictionData
+
+
+class PredictionHistoryImage(CamelModel):
+    url: str | None = None
+    path: str | None = None
+    object_key: str | None = Field(default=None, alias="objectKey")
+
+
+class PredictionHistoryItem(CamelModel):
+    id: str
+    diagnosed_at: str = Field(alias="diagnosedAt")
+    image: PredictionHistoryImage | None = None
+    predicted_disease: str = Field(alias="predictedDisease")
+    confidence: float
+    confidence_text: str = Field(alias="confidenceText")
+    severity: str | None = None
+    status: str
+    source: PredictionSource
+    device_id: str | None = Field(default=None, alias="deviceId")
+    used_detection_crop: bool = Field(alias="usedDetectionCrop")
+    original_filename: str | None = Field(default=None, alias="originalFilename")
+    data: PredictionData
+
+
+class PredictionHistoryResponse(CamelModel):
+    items: list[PredictionHistoryItem]
+    total: int
+    page: int
+    page_size: int = Field(alias="pageSize")

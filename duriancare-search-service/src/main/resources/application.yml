@@ -5,7 +5,7 @@ spring:
   application:
     name: duriancare-search-service
   config:
-    import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
+    import: optional:file:../.env[.properties],optional:file:.env[.properties],optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
   elasticsearch:
     uris: ${ELASTICSEARCH_URIS:http://localhost:9200}
     connection-timeout: 5s

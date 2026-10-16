@@ -207,6 +207,7 @@ venv/
 
 ### AI Models ###
 *.pt
+*.pt.*.partial
 *.onnx
 
 ### Local Vector Stores ###

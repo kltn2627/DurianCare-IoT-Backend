@@ -7,7 +7,8 @@
     "build": "nest build",
     "start": "node dist/main.js",
     "start:dev": "nest start --watch",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "test:security": "npm run build && node --test test/chat.gateway.security.test.js"
   },
   "engines": {
     "node": ">=20"

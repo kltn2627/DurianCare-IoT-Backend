@@ -1,0 +1,49 @@
+{
+  "model": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\duriancare-ai-service\\yolov8s.pt",
+  "weights": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DurianCare-IoT-Backend\\duriancare-ai-service\\yolov8s.pt",
+  "device": "cpu",
+  "attempts": [
+    {
+      "variant": "clahe",
+      "preprocessing": "clahe",
+      "confidenceThreshold": 0.25,
+      "iouThreshold": 0.55,
+      "scale": 1.0,
+      "imageWidth": 640,
+      "imageHeight": 480,
+      "processingTimeMs": 135.978,
+      "detections": [
+        {
+          "left": 328,
+          "top": 223,
+          "right": 493,
+          "bottom": 289,
+          "confidence": 0.3390825688838959,
+          "class_id": 71,
+          "class_name": "sink",
+          "source_variant": "clahe",
+          "confidence_threshold": 0.25,
+          "iou_threshold": 0.55,
+          "scale": 1.0,
+          "area_ratio": 0.035449,
+          "crop_quality": 0.5449
+        },
+        {
+          "left": 497,
+          "top": 33,
+          "right": 554,
+          "bottom": 92,
+          "confidence": 0.3386118710041046,
+          "class_id": 74,
+          "class_name": "clock",
+          "source_variant": "clahe",
+          "confidence_threshold": 0.25,
+          "iou_threshold": 0.55,
+          "scale": 1.0,
+          "area_ratio": 0.010947,
+          "crop_quality": 0.0
+        }
+      ]
+    }
+  ]
+}

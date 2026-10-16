@@ -1,0 +1,5 @@
+duriancare:
+  security:
+    jwt:
+      secret: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      issuer: duriancare-auth-service

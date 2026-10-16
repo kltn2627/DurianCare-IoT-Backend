@@ -1,0 +1,165 @@
+{
+  "temperature": 1.0,
+  "cropPredictions": [
+    {
+      "bbox": [
+        0,
+        0,
+        203,
+        233
+      ],
+      "detectorConfidence": 0.6456184387207031,
+      "cropQuality": 0.6067,
+      "qualityProfile": {
+        "brightness": 0.5828793793675529,
+        "contrast": 0.19363366701174917,
+        "blur": 59.19433885963008,
+        "saturation": 0.12204121547982816,
+        "sharpness": 0.493286157163584,
+        "greenRatio": 0.4969238250280133,
+        "entropy": 0.9371227500474869,
+        "dynamicRange": 0.9647058823529412,
+        "width": 203,
+        "height": 233
+      },
+      "viewWeights": {
+        "clahe": 0.26619070768356323,
+        "contrast_stretch": 0.25742819905281067,
+        "gamma_0_85": 0.24434340000152588,
+        "original": 0.232037752866745
+      },
+      "viewVariants": [
+        {
+          "name": "clahe",
+          "score": 0.7688486024061044,
+          "metrics": {
+            "brightness": 0.5464408524990579,
+            "contrast": 0.21462367235382582,
+            "blur": 163.92835773042967,
+            "saturation": 0.137109643324549,
+            "sharpness": 1.0,
+            "greenRatio": 0.5093553774921246,
+            "entropy": 0.9666656731477583,
+            "dynamicRange": 0.9764705882352941,
+            "width": 203.0,
+            "height": 233.0
+          }
+        },
+        {
+          "name": "contrast_stretch",
+          "score": 0.7435395540802988,
+          "metrics": {
+            "brightness": 0.5401033641220289,
+            "contrast": 0.22080935761485268,
+            "blur": 80.0370279404128,
+            "saturation": 0.1689373692350997,
+            "sharpness": 0.6669752328367733,
+            "greenRatio": 0.515296306475824,
+            "entropy": 0.9478795385691019,
+            "dynamicRange": 1.0,
+            "width": 203.0,
+            "height": 233.0
+          }
+        },
+        {
+          "name": "gamma_0_85",
+          "score": 0.7057461858703821,
+          "metrics": {
+            "brightness": 0.5348489314328662,
+            "contrast": 0.2018180111694318,
+            "blur": 64.88128501476389,
+            "saturation": 0.14215829294571164,
+            "sharpness": 0.5406773751230324,
+            "greenRatio": 0.517833357999112,
+            "entropy": 0.9462055794459286,
+            "dynamicRange": 0.9803921568627451,
+            "width": 203.0,
+            "height": 233.0
+          }
+        },
+        {
+          "name": "original",
+          "score": 0.6702033314615009,
+          "metrics": {
+            "brightness": 0.5828793793675529,
+            "contrast": 0.19363366701174917,
+            "blur": 59.19433885963008,
+            "saturation": 0.12204121547982816,
+            "sharpness": 0.493286157163584,
+            "greenRatio": 0.4969238250280133,
+            "entropy": 0.9371227500474869,
+            "dynamicRange": 0.9647058823529412,
+            "width": 203.0,
+            "height": 233.0
+          }
+        }
+      ],
+      "weight": 0.6599080272452301,
+      "predictedIndex": 2,
+      "predictedLabel": "HEALTHY_LEAF",
+      "confidence": 0.9992412328720093,
+      "top5": [
+        {
+          "class": "HEALTHY_LEAF",
+          "prob": 0.9992412328720093
+        },
+        {
+          "class": "LEAF_BLIGHT",
+          "prob": 0.0003079857269767672
+        },
+        {
+          "class": "PHOMOPSIS_LEAF_SPOT",
+          "prob": 0.00022151356097310781
+        },
+        {
+          "class": "ALGAL_LEAF_SPOT",
+          "prob": 0.0002183667675126344
+        },
+        {
+          "class": "ALLOCARIDARA_ATTACK",
+          "prob": 1.0917047802649904e-05
+        }
+      ],
+      "rawLogits": [
+        -2.9821276664733887,
+        -5.6701340675354,
+        5.869733810424805,
+        -2.2234046459198,
+        -2.716768503189087
+      ],
+      "softmax": [
+        0.0002183667675126344,
+        1.0917047802649904e-05,
+        0.9992412328720093,
+        0.0003079857269767672,
+        0.00022151356097310781
+      ]
+    }
+  ],
+  "finalPrediction": {
+    "label": "HEALTHY_LEAF",
+    "confidence": 0.9992412328720093,
+    "probabilities": [
+      0.0002183667675126344,
+      1.0917047802649904e-05,
+      0.9992412328720093,
+      0.0003079857269767672,
+      0.00022151356097310781
+    ],
+    "topPredictions": [
+      {
+        "label": "HEALTHY_LEAF",
+        "confidence": 99.92412328720093
+      },
+      {
+        "label": "LEAF_BLIGHT",
+        "confidence": 0.030798572697676718
+      },
+      {
+        "label": "PHOMOPSIS_LEAF_SPOT",
+        "confidence": 0.02215135609731078
+      }
+    ],
+    "lowConfidence": false
+  }
+}

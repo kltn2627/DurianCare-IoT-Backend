@@ -1,0 +1,13 @@
+pipeline_stage_failed=none
+failure_reason=passed_all_stages
+attempt_count=4
+selected_crop_count=1
+attempt[1] variant=clahe preprocessing=clahe conf=0.250 iou=0.550 detections=0
+attempt[2] variant=clahe preprocessing=clahe conf=0.195 iou=0.550 detections=0
+attempt[3] variant=contrast_stretch preprocessing=contrast_stretch conf=0.250 iou=0.550 detections=0
+attempt[4] variant=contrast_stretch preprocessing=contrast_stretch conf=0.195 iou=0.550 detections=1
+classifier_temperature=1.0
+classifier_crop_count=1
+classifier_failure_stage=none
+classifier_failure_reason=passed_all_stages
+final_prediction=ALGAL_LEAF_SPOT confidence=0.7623 low_confidence=False
