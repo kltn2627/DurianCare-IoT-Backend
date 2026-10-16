@@ -16,13 +16,23 @@ public class SearchApiExceptionHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SearchApiExceptionHandler.class);
 
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    ResponseEntity<SearchApiError> handleHttpStatus(org.springframework.web.server.ResponseStatusException exception) {
+        return response(HttpStatus.valueOf(exception.getStatusCode().value()), exception.getReason());
+    }
+
     @ExceptionHandler({
             ConstraintViolationException.class,
+            org.springframework.web.bind.MethodArgumentNotValidException.class,
+            org.springframework.http.converter.HttpMessageNotReadableException.class,
             MissingServletRequestParameterException.class,
             MethodArgumentTypeMismatchException.class
     })
     ResponseEntity<SearchApiError> handleBadRequest(Exception exception) {
-        return response(HttpStatus.BAD_REQUEST, exception.getMessage());
+        String message = exception instanceof org.springframework.web.bind.MethodArgumentNotValidException
+                || exception instanceof org.springframework.http.converter.HttpMessageNotReadableException
+                ? "Invalid search request body" : exception.getMessage();
+        return response(HttpStatus.BAD_REQUEST, message);
     }
 
     @ExceptionHandler(Exception.class)

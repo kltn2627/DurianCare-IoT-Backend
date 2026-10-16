@@ -35,7 +35,8 @@ public class TreeDiagnosisService {
 
     public TreeDiagnosisResponse saveDiagnosis(
             RequestActor actor, String treeId, SaveTreeDiagnosisRequest req) {
-        DurianTree tree = treeService.requireTree(actor, treeId);
+        DurianTree tree = treeService.requireActiveTreeForMutation(
+                actor, treeId, "Diagnosis cannot be added after tree removal");
         TreeHealthStatus implied = inferHealthStatus(req.diseaseCode());
         Instant now = Instant.now();
         TreeDiagnosisRecord record = new TreeDiagnosisRecord(
@@ -82,39 +83,63 @@ public class TreeDiagnosisService {
         }
         TreeDiagnosisRecord current = recent.get(0);
         TreeDiagnosisRecord previous = recent.get(1);
-        String currentCode = normalizeCode(current.diseaseCode());
-        String previousCode = normalizeCode(previous.diseaseCode());
-        if (isHealthy(currentCode)) {
+        RecoveryOutcome outcome = evaluateOutcome(previous, current);
+        if (outcome == RecoveryOutcome.RECOVERED) {
             return new RecoveryEvaluationResponse(treeId, RecoveryOutcome.RECOVERED,
                     previous.diseaseCode(), previous.confidence(),
                     current.diseaseCode(), current.confidence(),
                     "Chẩn đoán hiện tại là khỏe mạnh — cây đã phục hồi", Instant.now());
         }
-        if (!currentCode.equals(previousCode)) {
-            return new RecoveryEvaluationResponse(treeId, RecoveryOutcome.WORSENED,
-                    previous.diseaseCode(), previous.confidence(),
-                    current.diseaseCode(), current.confidence(),
-                    "Loại bệnh thay đổi từ " + previousCode + " sang " + currentCode, Instant.now());
-        }
-        double prevConf = previous.confidence() != null ? previous.confidence() : 0.5;
-        double currConf = current.confidence() != null ? current.confidence() : 0.5;
-        double delta = prevConf - currConf;
-        if (delta > 0.15) {
+        if (outcome == RecoveryOutcome.IMPROVED) {
             return new RecoveryEvaluationResponse(treeId, RecoveryOutcome.IMPROVED,
                     previous.diseaseCode(), previous.confidence(),
                     current.diseaseCode(), current.confidence(),
-                    String.format("Độ tin cậy giảm %.0f%% — bệnh đang được cải thiện", delta * 100), Instant.now());
+                    "Trạng thái sức khỏe đã giảm từ bệnh sang nghi ngờ — tiếp tục kế hoạch chăm sóc và tái kiểm tra", Instant.now());
         }
-        if (delta < -0.15) {
+        if (outcome == RecoveryOutcome.WORSENED) {
             return new RecoveryEvaluationResponse(treeId, RecoveryOutcome.WORSENED,
                     previous.diseaseCode(), previous.confidence(),
                     current.diseaseCode(), current.confidence(),
-                    String.format("Độ tin cậy tăng %.0f%% — bệnh đang diễn tiến nặng hơn", -delta * 100), Instant.now());
+                    "Cây chuyển từ khỏe/nghi ngờ sang bệnh — cần đánh giá lại hướng xử lý", Instant.now());
+        }
+        if (outcome == RecoveryOutcome.UNCERTAIN) {
+            return new RecoveryEvaluationResponse(treeId, RecoveryOutcome.UNCERTAIN,
+                    previous.diseaseCode(), previous.confidence(),
+                    current.diseaseCode(), current.confidence(),
+                    "Kết quả hiện tại khác loại bệnh trước đó; chưa đủ bằng chứng để kết luận tiến triển", Instant.now());
         }
         return new RecoveryEvaluationResponse(treeId, RecoveryOutcome.STABLE,
                 previous.diseaseCode(), previous.confidence(),
                 current.diseaseCode(), current.confidence(),
-                "Bệnh không thay đổi đáng kể — cần tiếp tục theo dõi", Instant.now());
+                "Bệnh không thay đổi theo dữ liệu chẩn đoán hiện có — tiếp tục theo dõi và điều trị", Instant.now());
+    }
+
+    static RecoveryOutcome evaluateOutcome(TreeDiagnosisRecord previous, TreeDiagnosisRecord current) {
+        String currentCode = normalizeCode(current.diseaseCode());
+        String previousCode = normalizeCode(previous.diseaseCode());
+        TreeHealthStatus currentHealth = current.impliedHealthStatus() != null
+                ? current.impliedHealthStatus()
+                : inferHealthStatus(current.diseaseCode());
+        TreeHealthStatus previousHealth = previous.impliedHealthStatus() != null
+                ? previous.impliedHealthStatus()
+                : inferHealthStatus(previous.diseaseCode());
+
+        if (isHealthy(currentCode) || currentHealth == TreeHealthStatus.HEALTHY) {
+            return RecoveryOutcome.RECOVERED;
+        }
+        if (previousHealth == TreeHealthStatus.HEALTHY && currentHealth == TreeHealthStatus.DISEASED) {
+            return RecoveryOutcome.WORSENED;
+        }
+        if (previousHealth == TreeHealthStatus.DISEASED && currentHealth == TreeHealthStatus.SUSPECTED) {
+            return RecoveryOutcome.IMPROVED;
+        }
+        if (previousHealth == TreeHealthStatus.SUSPECTED && currentHealth == TreeHealthStatus.DISEASED) {
+            return RecoveryOutcome.WORSENED;
+        }
+        if (!currentCode.equals(previousCode)) {
+            return RecoveryOutcome.UNCERTAIN;
+        }
+        return RecoveryOutcome.STABLE;
     }
 
     private static String normalizeCode(String code) {

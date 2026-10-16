@@ -1,5 +1,7 @@
 package com.duriancare.farm.controller;
 
+import com.duriancare.farm.dto.AcceptCareRecommendationRequest;
+import com.duriancare.farm.dto.CareRecommendationRequest;
 import com.duriancare.farm.dto.CreateTreeCarePlanRequest;
 import com.duriancare.farm.dto.CreateTreeRequest;
 import com.duriancare.farm.dto.GenerateTreesRequest;
@@ -8,9 +10,12 @@ import com.duriancare.farm.dto.RecoveryEvaluationResponse;
 import com.duriancare.farm.dto.RequestActor;
 import com.duriancare.farm.dto.SaveTreeDiagnosisRequest;
 import com.duriancare.farm.dto.TreeCarePlanResponse;
+import com.duriancare.farm.dto.TreeCareRecommendationResponse;
+import com.duriancare.farm.dto.TreeCareTaskResponse;
 import com.duriancare.farm.dto.TreeDetailResponse;
 import com.duriancare.farm.dto.TreeDiagnosisResponse;
 import com.duriancare.farm.dto.TreeSummaryResponse;
+import com.duriancare.farm.dto.UpdateCareRecommendationRequest;
 import com.duriancare.farm.dto.UpdateCarePlanStatusRequest;
 import com.duriancare.farm.dto.UpdateTreeHealthStatusRequest;
 import com.duriancare.farm.dto.UpdateTreeRequest;
@@ -24,6 +29,7 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -127,6 +133,15 @@ public class TreeController {
         return treeService.updateTree(actorResolver.resolve(userId, email, role), treeId, req);
     }
 
+    @DeleteMapping("/api/trees/{treeId}")
+    public TreeDetailResponse removeTree(
+            @PathVariable String treeId,
+            @RequestHeader("X-Auth-User-Id") String userId,
+            @RequestHeader(value = "X-Auth-Email", required = false) String email,
+            @RequestHeader("X-Auth-Role") String role) {
+        return treeService.removeTree(actorResolver.resolve(userId, email, role), treeId);
+    }
+
     @GetMapping("/api/trees/{treeId}/diagnoses")
     public Page<TreeDiagnosisResponse> listDiagnoses(
             @PathVariable String treeId,
@@ -195,6 +210,50 @@ public class TreeController {
         return carePlanService.listCarePlans(actorResolver.resolve(userId, email, role), treeId);
     }
 
+    @PostMapping("/api/trees/{treeId}/care-recommendation")
+    public TreeCareRecommendationResponse createCareRecommendation(
+            @PathVariable String treeId,
+            @RequestBody(required = false) CareRecommendationRequest req,
+            @RequestHeader("X-Auth-User-Id") String userId,
+            @RequestHeader(value = "X-Auth-Email", required = false) String email,
+            @RequestHeader("X-Auth-Role") String role) {
+        return carePlanService.createRecommendation(
+                actorResolver.resolve(userId, email, role), treeId, req);
+    }
+
+    @GetMapping("/api/trees/{treeId}/care-recommendation/latest")
+    public TreeCareRecommendationResponse getLatestCareRecommendation(
+            @PathVariable String treeId,
+            @RequestHeader("X-Auth-User-Id") String userId,
+            @RequestHeader(value = "X-Auth-Email", required = false) String email,
+            @RequestHeader("X-Auth-Role") String role) {
+        return carePlanService.getLatestRecommendation(actorResolver.resolve(userId, email, role), treeId);
+    }
+
+    @PutMapping("/api/trees/{treeId}/care-recommendation/{recommendationId}")
+    public TreeCareRecommendationResponse updateCareRecommendation(
+            @PathVariable String treeId,
+            @PathVariable String recommendationId,
+            @RequestBody UpdateCareRecommendationRequest req,
+            @RequestHeader("X-Auth-User-Id") String userId,
+            @RequestHeader(value = "X-Auth-Email", required = false) String email,
+            @RequestHeader("X-Auth-Role") String role) {
+        return carePlanService.updateRecommendation(
+                actorResolver.resolve(userId, email, role), treeId, recommendationId, req);
+    }
+
+    @PostMapping("/api/trees/{treeId}/care-recommendation/{recommendationId}/accept")
+    public TreeCarePlanResponse acceptCareRecommendation(
+            @PathVariable String treeId,
+            @PathVariable String recommendationId,
+            @RequestBody(required = false) AcceptCareRecommendationRequest req,
+            @RequestHeader("X-Auth-User-Id") String userId,
+            @RequestHeader(value = "X-Auth-Email", required = false) String email,
+            @RequestHeader("X-Auth-Role") String role) {
+        return carePlanService.acceptRecommendation(
+                actorResolver.resolve(userId, email, role), treeId, recommendationId, req);
+    }
+
     @GetMapping("/api/care-plans/{planId}")
     public TreeCarePlanResponse getCarePlan(
             @PathVariable String planId,
@@ -202,6 +261,15 @@ public class TreeController {
             @RequestHeader(value = "X-Auth-Email", required = false) String email,
             @RequestHeader("X-Auth-Role") String role) {
         return carePlanService.getCarePlan(actorResolver.resolve(userId, email, role), planId);
+    }
+
+    @GetMapping("/api/care-plans/{planId}/tasks")
+    public List<TreeCareTaskResponse> listCarePlanTasks(
+            @PathVariable String planId,
+            @RequestHeader("X-Auth-User-Id") String userId,
+            @RequestHeader(value = "X-Auth-Email", required = false) String email,
+            @RequestHeader("X-Auth-Role") String role) {
+        return carePlanService.listCareTasks(actorResolver.resolve(userId, email, role), planId);
     }
 
     @PatchMapping("/api/care-plans/{planId}/status")

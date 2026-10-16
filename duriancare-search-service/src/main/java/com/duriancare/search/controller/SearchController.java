@@ -22,6 +22,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.server.ResponseStatusException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
@@ -34,9 +39,12 @@ public class SearchController {
     private static final int MAX_PAGE_SIZE = 100;
 
     private final SearchService searchService;
+    private final String internalToken;
 
-    public SearchController(SearchService searchService) {
+    public SearchController(SearchService searchService,
+            @Value("${duriancare.internal.auth-token:${INTERNAL_SERVICE_TOKEN:}}") String internalToken) {
         this.searchService = searchService;
+        this.internalToken = internalToken;
     }
 
     @GetMapping
@@ -76,7 +84,17 @@ public class SearchController {
     @PostMapping("/internal/index")
     @ResponseStatus(HttpStatus.ACCEPTED)
     @Operation(summary = "Index a document internally", description = "Internal endpoint used by backend services to publish search documents.")
-    public SearchDocument index(@Valid @RequestBody SearchIndexRequest request) {
+    public SearchDocument index(@Valid @RequestBody SearchIndexRequest request,
+            @RequestHeader(value = "X-Internal-Token", required = false) String suppliedToken) {
+        if (suppliedToken == null || suppliedToken.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Internal authentication is required");
+        }
+        if (internalToken == null || internalToken.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Internal indexing is not configured");
+        }
+        if (!MessageDigest.isEqual(internalToken.getBytes(StandardCharsets.UTF_8), suppliedToken.getBytes(StandardCharsets.UTF_8))) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Internal authentication failed");
+        }
         return searchService.index(request);
     }
 

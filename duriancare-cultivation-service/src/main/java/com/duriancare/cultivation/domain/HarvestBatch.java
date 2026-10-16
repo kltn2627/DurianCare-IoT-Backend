@@ -23,4 +23,8 @@ public record HarvestBatch(
         @Indexed HarvestBatchStatus status,
         String createdBy,
         Instant createdAt) {
+    @com.fasterxml.jackson.annotation.JsonProperty("dataOrigin")
+    public String dataOrigin() {
+        return batchCode != null && batchCode.startsWith("DEMO-SYNTHETIC-") ? "DEMO_SYNTHETIC" : "OPERATIONAL";
+    }
 }

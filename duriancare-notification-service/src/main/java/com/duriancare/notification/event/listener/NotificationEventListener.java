@@ -79,7 +79,9 @@ public class NotificationEventListener {
                 event.message().trim(),
                 type,
                 event.metadata() == null ? Map.of() : event.metadata(),
-                event.eventId() == null ? null : event.eventId().toString()));
+                StringUtils.hasText(event.sourceEventId())
+                        ? event.sourceEventId().trim()
+                        : event.eventId() == null ? null : event.eventId().toString()));
     }
 
     private NotificationEventPayload deserialize(String payload) {

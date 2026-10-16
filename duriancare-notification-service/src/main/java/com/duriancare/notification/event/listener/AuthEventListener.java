@@ -33,13 +33,14 @@ public class AuthEventListener {
             return;
         }
         if (event.email() == null || event.otpCode() == null || event.expiresInMinutes() <= 0) {
-            LOGGER.warn("Skipping malformed authentication event payload: {}", payload);
+            LOGGER.warn("Skipping malformed authentication event payload");
             return;
         }
         try {
             emailService.sendOtpEmail(event.email(), event.otpCode(), event.expiresInMinutes());
         } catch (RuntimeException exception) {
-            LOGGER.error("Failed to process authentication event {}", event.eventId(), exception);
+            LOGGER.warn("Authentication event delivery failed; deferring to Kafka error handling");
+            throw new IllegalStateException("Authentication event delivery failed");
         }
     }
 
@@ -47,7 +48,7 @@ public class AuthEventListener {
         try {
             return objectMapper.readValue(payload, AuthNotificationEvent.class);
         } catch (JsonProcessingException exception) {
-            LOGGER.warn("Skipping malformed authentication event JSON", exception);
+            LOGGER.warn("Skipping malformed authentication event JSON");
             return null;
         }
     }

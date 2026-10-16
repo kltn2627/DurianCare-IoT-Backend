@@ -148,6 +148,43 @@ class NotificationEventListenerTest {
     }
 
     @Test
+    void handlesCareFollowUpEventAsCareNotificationWithSourceEventId() {
+        listener.handle("""
+                {
+                  "eventId": "66666666-6666-6666-6666-666666666666",
+                  "eventType": "CARE_FOLLOWUP",
+                  "sourceEventId": "CARE_FOLLOWUP:plan-1:2026-10-20",
+                  "receiverId": "farmer-1",
+                  "title": "Lịch tái khám cây DC-T009",
+                  "message": "Kiểm tra lại cây vào ngày tái khám.",
+                  "notificationType": "CARE",
+                  "metadata": {
+                    "treeId": "tree-t009",
+                    "treeCode": "DC-T009",
+                    "farmId": "farm-1",
+                    "zoneId": "zone-1",
+                    "carePlanId": "plan-1",
+                    "followUpDate": "2026-10-20"
+                  }
+                }
+                """);
+
+        ArgumentCaptor<CreateNotificationRequest> captor =
+                ArgumentCaptor.forClass(CreateNotificationRequest.class);
+        verify(notificationService).createNotification(captor.capture());
+        CreateNotificationRequest request = captor.getValue();
+        org.assertj.core.api.Assertions.assertThat(request.receiverId()).isEqualTo("farmer-1");
+        org.assertj.core.api.Assertions.assertThat(request.type()).isEqualTo(NotificationType.CARE);
+        org.assertj.core.api.Assertions.assertThat(request.sourceEventId())
+                .isEqualTo("CARE_FOLLOWUP:plan-1:2026-10-20");
+        org.assertj.core.api.Assertions.assertThat(request.metadata())
+                .containsEntry("treeId", "tree-t009")
+                .containsEntry("treeCode", "DC-T009")
+                .containsEntry("carePlanId", "plan-1")
+                .containsEntry("followUpDate", "2026-10-20");
+    }
+
+    @Test
     void ignoresMalformedPayloadWithoutThrowing() {
         assertThatCode(() -> listener.handle("not-json")).doesNotThrowAnyException();
         verifyNoInteractions(notificationService);

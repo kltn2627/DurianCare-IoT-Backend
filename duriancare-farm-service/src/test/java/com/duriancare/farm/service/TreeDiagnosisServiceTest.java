@@ -2,7 +2,10 @@ package com.duriancare.farm.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.duriancare.farm.domain.RecoveryOutcome;
+import com.duriancare.farm.domain.TreeDiagnosisRecord;
 import com.duriancare.farm.domain.TreeHealthStatus;
+import java.time.Instant;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -64,5 +67,55 @@ class TreeDiagnosisServiceTest {
                 .isEqualTo(TreeHealthStatus.HEALTHY);
         assertThat(TreeDiagnosisService.inferHealthStatus("RECOVERED BY FARMER"))
                 .isEqualTo(TreeHealthStatus.HEALTHY);
+    }
+
+    // ── Recovery outcome: never treat classifier confidence as severity ──────
+
+    @Test
+    void healthyFollowUpEvaluatesRecovered() {
+        assertThat(TreeDiagnosisService.evaluateOutcome(
+                diag("LEAF_BLIGHT", 0.87, TreeHealthStatus.DISEASED),
+                diag("HEALTHY_LEAF", 0.62, TreeHealthStatus.HEALTHY)))
+                .isEqualTo(RecoveryOutcome.RECOVERED);
+    }
+
+    @Test
+    void diseasedToSuspectedEvaluatesImprovedWithoutConfidenceSeverity() {
+        assertThat(TreeDiagnosisService.evaluateOutcome(
+                diag("PHOMOPSIS_LEAF_SPOT", 0.87, TreeHealthStatus.DISEASED),
+                diag("PHOMOPSIS_LEAF_SPOT", 0.91, TreeHealthStatus.SUSPECTED)))
+                .isEqualTo(RecoveryOutcome.IMPROVED);
+    }
+
+    @Test
+    void sameDiseaseStaysStableEvenWhenConfidenceChanges() {
+        assertThat(TreeDiagnosisService.evaluateOutcome(
+                diag("PHOMOPSIS_LEAF_SPOT", 0.87, TreeHealthStatus.DISEASED),
+                diag("PHOMOPSIS_LEAF_SPOT", 0.99, TreeHealthStatus.DISEASED)))
+                .isEqualTo(RecoveryOutcome.STABLE);
+    }
+
+    @Test
+    void healthyToDiseaseEvaluatesWorsened() {
+        assertThat(TreeDiagnosisService.evaluateOutcome(
+                diag("HEALTHY_LEAF", 0.93, TreeHealthStatus.HEALTHY),
+                diag("PHOMOPSIS_LEAF_SPOT", 0.76, TreeHealthStatus.DISEASED)))
+                .isEqualTo(RecoveryOutcome.WORSENED);
+    }
+
+    @Test
+    void differentNonHealthyDiseasesEvaluateUncertain() {
+        assertThat(TreeDiagnosisService.evaluateOutcome(
+                diag("LEAF_BLIGHT", 0.87, TreeHealthStatus.DISEASED),
+                diag("PHOMOPSIS_LEAF_SPOT", 0.91, TreeHealthStatus.DISEASED)))
+                .isEqualTo(RecoveryOutcome.UNCERTAIN);
+    }
+
+    private static TreeDiagnosisRecord diag(
+            String diseaseCode, double confidence, TreeHealthStatus impliedHealthStatus) {
+        return new TreeDiagnosisRecord(
+                null, "tree-1", "farm-1", "zone-1", "image",
+                diseaseCode, null, confidence, null, "AI_MODEL",
+                "user-1", impliedHealthStatus, Instant.now(), Instant.now());
     }
 }

@@ -426,6 +426,15 @@ public class CultivationCalendarController {
         return service.approveExportRelease(actor(userId, email, role), id, request.userId());
     }
 
+    @PostMapping("/api/v1/export-releases/{id}/inspect")
+    Object inspectExportRelease(@PathVariable String id,
+            @Valid @RequestBody CultivationCalendarDtos.SelfInspectionRequest request,
+            @RequestHeader("X-Auth-User-Id") String userId,
+            @RequestHeader(value = "X-Auth-Email", required = false) String email,
+            @RequestHeader("X-Auth-Role") String role) {
+        return service.inspectExportRelease(actor(userId, email, role), id, request);
+    }
+
     @PostMapping("/api/v1/export-releases/{id}/release")
     Object releaseExportRelease(
             @PathVariable String id,

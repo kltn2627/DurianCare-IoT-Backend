@@ -47,8 +47,10 @@ import com.duriancare.cultivation.security.CultivationActor;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -63,6 +65,8 @@ public class CultivationCalendarService {
 
     private static final String DURIAN_COMMODITY_CODE = "DURIAN";
     private static final String RULES_VERSION = "cultivation-calendar-v1";
+    private static final EnumSet<HarvestBatchStatus> EXPORT_RELEASE_ELIGIBLE_BATCH_STATUSES =
+            EnumSet.of(HarvestBatchStatus.APPROVED, HarvestBatchStatus.HARVESTED);
 
     private final CultivationPlanRepository planRepository;
     private final CultivationActivityRepository activityRepository;
@@ -307,33 +311,42 @@ public class CultivationCalendarService {
     }
 
     public ExportRelease createExportRelease(CultivationActor actor, CultivationCalendarDtos.CreateExportReleaseRequest request) {
-        HarvestBatch batch = getHarvestBatch(actor, request.harvestBatchId());
+        requireSameActor(actor, request.submittedBy());
+        HarvestBatch batch = getHarvestBatch(actor, requireText(request.harvestBatchId(), "Harvest batch is required"));
+        requireExportReleaseEligibleBatch(batch);
         accessGuard.requireUpdate(actor, "ExportRelease", null, batch.farmId(), batch.plotId());
         return createExportRelease(request);
     }
 
     public ExportRelease submitExportRelease(CultivationActor actor, String id, String userId) {
+        requireSameActor(actor, userId);
         ExportRelease release = getExportRelease(actor, id);
         HarvestBatch batch = getHarvestBatch(actor, release.harvestBatchId());
+        requireExportReleaseEligibleBatch(batch);
         accessGuard.requireUpdate(actor, "ExportRelease", id, batch.farmId(), batch.plotId());
         return submitExportRelease(id, userId);
     }
 
     public ExportRelease approveExportRelease(CultivationActor actor, String id, String reviewerId) {
+        requireSameActor(actor, reviewerId);
         ExportRelease release = getExportRelease(actor, id);
         HarvestBatch batch = getHarvestBatch(actor, release.harvestBatchId());
+        requireExportReleaseEligibleBatch(batch);
         accessGuard.requireUpdate(actor, "ExportRelease", id, batch.farmId(), batch.plotId());
         return approveExportRelease(id, reviewerId);
     }
 
     public ExportRelease releaseExportRelease(CultivationActor actor, String id, String reviewerId) {
+        requireSameActor(actor, reviewerId);
         ExportRelease release = getExportRelease(actor, id);
         HarvestBatch batch = getHarvestBatch(actor, release.harvestBatchId());
+        requireExportReleaseEligibleBatch(batch);
         accessGuard.requireUpdate(actor, "ExportRelease", id, batch.farmId(), batch.plotId());
         return releaseExportRelease(id, reviewerId);
     }
 
     public ExportRelease recallExportRelease(CultivationActor actor, String id, String reviewerId, String reason) {
+        requireSameActor(actor, reviewerId);
         ExportRelease release = getExportRelease(actor, id);
         HarvestBatch batch = getHarvestBatch(actor, release.harvestBatchId());
         accessGuard.requireUpdate(actor, "ExportRelease", id, batch.farmId(), batch.plotId());
@@ -733,6 +746,9 @@ public class CultivationCalendarService {
         List<BlockingReason> blockers = new ArrayList<>();
         List<ComplianceWarning> warnings = new ArrayList<>();
         HarvestBatch harvestBatch = request.harvestBatchId() == null ? null : getHarvestBatch(request.harvestBatchId());
+        if (harvestBatch != null && !harvestBatch.cultivationSeasonId().equals(cultivationSeasonId)) {
+            throw new IllegalArgumentException("Harvest batch does not belong to the requested cultivation season");
+        }
         LocalDate harvestDate = harvestBatch == null ? null : LocalDate.ofInstant(harvestBatch.harvestedAt(), ZoneOffset.UTC);
         LocalDate earliestSafeHarvestDate = safeHarvestDate(cultivationSeasonId).orElse(null);
         if (harvestDate != null && earliestSafeHarvestDate != null && harvestDate.isBefore(earliestSafeHarvestDate)) {
@@ -759,7 +775,9 @@ public class CultivationCalendarService {
     }
 
     public ExportRelease createExportRelease(CultivationCalendarDtos.CreateExportReleaseRequest request) {
-        HarvestBatch batch = getHarvestBatch(request.harvestBatchId());
+        HarvestBatch batch = getHarvestBatch(requireText(request.harvestBatchId(), "Harvest batch is required"));
+        requireExportReleaseEligibleBatch(batch);
+        requireNoActiveExportRelease(batch.id());
         ComplianceAssessment assessment = assessCompliance(batch.cultivationSeasonId(),
                 new CultivationCalendarDtos.AssessComplianceRequest(batch.id(), request.targetMarketCode()));
         ExportReleaseStatus status = assessment.eligibleForExportRelease() ? ExportReleaseStatus.DRAFT : ExportReleaseStatus.BLOCKED;
@@ -774,6 +792,9 @@ public class CultivationCalendarService {
 
     public ExportRelease submitExportRelease(String id, String userId) {
         ExportRelease release = getExportRelease(id);
+        if (release.status() != ExportReleaseStatus.DRAFT) {
+            throw new IllegalStateException("Only draft export releases can be submitted");
+        }
         ExportRelease submitted = saveRelease(release, ExportReleaseStatus.UNDER_REVIEW, userId, Instant.now(), release.reviewedBy(), release.reviewedAt(), null, release.releasedAt());
         audit(AuditAction.EXPORT_RELEASE_SUBMITTED, "ExportRelease", submitted.id(), userId, null, Map.of());
         return submitted;
@@ -784,6 +805,9 @@ public class CultivationCalendarService {
         if (release.status() == ExportReleaseStatus.BLOCKED) {
             throw new IllegalStateException("Blocked export release cannot be approved");
         }
+        if (release.status() != ExportReleaseStatus.UNDER_REVIEW) {
+            throw new IllegalStateException("Only export releases under review can be approved");
+        }
         ExportRelease approved = saveRelease(release, ExportReleaseStatus.APPROVED, release.submittedBy(), release.submittedAt(), reviewerId, Instant.now(), null, release.releasedAt());
         audit(AuditAction.EXPORT_RELEASE_APPROVED, "ExportRelease", approved.id(), reviewerId, null, Map.of());
         return approved;
@@ -791,12 +815,71 @@ public class CultivationCalendarService {
 
     public ExportRelease releaseExportRelease(String id, String reviewerId) {
         ExportRelease release = getExportRelease(id);
-        if (release.status() != ExportReleaseStatus.APPROVED) {
+        HarvestBatch batch = getHarvestBatch(release.harvestBatchId());
+        requireExportReleaseEligibleBatch(batch);
+        if (release.status() == ExportReleaseStatus.RELEASED) return release;
+        if (release.status() != ExportReleaseStatus.APPROVED && release.status() != ExportReleaseStatus.INSPECTED_PASSED) {
             throw new IllegalStateException("Only approved export releases can be released");
+        }
+        {
+            // Legacy approval is not an exemption from current release safety checks.
+            if (batch.harvestedAt() == null || batch.harvestedAt().isAfter(Instant.now()) || (batch.latestSafeHarvestDate() != null &&
+                    batch.harvestedAt().atOffset(ZoneOffset.UTC).toLocalDate().isBefore(batch.latestSafeHarvestDate()))) {
+                throw new IllegalStateException("Harvest precedes safe PHI date");
+            }
+            ComplianceAssessment current = assessCompliance(batch.cultivationSeasonId(),
+                    new CultivationCalendarDtos.AssessComplianceRequest(batch.id(), release.targetMarketCode()));
+            if (!current.eligibleForExportRelease()) throw new IllegalStateException("Current compliance gates reject release");
         }
         ExportRelease released = saveRelease(release, ExportReleaseStatus.RELEASED, release.submittedBy(), release.submittedAt(), reviewerId, Instant.now(), null, Instant.now());
         audit(AuditAction.EXPORT_RELEASE_RELEASED, "ExportRelease", released.id(), reviewerId, null, Map.of());
         return released;
+    }
+
+    public ExportRelease inspectExportRelease(CultivationActor actor, String id,
+            CultivationCalendarDtos.SelfInspectionRequest request) {
+        ExportRelease release = getExportRelease(actor, id);
+        HarvestBatch batch = getHarvestBatch(release.harvestBatchId());
+        accessGuard.requireUpdate(actor, "ExportRelease", id, batch.farmId(), batch.plotId());
+        requireExportReleaseEligibleBatch(batch);
+        if (!java.util.Set.of(ExportReleaseStatus.DRAFT, ExportReleaseStatus.UNDER_REVIEW,
+                ExportReleaseStatus.BLOCKED, ExportReleaseStatus.NOT_ELIGIBLE,
+                ExportReleaseStatus.INSPECTION_PENDING, ExportReleaseStatus.INSPECTED_PASSED).contains(release.status())) {
+            throw new IllegalStateException("Release cannot be inspected in its current state");
+        }
+        if (batch.status() != HarvestBatchStatus.HARVESTED || batch.harvestedAt() == null || request == null ||
+                !StringUtils.hasText(request.sourceRef()) || request.inspectedAt() == null ||
+                request.inspectedAt().isAfter(Instant.now()) || request.inspectedAt().isBefore(batch.harvestedAt()) ||
+                (request.measuredBrix() != null && (request.measuredBrix().signum() < 0 || request.measuredBrix().compareTo(BigDecimal.valueOf(100)) > 0))) {
+            throw new IllegalArgumentException("Valid harvested lot and dated inspection evidence are required");
+        }
+        Map<String, Object> inspection = new java.util.LinkedHashMap<>();
+        inspection.put("sourceRef", request.sourceRef().trim());
+        inspection.put("inspectedBy", actor.userId());
+        inspection.put("inspectedAt", request.inspectedAt().toString());
+        inspection.put("phiChecked", request.phiChecked());
+        inspection.put("pestCheckPassed", request.pestCheckPassed());
+        inspection.put("qualityPassed", request.qualityPassed());
+        if (request.measuredBrix() != null) inspection.put("measuredBrix", request.measuredBrix());
+        if (release.status() == ExportReleaseStatus.INSPECTED_PASSED &&
+                release.traceabilitySnapshot() != null && inspection.equals(release.traceabilitySnapshot().get("farmerInspection"))) return release;
+        ComplianceAssessment current = assessCompliance(batch.cultivationSeasonId(),
+                new CultivationCalendarDtos.AssessComplianceRequest(batch.id(), release.targetMarketCode()));
+        boolean safeDatePassed = batch.latestSafeHarvestDate() == null ||
+                !batch.harvestedAt().atOffset(ZoneOffset.UTC).toLocalDate().isBefore(batch.latestSafeHarvestDate());
+        ExportReleaseStatus status = !current.eligibleForExportRelease() || !safeDatePassed ? ExportReleaseStatus.NOT_ELIGIBLE
+                : request.phiChecked() && request.pestCheckPassed() && request.qualityPassed()
+                ? ExportReleaseStatus.INSPECTED_PASSED : ExportReleaseStatus.INSPECTION_PENDING;
+        Map<String, Object> snapshot = new java.util.LinkedHashMap<>(traceabilitySnapshot(batch, current));
+        snapshot.put("farmerInspection", inspection);
+        snapshot.put("phiDatePassed", safeDatePassed);
+        snapshot.put("dataOrigin", batch.dataOrigin());
+        ExportRelease saved = exportReleaseRepository.save(new ExportRelease(release.id(), release.releaseCode(), batch.id(),
+                release.targetMarketCode(), snapshot, complianceSnapshot(current), status, release.submittedBy(),
+                release.submittedAt(), actor.userId(), Instant.now(), null, null, release.createdAt()));
+        audit(AuditAction.EXPORT_RELEASE_APPROVED, "ExportRelease", id, actor.userId(), null,
+                Map.of("inspectionStatus", status.name(), "selfVerification", true));
+        return saved;
     }
 
     public ExportRelease recallExportRelease(String id, String reviewerId, String reason) {
@@ -821,7 +904,9 @@ public class CultivationCalendarService {
 
     public CultivationCalendarDtos.TraceabilityResponse traceability(String id) {
         ExportRelease release = getExportRelease(id);
-        return new CultivationCalendarDtos.TraceabilityResponse(id, release.traceabilitySnapshot());
+        Map<String, Object> snapshot = new LinkedHashMap<>(release.traceabilitySnapshot() == null ? Map.of() : release.traceabilitySnapshot());
+        snapshot.put("dataOrigin", release.dataOrigin());
+        return new CultivationCalendarDtos.TraceabilityResponse(id, snapshot);
     }
 
     public List<AuditLog> auditLogs(String resourceType, String resourceId) {
@@ -926,6 +1011,20 @@ public class CultivationCalendarService {
         String reviewerId = requireText(requestUserId, "Request user is required");
         if (!actorId.equals(reviewerId)) {
             throw new IllegalArgumentException("Approval user must match authenticated actor");
+        }
+    }
+
+    private static void requireExportReleaseEligibleBatch(HarvestBatch batch) {
+        if (!EXPORT_RELEASE_ELIGIBLE_BATCH_STATUSES.contains(batch.status())) {
+            throw new IllegalStateException("Harvest batch status is not eligible for export release");
+        }
+    }
+
+    private void requireNoActiveExportRelease(String harvestBatchId) {
+        boolean exists = exportReleaseRepository.findByHarvestBatchId(harvestBatchId).stream()
+                .anyMatch(release -> release.status() != ExportReleaseStatus.RECALLED);
+        if (exists) {
+            throw new IllegalStateException("An active export release already exists for this harvest batch");
         }
     }
 

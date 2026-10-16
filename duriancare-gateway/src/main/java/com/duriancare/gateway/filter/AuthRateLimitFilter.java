@@ -47,7 +47,9 @@ public class AuthRateLimitFilter implements GlobalFilter, Ordered {
                 "/api/auth/register/engineer", new RateLimitRule(registrationLimit, 600),
                 "/api/auth/otp/verify", new RateLimitRule(otpVerificationLimit, 300),
                 "/api/auth/otp/resend", new RateLimitRule(otpResendLimit, 600),
-                "/api/auth/refresh", new RateLimitRule(refreshLimit, 60));
+                "/api/auth/refresh", new RateLimitRule(refreshLimit, 60),
+                "/api/v1/notification/otp/generate", new RateLimitRule(otpResendLimit, 600),
+                "/api/v1/notification/otp/validate", new RateLimitRule(otpVerificationLimit, 300));
     }
 
     @Override
