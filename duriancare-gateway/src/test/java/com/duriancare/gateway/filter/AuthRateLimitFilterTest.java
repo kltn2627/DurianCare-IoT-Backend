@@ -20,6 +20,22 @@ import reactor.test.StepVerifier;
 
 class AuthRateLimitFilterTest {
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"/api/v1/notification/otp/generate", "/api/v1/notification/otp/validate"})
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    void notificationOtpAliasesCannotBypassRateLimiting(String path) {
+        ReactiveStringRedisTemplate redis = mock(ReactiveStringRedisTemplate.class);
+        when(redis.execute(any(RedisScript.class), anyList(), any(Object[].class))).thenReturn(Flux.just(100L));
+        when(redis.execute(any(RedisScript.class), anyList(), anyList())).thenReturn(Flux.just(100L));
+        var filter = new AuthRateLimitFilter(redis, 1, 1, 1, 1, 1, 100);
+        var exchange = MockServerWebExchange.from(MockServerHttpRequest.post(path).build());
+        GatewayFilterChain chain = mock(GatewayFilterChain.class);
+        when(chain.filter(any())).thenReturn(reactor.core.publisher.Mono.empty());
+        StepVerifier.create(filter.filter(exchange, chain)).verifyComplete();
+        assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
+        verify(chain, never()).filter(any());
+    }
+
     @Test
     @SuppressWarnings({"rawtypes", "unchecked"})
     void redisTimeoutReturnsServiceUnavailableInsteadOfHangingAuthPosts() {

@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.duriancare.cultivation.api.CultivationCalendarDtos;
+import com.duriancare.cultivation.compliance.ComplianceDecision;
 import com.duriancare.cultivation.compliance.ComplianceEngine;
 import com.duriancare.cultivation.compliance.LabResidueComparator;
 import com.duriancare.cultivation.compliance.SafeHarvestDateCalculator;
@@ -17,6 +18,7 @@ import com.duriancare.cultivation.domain.CultivationActivity;
 import com.duriancare.cultivation.domain.CultivationPlan;
 import com.duriancare.cultivation.domain.ExportRelease;
 import com.duriancare.cultivation.domain.ExportReleaseStatus;
+import com.duriancare.cultivation.domain.ComplianceAssessment;
 import com.duriancare.cultivation.domain.HarvestBatch;
 import com.duriancare.cultivation.domain.HarvestBatchStatus;
 import com.duriancare.cultivation.domain.LabSample;
@@ -55,7 +57,78 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class CultivationCalendarAuthorizationServiceTest {
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"create", "submit", "approve", "release", "recall"})
+    void exportReleaseRejectsForgedAuditActor(String operation) {
+        var state = switch (operation) {
+            case "approve" -> ExportReleaseStatus.UNDER_REVIEW;
+            case "release" -> ExportReleaseStatus.APPROVED;
+            case "recall" -> ExportReleaseStatus.RELEASED;
+            default -> ExportReleaseStatus.DRAFT;
+        };
+        org.mockito.Mockito.lenient().when(harvestBatchRepository.findById("batch-1"))
+                .thenReturn(Optional.of(batch("batch-1", "season-1", "farm-1", "zone-1", HarvestBatchStatus.HARVESTED)));
+        org.mockito.Mockito.lenient().when(exportReleaseRepository.findById("release-1"))
+                .thenReturn(Optional.of(release("release-1", "batch-1", state)));
+        org.mockito.Mockito.lenient().when(exportReleaseRepository.findByHarvestBatchId("batch-1")).thenReturn(List.of());
+        org.mockito.Mockito.lenient().when(activityRepository.findAll()).thenReturn(List.of());
+        org.mockito.Mockito.lenient().when(complianceEngine.assess(any(), any()))
+                .thenReturn(new ComplianceDecision(0, RiskLevel.LOW, List.of(), List.of(), false, true, true));
+        org.mockito.Mockito.lenient().when(complianceAssessmentRepository.save(any(ComplianceAssessment.class)))
+                .thenAnswer(i -> i.getArgument(0));
+        org.mockito.Mockito.lenient().when(exportReleaseRepository.save(any(ExportRelease.class)))
+                .thenAnswer(i -> i.getArgument(0));
+        Runnable request = switch (operation) {
+            case "create" -> () -> service.createExportRelease(OWNER,
+                    new CultivationCalendarDtos.CreateExportReleaseRequest("FIXTURE-REL", "batch-1", "VN", "forged-actor"));
+            case "submit" -> () -> service.submitExportRelease(OWNER, "release-1", "forged-actor");
+            case "approve" -> () -> service.approveExportRelease(OWNER, "release-1", "forged-actor");
+            case "release" -> () -> service.releaseExportRelease(OWNER, "release-1", "forged-actor");
+            default -> () -> service.recallExportRelease(OWNER, "release-1", "forged-actor", "fixture-only");
+        };
+        assertThatThrownBy(request::run).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("authenticated actor");
+        verify(exportReleaseRepository, never()).save(any(ExportRelease.class));
+        verify(complianceAssessmentRepository, never()).save(any(ComplianceAssessment.class));
+    }
+
     private static final CultivationActor OWNER = new CultivationActor("owner-1", "owner@example.com", "FARMER");
+
+    @Test
+    void matchingAuthenticatedActorCanCreateReadSubmitApproveReleaseAndRecallFixture() {
+        var stored = new java.util.HashMap<String, ExportRelease>();
+        when(harvestBatchRepository.findById("batch-1"))
+                .thenReturn(Optional.of(batch("batch-1", "season-1", "farm-1", "zone-1", HarvestBatchStatus.HARVESTED)));
+        when(exportReleaseRepository.findByHarvestBatchId("batch-1"))
+                .thenAnswer(i -> List.copyOf(stored.values()));
+        when(exportReleaseRepository.findById(any())).thenAnswer(i -> Optional.ofNullable(stored.get(i.getArgument(0))));
+        when(activityRepository.findAll()).thenReturn(List.of());
+        when(complianceEngine.assess(any(), any()))
+                .thenReturn(new ComplianceDecision(0, RiskLevel.LOW, List.of(), List.of(), false, true, true));
+        when(complianceAssessmentRepository.save(any(ComplianceAssessment.class))).thenAnswer(i -> i.getArgument(0));
+        when(exportReleaseRepository.save(any(ExportRelease.class))).thenAnswer(i -> {
+            ExportRelease value = i.getArgument(0);
+            stored.put(value.id(), value);
+            return value;
+        });
+        var created = service.createExportRelease(OWNER, exportRequest("batch-1"));
+        assertThat(created.status()).isEqualTo(ExportReleaseStatus.DRAFT);
+        assertThat(created.submittedBy()).isEqualTo(OWNER.userId());
+        assertThat(service.getExportRelease(OWNER, created.id()).id()).isEqualTo(created.id());
+        assertThat(service.submitExportRelease(OWNER, created.id(), OWNER.userId()).status())
+                .isEqualTo(ExportReleaseStatus.UNDER_REVIEW);
+        assertThat(service.approveExportRelease(OWNER, created.id(), OWNER.userId()).status())
+                .isEqualTo(ExportReleaseStatus.APPROVED);
+        var released = service.releaseExportRelease(OWNER, created.id(), OWNER.userId());
+        assertThat(released.status()).isEqualTo(ExportReleaseStatus.RELEASED);
+        assertThat(released.reviewedBy()).isEqualTo(OWNER.userId());
+        assertThat(released.releasedAt()).isNotNull();
+        assertThatThrownBy(() -> service.createExportRelease(OWNER, exportRequest("batch-1")))
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("already exists");
+        assertThat(stored).hasSize(1);
+        assertThat(service.recallExportRelease(OWNER, created.id(), OWNER.userId(), "fixture-only").status())
+                .isEqualTo(ExportReleaseStatus.RECALLED);
+    }
 
     @Mock private CultivationPlanRepository planRepository;
     @Mock private CultivationActivityRepository activityRepository;
@@ -387,6 +460,139 @@ class CultivationCalendarAuthorizationServiceTest {
     }
 
     @Test
+    void createExportReleaseRejectsBlockedHarvestBatchBeforePersistence() {
+        when(harvestBatchRepository.findById("batch-1"))
+                .thenReturn(Optional.of(batch("batch-1", "season-1", "farm-1", "zone-1", HarvestBatchStatus.BLOCKED)));
+
+        assertThatThrownBy(() -> service.createExportRelease(OWNER, exportRequest("batch-1")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("not eligible");
+
+        verify(exportReleaseRepository, never()).save(any(ExportRelease.class));
+        verify(complianceAssessmentRepository, never()).save(any(ComplianceAssessment.class));
+    }
+
+    @Test
+    void createExportReleaseUsesCanonicalBatchIdAndResolvedScope() {
+        HarvestBatch batch = batch("batch-1", "season-1", "farm-1", "zone-1", HarvestBatchStatus.HARVESTED);
+        when(harvestBatchRepository.findById("batch-1")).thenReturn(Optional.of(batch));
+        when(exportReleaseRepository.findByHarvestBatchId("batch-1")).thenReturn(List.of());
+        when(activityRepository.findAll()).thenReturn(List.of());
+        when(complianceEngine.assess(any(), any()))
+                .thenReturn(new ComplianceDecision(0, RiskLevel.LOW, List.of(), List.of(), false, true, true));
+        when(complianceAssessmentRepository.save(any(ComplianceAssessment.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(exportReleaseRepository.save(any(ExportRelease.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        ExportRelease release = service.createExportRelease(OWNER, exportRequest("batch-1"));
+
+        assertThat(release.harvestBatchId()).isEqualTo("batch-1");
+        assertThat(release.traceabilitySnapshot()).containsKey("harvestBatch");
+        verify(accessGuard).requireView(OWNER, "HarvestBatch", "batch-1", "farm-1", "zone-1");
+        verify(accessGuard).requireUpdate(OWNER, "ExportRelease", null, "farm-1", "zone-1");
+    }
+
+    @Test
+    void duplicateActiveExportReleaseForSameHarvestBatchIsRejected() {
+        HarvestBatch batch = batch("batch-1", "season-1", "farm-1", "zone-1", HarvestBatchStatus.HARVESTED);
+        when(harvestBatchRepository.findById("batch-1")).thenReturn(Optional.of(batch));
+        when(exportReleaseRepository.findByHarvestBatchId("batch-1"))
+                .thenReturn(List.of(release("release-1", "batch-1", ExportReleaseStatus.DRAFT)));
+
+        assertThatThrownBy(() -> service.createExportRelease(OWNER, exportRequest("batch-1")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("already exists");
+
+        verify(exportReleaseRepository, never()).save(any(ExportRelease.class));
+        verify(complianceAssessmentRepository, never()).save(any(ComplianceAssessment.class));
+    }
+
+    @Test
+    void complianceAssessmentRejectsHarvestBatchFromDifferentSeason() {
+        when(harvestBatchRepository.findById("batch-1"))
+                .thenReturn(Optional.of(batch("batch-1", "season-2", "farm-1", "zone-1", HarvestBatchStatus.HARVESTED)));
+
+        assertThatThrownBy(() -> service.assessCompliance(
+                "season-1",
+                new CultivationCalendarDtos.AssessComplianceRequest("batch-1", "VN")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("does not belong");
+
+        verify(complianceAssessmentRepository, never()).save(any(ComplianceAssessment.class));
+    }
+
+    @Test
+    void submitExportReleaseRejectsIneligibleResolvedHarvestBatch() {
+        when(exportReleaseRepository.findById("release-1"))
+                .thenReturn(Optional.of(release("release-1", "batch-1", ExportReleaseStatus.DRAFT)));
+        when(harvestBatchRepository.findById("batch-1"))
+                .thenReturn(Optional.of(batch("batch-1", "season-1", "farm-1", "zone-1", HarvestBatchStatus.CANCELLED)));
+
+        assertThatThrownBy(() -> service.submitExportRelease(OWNER, "release-1", OWNER.userId()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("not eligible");
+
+        verify(exportReleaseRepository, never()).save(any(ExportRelease.class));
+    }
+
+    @Test
+    void submitExportReleaseRejectsNonDraftDossier() {
+        when(exportReleaseRepository.findById("release-1"))
+                .thenReturn(Optional.of(release("release-1", "batch-1", ExportReleaseStatus.APPROVED)));
+        when(harvestBatchRepository.findById("batch-1"))
+                .thenReturn(Optional.of(batch("batch-1", "season-1", "farm-1", "zone-1", HarvestBatchStatus.HARVESTED)));
+
+        assertThatThrownBy(() -> service.submitExportRelease(OWNER, "release-1", OWNER.userId()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Only draft");
+
+        verify(exportReleaseRepository, never()).save(any(ExportRelease.class));
+    }
+
+    @Test
+    void approveExportReleaseRejectsInvalidTransition() {
+        when(exportReleaseRepository.findById("release-1"))
+                .thenReturn(Optional.of(release("release-1", "batch-1", ExportReleaseStatus.DRAFT)));
+        when(harvestBatchRepository.findById("batch-1"))
+                .thenReturn(Optional.of(batch("batch-1", "season-1", "farm-1", "zone-1", HarvestBatchStatus.HARVESTED)));
+
+        assertThatThrownBy(() -> service.approveExportRelease(OWNER, "release-1", OWNER.userId()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("under review");
+
+        verify(exportReleaseRepository, never()).save(any(ExportRelease.class));
+    }
+
+    @Test
+    void releaseExportReleaseRejectsIneligibleResolvedHarvestBatch() {
+        when(exportReleaseRepository.findById("release-1"))
+                .thenReturn(Optional.of(release("release-1", "batch-1", ExportReleaseStatus.APPROVED)));
+        when(harvestBatchRepository.findById("batch-1"))
+                .thenReturn(Optional.of(batch("batch-1", "season-1", "farm-1", "zone-1", HarvestBatchStatus.BLOCKED)));
+
+        assertThatThrownBy(() -> service.releaseExportRelease(OWNER, "release-1", OWNER.userId()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("not eligible");
+
+        verify(exportReleaseRepository, never()).save(any(ExportRelease.class));
+    }
+
+    @Test
+    void releaseExportReleaseRejectsNonApprovedDossier() {
+        when(exportReleaseRepository.findById("release-1"))
+                .thenReturn(Optional.of(release("release-1", "batch-1", ExportReleaseStatus.UNDER_REVIEW)));
+        when(harvestBatchRepository.findById("batch-1"))
+                .thenReturn(Optional.of(batch("batch-1", "season-1", "farm-1", "zone-1", HarvestBatchStatus.HARVESTED)));
+
+        assertThatThrownBy(() -> service.releaseExportRelease(OWNER, "release-1", OWNER.userId()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Only approved");
+
+        verify(exportReleaseRepository, never()).save(any(ExportRelease.class));
+    }
+
+    @Test
     void seasonEndpointResolvesSeasonScopesBeforeSafeHarvestCalculation() {
         when(planRepository.findByCultivationSeasonId("season-1"))
                 .thenReturn(List.of(plan("plan-1", "farm-2", "zone-9")));
@@ -477,10 +683,14 @@ class CultivationCalendarAuthorizationServiceTest {
     }
 
     private HarvestBatch batch(String id, String farmId, String plotId) {
+        return batch(id, "season-1", farmId, plotId, HarvestBatchStatus.HARVESTED);
+    }
+
+    private HarvestBatch batch(String id, String cultivationSeasonId, String farmId, String plotId, HarvestBatchStatus status) {
         return new HarvestBatch(
                 id,
                 "BATCH-" + id,
-                "season-1",
+                cultivationSeasonId,
                 farmId,
                 plotId,
                 Instant.now(),
@@ -489,9 +699,17 @@ class CultivationCalendarAuthorizationServiceTest {
                 "VN",
                 null,
                 RiskLevel.LOW,
-                HarvestBatchStatus.HARVESTED,
+                status,
                 "owner-1",
                 Instant.now());
+    }
+
+    private CultivationCalendarDtos.CreateExportReleaseRequest exportRequest(String harvestBatchId) {
+        return new CultivationCalendarDtos.CreateExportReleaseRequest(
+                "REL-" + harvestBatchId,
+                harvestBatchId,
+                "VN",
+                OWNER.userId());
     }
 
     private LabSample sample(String id, String harvestBatchId) {
@@ -512,6 +730,10 @@ class CultivationCalendarAuthorizationServiceTest {
     }
 
     private ExportRelease release(String id, String harvestBatchId) {
+        return release(id, harvestBatchId, ExportReleaseStatus.DRAFT);
+    }
+
+    private ExportRelease release(String id, String harvestBatchId, ExportReleaseStatus status) {
         return new ExportRelease(
                 id,
                 "REL-" + id,
@@ -519,7 +741,7 @@ class CultivationCalendarAuthorizationServiceTest {
                 "VN",
                 Map.of(),
                 Map.of(),
-                ExportReleaseStatus.DRAFT,
+                status,
                 "owner-1",
                 null,
                 null,

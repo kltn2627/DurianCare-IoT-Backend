@@ -56,7 +56,7 @@ public class TreeService {
 
     public List<TreeSummaryResponse> listTreesForMap(RequestActor actor, String zoneId) {
         requireFarmByZone(actor, zoneId);
-        List<DurianTree> trees = treeRepository.findByFarmZoneId(zoneId);
+        List<DurianTree> trees = treeRepository.findByFarmZoneIdAndStatus(zoneId, TreeStatus.ACTIVE);
         return trees.stream().map(tree -> {
             Optional<TreeDiagnosisRecord> latest =
                     diagnosisRepository.findTopByTreeIdOrderByDiagnosedAtDesc(tree.id());
@@ -91,7 +91,7 @@ public class TreeService {
                 null, farm.id(), zoneId, req.speciesId(), treeCode,
                 req.nickname(), req.variety(), req.plantedDate(),
                 req.latitude(), req.longitude(), req.positionX(), req.positionY(),
-                TreeHealthStatus.SUSPECTED, TreeStatus.ACTIVE, req.notes(), now, now);
+                TreeHealthStatus.HEALTHY, TreeStatus.ACTIVE, req.notes(), now, now);
         DurianTree saved = treeRepository.save(tree);
         return toDetailResponse(saved, Optional.empty(), 0);
     }
@@ -109,6 +109,27 @@ public class TreeService {
                 req.positionY() != null ? req.positionY() : existing.positionY(),
                 existing.healthStatus(), existing.status(), req.notes(), existing.createdAt(), now);
         DurianTree saved = treeRepository.save(updated);
+        Optional<TreeDiagnosisRecord> latest =
+                diagnosisRepository.findTopByTreeIdOrderByDiagnosedAtDesc(treeId);
+        long count = diagnosisRepository.countByTreeId(treeId);
+        return toDetailResponse(saved, latest, count);
+    }
+
+    public TreeDetailResponse removeTree(RequestActor actor, String treeId) {
+        DurianTree existing = requireTree(actor, treeId);
+        if (existing.status() == TreeStatus.REMOVED) {
+            Optional<TreeDiagnosisRecord> latest =
+                    diagnosisRepository.findTopByTreeIdOrderByDiagnosedAtDesc(treeId);
+            long count = diagnosisRepository.countByTreeId(treeId);
+            return toDetailResponse(existing, latest, count);
+        }
+        Instant now = Instant.now();
+        DurianTree removed = new DurianTree(
+                existing.id(), existing.farmId(), existing.farmZoneId(), existing.speciesId(),
+                existing.treeCode(), existing.nickname(), existing.variety(), existing.plantedDate(),
+                existing.latitude(), existing.longitude(), existing.positionX(), existing.positionY(),
+                existing.healthStatus(), TreeStatus.REMOVED, existing.notes(), existing.createdAt(), now);
+        DurianTree saved = treeRepository.save(removed);
         Optional<TreeDiagnosisRecord> latest =
                 diagnosisRepository.findTopByTreeIdOrderByDiagnosedAtDesc(treeId);
         long count = diagnosisRepository.countByTreeId(treeId);
@@ -143,7 +164,7 @@ public class TreeService {
                         null, null,
                         (double) Math.round(posX * 10000) / 10000,
                         (double) Math.round(posY * 10000) / 10000,
-                        TreeHealthStatus.SUSPECTED, TreeStatus.ACTIVE, req.notes(), now, now);
+                        TreeHealthStatus.HEALTHY, TreeStatus.ACTIVE, req.notes(), now, now);
                 treeRepository.save(tree);
                 generated++;
             }
@@ -157,7 +178,7 @@ public class TreeService {
             throw new FarmInvalidRequestException(
                     "Manual transitions only allowed to TREATING or RECOVERED. Got: " + newStatus);
         }
-        requireTree(actor, treeId);
+        requireActiveTreeForMutation(actor, treeId, "Tree health status cannot be changed after removal");
         if (newStatus == TreeHealthStatus.RECOVERED) {
             enforceRecoveryGate(treeId);
         }
@@ -219,43 +240,15 @@ public class TreeService {
         if (recent.size() < 2) {
             outcome = RecoveryOutcome.UNCERTAIN;
         } else {
-            TreeDiagnosisRecord current = recent.get(0);
             TreeDiagnosisRecord previous = recent.get(1);
-            String currentCode = normalizeCode(current.diseaseCode());
-            String previousCode = normalizeCode(previous.diseaseCode());
-            if (isHealthyCode(currentCode)) {
-                outcome = RecoveryOutcome.RECOVERED;
-            } else if (!currentCode.equals(previousCode)) {
-                outcome = RecoveryOutcome.WORSENED;
-            } else {
-                double prevConf = previous.confidence() != null ? previous.confidence() : 0.5;
-                double currConf = current.confidence() != null ? current.confidence() : 0.5;
-                double delta = prevConf - currConf;
-                if (delta > 0.15) {
-                    outcome = RecoveryOutcome.IMPROVED;
-                } else if (delta < -0.15) {
-                    outcome = RecoveryOutcome.WORSENED;
-                } else {
-                    outcome = RecoveryOutcome.STABLE;
-                }
-            }
+            TreeDiagnosisRecord current = recent.get(0);
+            outcome = TreeDiagnosisService.evaluateOutcome(previous, current);
         }
         if (outcome != RecoveryOutcome.RECOVERED && outcome != RecoveryOutcome.IMPROVED) {
             throw new FarmConflictException(
                     "RECOVERY_NOT_ALLOWED|" + outcome.name()
                             + "|Cây chưa đủ điều kiện xác nhận hồi phục.");
         }
-    }
-
-    private static String normalizeCode(String code) {
-        if (code == null || code.isBlank()) return "UNKNOWN";
-        return code.trim().toUpperCase().replace("-", "_").replace(" ", "_");
-    }
-
-    private static boolean isHealthyCode(String normalizedCode) {
-        return normalizedCode.equals("HEALTHY_LEAF")
-                || normalizedCode.equals("HEALTHY")
-                || normalizedCode.equals("RECOVERED_BY_FARMER");
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────
@@ -276,6 +269,14 @@ public class TreeService {
                 .orElseThrow(() -> new FarmNotFoundException("Farm not found for tree: " + treeId));
         if (!farm.ownerUserId().equals(actor.userId())) {
             throw new FarmAccessDeniedException("Access denied to tree: " + treeId);
+        }
+        return tree;
+    }
+
+    DurianTree requireActiveTreeForMutation(RequestActor actor, String treeId, String message) {
+        DurianTree tree = requireTree(actor, treeId);
+        if (tree.status() != null && tree.status() != TreeStatus.ACTIVE) {
+            throw new FarmConflictException(message + ": " + tree.treeCode());
         }
         return tree;
     }

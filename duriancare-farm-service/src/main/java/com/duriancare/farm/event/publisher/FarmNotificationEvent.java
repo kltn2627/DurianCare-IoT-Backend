@@ -6,6 +6,7 @@ import java.util.UUID;
 
 public record FarmNotificationEvent(
         UUID eventId,
+        String sourceEventId,
         String eventType,
         String receiverId,
         String title,

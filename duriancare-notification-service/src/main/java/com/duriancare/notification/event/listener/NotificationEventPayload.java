@@ -6,6 +6,7 @@ import java.util.UUID;
 
 public record NotificationEventPayload(
         UUID eventId,
+        String sourceEventId,
         String eventType,
         String receiverId,
         String title,

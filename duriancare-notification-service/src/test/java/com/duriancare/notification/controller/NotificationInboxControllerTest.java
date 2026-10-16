@@ -109,6 +109,14 @@ class NotificationInboxControllerTest {
     }
 
     @Test
+    void markAsReadRequiresAuthHeader() throws Exception {
+        mockMvc.perform(patch("/api/notifications/1/read")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("Unauthorized"));
+    }
+
+    @Test
     void markAllAsReadDelegatesToService() throws Exception {
         when(notificationService.markAllAsRead("user-1"))
                 .thenReturn(new NotificationBulkUpdateResponse(2));

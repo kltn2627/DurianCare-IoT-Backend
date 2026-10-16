@@ -46,8 +46,20 @@ public class FarmNotificationEventPublisher {
             String message,
             String notificationType,
             Map<String, Object> metadata) {
+        publish(eventType, null, receiverId, title, message, notificationType, metadata);
+    }
+
+    public void publish(
+            String eventType,
+            String sourceEventId,
+            String receiverId,
+            String title,
+            String message,
+            String notificationType,
+            Map<String, Object> metadata) {
         FarmNotificationEvent event = new FarmNotificationEvent(
                 UUID.randomUUID(),
+                sourceEventId,
                 eventType,
                 receiverId,
                 title,

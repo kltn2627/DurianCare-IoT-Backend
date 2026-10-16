@@ -45,10 +45,10 @@ public class MongoConfig {
         @Override
         public HarvestBatchStatus convert(String source) {
             try {
-                return HarvestBatchStatus.valueOf(source.toUpperCase());
+                return HarvestBatchStatus.valueOf(source.toUpperCase(java.util.Locale.ROOT));
             } catch (IllegalArgumentException e) {
-                // Legacy values (e.g. PENDING_INSPECTION from old seed data) map to APPROVED
-                return HarvestBatchStatus.APPROVED;
+                // Unknown persisted values are not evidence of approval.
+                return HarvestBatchStatus.DRAFT;
             }
         }
     }

@@ -3,6 +3,8 @@ package com.duriancare.farm.dto;
 import com.duriancare.farm.domain.TreeCarePlan;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
 
 public record TreeCarePlanResponse(
         String id,
@@ -15,6 +17,11 @@ public record TreeCarePlanResponse(
         LocalDate startDate,
         LocalDate followUpDate,
         String status,
+        String source,
+        String recommendationId,
+        Map<String, Object> recommendationSnapshot,
+        List<String> taskIds,
+        Instant acceptedAt,
         String createdByUserId,
         Instant createdAt,
         Instant updatedAt) {
@@ -25,6 +32,8 @@ public record TreeCarePlanResponse(
                 plan.diseaseCode(), plan.knowledgeArticleId(), plan.treatment(),
                 plan.startDate(), plan.followUpDate(),
                 plan.status() != null ? plan.status().name() : null,
+                plan.source(), plan.recommendationId(), plan.recommendationSnapshot(),
+                plan.taskIds(), plan.acceptedAt(),
                 plan.createdByUserId(), plan.createdAt(), plan.updatedAt());
     }
 }

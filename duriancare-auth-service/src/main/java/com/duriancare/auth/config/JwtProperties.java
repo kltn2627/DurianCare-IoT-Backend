@@ -11,7 +11,7 @@ public record JwtProperties(
         Duration refreshTokenTtl) {
 
     public JwtProperties {
-        if (secret == null || secret.length() < 64 || secret.startsWith("replace-with")) {
+        if (secret == null || secret.isBlank() || secret.length() < 64 || secret.startsWith("replace-with")) {
             throw new IllegalArgumentException("JWT secret must contain at least 64 non-placeholder characters");
         }
         if (issuer == null || issuer.isBlank()) {
