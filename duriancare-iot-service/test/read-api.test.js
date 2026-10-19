@@ -5,7 +5,8 @@ const express = require("express");
 const {
   parseHistoryRange,
   registerReadApi,
-  requireActor
+  requireActor,
+  toTelemetryResponse
 } = require("../src/read-api");
 
 describe("IoT read API helpers", () => {
@@ -45,6 +46,28 @@ describe("IoT read API helpers", () => {
 });
 
 describe("IoT read API authorization", () => {
+  it("protects legacy raw telemetry routes from missing identity and cross-farm access", async () => {
+    for (const route of ["latest", "history"]) {
+      const app = createTestApp({ allowedFarmIds: new Set(["farm-1"]), rowsByQuery: {find: [deviceRow({farm_id: "farm-2"})]} });
+      app.get(`/api/v1/sensors/${route}`, (_req, res) => res.json({ reached: true }));
+      assert.equal((await request(app, `/api/v1/sensors/${route}?device_id=esp32-1`, {auth: false})).status, 401);
+      assert.equal((await request(app, `/api/v1/sensors/${route}?device_id=esp32-1`)).status, 403);
+    }
+  });
+
+  it("does not treat an unmapped UID as evidence of ownership", async () => {
+    const app = createTestApp({ allowedFarmIds: new Set(["farm-1"]), rowsByQuery: {find: []} });
+    app.get("/api/v1/sensors/latest", (_req, res) => res.json({ reached: true }));
+    assert.equal((await request(app, "/api/v1/sensors/latest?device_id=esp32-1")).status, 404);
+  });
+
+  it("requires a device scope but permits authorized legacy reads", async () => {
+    const app = createTestApp({ allowedFarmIds: new Set(["farm-1"]), rowsByQuery: {find: [deviceRow()]} });
+    app.get("/api/v1/sensors/latest", (_req, res) => res.json({ reached: true }));
+    assert.equal((await request(app, "/api/v1/sensors/latest")).status, 400);
+    assert.equal((await request(app, "/api/v1/sensors/latest?device_id=ESP32-1")).body.reached, true);
+  });
+
   it("filters inaccessible devices from list", async () => {
     const app = createTestApp({
       allowedFarmIds: new Set(["farm-1"]),
@@ -94,6 +117,58 @@ describe("IoT read API authorization", () => {
     assert.equal(response.status, 200);
     assert.equal(response.body.telemetry.id, "reading-2");
     assert.equal(response.body.telemetry.temperature, 29.8);
+  });
+
+  it("matches registry device UIDs and telemetry IDs case-insensitively", async () => {
+    const app = createTestApp({
+      allowedFarmIds: new Set(["farm-1"]),
+      rowsByQuery: {
+        find: [deviceRow({ device_uid: "ESP32-01", farm_id: "farm-1", id: "dev-row-1" })],
+        latest: [
+          {
+            device_id: "esp32-01",
+            humidity: "83.5",
+            id: "reading-esp32",
+            light: null,
+            received_at: "2026-10-14T11:16:43.000Z",
+            soil_moisture: "92",
+            temperature: "33.5",
+            timestamp: "2026-10-14T11:16:42.481Z"
+          }
+        ]
+      }
+    });
+    const response = await request(app, "/api/iot/devices/esp32-01/telemetry/latest");
+    assert.equal(response.status, 200);
+    assert.equal(response.body.telemetry.deviceUid, "esp32-01");
+    assert.equal(response.body.telemetry.humidity, 83.5);
+    assert.equal(response.body.telemetry.soilMoisture, 92);
+    assert.equal(response.body.telemetry.status, "WET_WARNING");
+    assert.equal(
+      app.locals.sqlLog.some((sql) => /LOWER\(d\.device_uid\)\s*=\s*LOWER\(\$1\)/i.test(sql)),
+      true
+    );
+    assert.equal(
+      app.locals.sqlLog.some((sql) => /LOWER\(device_id\)\s*=\s*LOWER\(\$1\)/i.test(sql)),
+      true
+    );
+  });
+
+  it("normalizes legacy air_humidity telemetry payloads", () => {
+    const payload = toTelemetryResponse({
+      air_humidity: "83.5",
+      device_id: "esp32-01",
+      id: "reading-legacy",
+      light: null,
+      received_at: null,
+      soil_moisture: "57",
+      temperature: "33.5",
+      timestamp: "2026-10-14T11:16:42.481Z"
+    });
+    assert.equal(payload.humidity, 83.5);
+    assert.equal(payload.soilMoisture, 57);
+    assert.equal(payload.status, "DRY_WARNING");
+    assert.equal(payload.deviceUid, "esp32-01");
   });
 });
 

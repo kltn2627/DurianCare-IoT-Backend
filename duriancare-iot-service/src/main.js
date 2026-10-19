@@ -5,8 +5,11 @@ const cron    = require("node-cron");
 const { Kafka } = require("kafkajs");
 const { Pool }  = require("pg");
 const config    = require("./config");
+const { createUdpDiscoveryService } = require("./discovery/udpDiscoveryService");
 const { createCameraRouter } = require("./camera/cameraRoutes");
-const { loadAll: loadCameraSchedules } = require("./camera/cameraScheduler");
+const { loadAll: loadCameraSchedules, stopAll: stopCameraSchedules } = require("./camera/cameraScheduler");
+const backgroundWork = require("./workDrain").createWorkDrain();
+const { drainCaptures } = require("./camera/cameraService");
 const { markOfflineStaleCameras } = require("./camera/deviceService");
 const { createAssessmentRouter } = require("./export/assessmentRoutes");
 const { createPublicRouter }     = require("./public/publicRoutes");
@@ -25,6 +28,8 @@ const {
   runOfflineWatchdog,
   startOfflineWatchdogScheduler
 } = require("./iot-runtime");
+const { connectWithRetry } = require("./kafkaConnect");
+const { recordDeviceSeen, httpTelemetryEvent } = require("./telemetryRegistry");
 
 const app = express();
 app.use(express.json({ limit: "32kb" }));
@@ -63,7 +68,16 @@ const notificationPublisher = {
 
 let mqttClient;
 let kafkaProducerReady = false;
+let kafkaConnector;
 let offlineWatchdogScheduler;
+let httpServer;
+let udpDiscovery;
+let shuttingDown = false;
+let cameraOfflineTask;
+app.use((_request, response, next) => {
+  if (shuttingDown) return response.status(503).json({ error: "IoT service shutting down" });
+  next();
+});
 
 // ── Health ────────────────────────────────────────────────────────────────────
 
@@ -160,6 +174,10 @@ app.post("/api/v1/sensors/data", async (request, response) => {
     );
 
     const row = insertResult.rows[0];
+    // Same registry stamp as the MQTT path, so connectivity is ONLINE/STALE/OFFLINE, not UNKNOWN.
+    const registryDevice = await recordDeviceSeen({
+      pool, devicesTable, deviceId: device_id.trim(), receivedAt: now.toISOString()
+    });
 
     if (kafkaProducerReady) {
       try {
@@ -186,6 +204,14 @@ app.post("/api/v1/sensors/data", async (request, response) => {
       }
     }
 
+    // Same threshold engine (dedupe + recovery) as MQTT, only when explicitly enabled.
+    if (config.httpTelemetryAlertsEnabled) {
+      await evaluateAlertsForDevice(registryDevice, httpTelemetryEvent({
+        id: row.id, deviceId: row.device_id, temperature: temp, humidity: hum,
+        soilMoisture: soil, receivedAt: now.toISOString()
+      }));
+    }
+
     return response.status(201).json(formatRow(row));
   } catch (error) {
     console.error("Sensor data POST failed", error);
@@ -206,7 +232,7 @@ app.get("/api/v1/sensors/latest", async (request, response) => {
       result = await pool.query(
         `SELECT id, device_id, temperature, humidity, soil_moisture, "timestamp"
          FROM ${telemetryTable}
-         WHERE device_id = $1
+         WHERE LOWER(device_id) = LOWER($1)
          ORDER BY "timestamp" DESC
          LIMIT 1`,
         [device_id]
@@ -240,7 +266,7 @@ app.get("/api/v1/sensors/latest", async (request, response) => {
 app.get("/api/v1/sensors/history", async (request, response) => {
   try {
     const { device_id, from, to } = request.query;
-    const limit = Math.min(parseInt(request.query.limit, 10) || 50, 200);
+    const limit = Math.min(parseInt(request.query.limit, 10) || 50, 1000);
     const offset = Math.max(parseInt(request.query.offset, 10) || 0, 0);
 
     const conditions = [];
@@ -248,7 +274,7 @@ app.get("/api/v1/sensors/history", async (request, response) => {
 
     if (device_id) {
       params.push(device_id);
-      conditions.push(`device_id = $${params.length}`);
+      conditions.push(`LOWER(device_id) = LOWER($${params.length})`);
     }
     if (from) {
       const fromDate = new Date(from);
@@ -365,14 +391,9 @@ async function handleTelemetry(topic, payload) {
   );
   event.id = insertResult.rows[0].id;
 
-  const registryUpdate = await pool.query(
-    `UPDATE ${devicesTable}
-     SET last_seen_at = $2, updated_at = CURRENT_TIMESTAMP
-     WHERE device_uid = $1
-       AND status <> 'DELETED'
-     RETURNING id, device_uid, name, farm_id, cultivation_area_id, status, last_seen_at`,
-    [event.deviceId, event.receivedAt]
-  );
+  const registryDevice = await recordDeviceSeen({
+    pool, devicesTable, deviceId: event.deviceId, receivedAt: event.receivedAt
+  });
 
   if (kafkaProducerReady) {
     try {
@@ -385,21 +406,24 @@ async function handleTelemetry(topic, payload) {
     }
   }
 
-  if (registryUpdate.rowCount > 0) {
-    try {
-      await evaluateTelemetryAlerts({
-        alertsTable,
-        device: registryUpdate.rows[0],
-        farmAccessClient,
-        notificationPublisher,
-        pool,
-        telemetry: event,
-        thresholds: config.iotThresholds,
-        logger: console
-      });
-    } catch (error) {
-      console.error("IoT alert evaluation failed", error);
-    }
+  await evaluateAlertsForDevice(registryDevice, event);
+}
+
+async function evaluateAlertsForDevice(device, telemetry) {
+  if (!device) return;
+  try {
+    await evaluateTelemetryAlerts({
+      alertsTable,
+      device,
+      farmAccessClient,
+      notificationPublisher,
+      pool,
+      telemetry,
+      thresholds: config.iotThresholds,
+      logger: console
+    });
+  } catch (error) {
+    console.error("IoT alert evaluation failed", error);
   }
 }
 
@@ -426,8 +450,8 @@ function parseTimestamp(value) {
 
 function computeStatus(soilMoisture) {
   if (soilMoisture === null || soilMoisture === undefined) return null;
-  if (soilMoisture < 30) return "DRY_WARNING";
-  if (soilMoisture > 80) return "WET_WARNING";
+  if (soilMoisture < 60) return "DRY_WARNING";
+  if (soilMoisture > 85) return "WET_WARNING";
   return "OPTIMAL";
 }
 
@@ -436,6 +460,10 @@ function formatRow(row) {
     row.soil_moisture !== null && row.soil_moisture !== undefined
       ? Number(row.soil_moisture)
       : null;
+  const humidity =
+    row.humidity !== null && row.humidity !== undefined
+      ? Number(row.humidity)
+      : null;
   return {
     id: row.id,
     device_id: row.device_id,
@@ -443,10 +471,8 @@ function formatRow(row) {
       row.temperature !== null && row.temperature !== undefined
         ? Number(row.temperature)
         : null,
-    air_humidity:
-      row.humidity !== null && row.humidity !== undefined
-        ? Number(row.humidity)
-        : null,
+    air_humidity: humidity,
+    humidity,
     soil_moisture: soil,
     status: computeStatus(soil),
     timestamp: row.timestamp
@@ -461,15 +487,13 @@ async function start() {
   await ensureReadSchema(pool, devicesTable);
   await ensureAlertSchema(pool, alertsTable);
 
-  // Kafka is optional — if the broker is not reachable the service stays up and
-  // skips event publishing rather than crashing (common in local dev without Kafka).
-  try {
-    await producer.connect();
-    kafkaProducerReady = true;
-    console.log("[kafka] Producer connected");
-  } catch (err) {
-    console.warn("[kafka] Broker unavailable — telemetry events will not be published:", err.message);
-  }
+  // Kafka is optional — if the broker is not reachable the service stays up, skips event
+  // publishing meanwhile and keeps retrying in the background (see kafkaConnect.js).
+  kafkaConnector = connectWithRetry({
+    connect: () => producer.connect(),
+    onReady: () => { kafkaProducerReady = true; },
+  });
+  await kafkaConnector.started;
 
   offlineWatchdogScheduler = startOfflineWatchdogScheduler({
     alertsTable,
@@ -491,7 +515,7 @@ async function start() {
 
   // Offline detection: every 5 min mark cameras silent for longer than the
   // configured timeout as offline.
-  cron.schedule("*/5 * * * *", async () => {
+  cameraOfflineTask = cron.schedule("*/5 * * * *", () => backgroundWork.run(async () => {
     try {
       const count = await markOfflineStaleCameras(
         pool, postgresSchema, config.cameraOfflineTimeoutMinutes
@@ -502,14 +526,14 @@ async function start() {
     } catch (err) {
       console.warn("[camera-offline] Offline detection failed (non-fatal):", err.message);
     }
-  });
+  }));
 
   mqttClient = mqtt.connect(config.mqttUrl, {
     clientId: `duriancare-iot-${process.pid}`
   });
   mqttClient.on("connect", () => mqttClient.subscribe(config.mqttTopic));
   mqttClient.on("message", (topic, payload) => {
-    handleTelemetry(topic, payload).catch((error) => {
+    backgroundWork.run(() => handleTelemetry(topic, payload)).catch((error) => {
       console.error("Telemetry ingestion failed", error);
     });
   });
@@ -517,20 +541,42 @@ async function start() {
     console.error("MQTT connection failed", error)
   );
 
-  app.listen(config.port, () => {
+  httpServer = app.listen(config.port, () => {
     console.log(`DurianCare IoT service listening on port ${config.port}`);
+    udpDiscovery = createUdpDiscoveryService({ pool, schema: postgresSchema, servicePort: httpServer.address().port });
+    void udpDiscovery.startUdpDiscovery().catch(() => console.warn("[udp-discovery] Startup degraded"));
   });
+  httpServer.on("error", () => { console.error("IoT HTTP listener failed"); void shutdown(1); });
 }
 
-async function shutdown() {
-  if (offlineWatchdogScheduler) {
-    offlineWatchdogScheduler.stop();
+async function shutdown(exitCode = 0) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  // Docker grants 90s; bound shutdown when a dependency never settles.
+  const deadline = setTimeout(() => {
+    console.error("IoT shutdown deadline exceeded; unfinished work was not confirmed");
+    process.exit(1);
+  }, 75000);
+  backgroundWork.stop();
+  kafkaConnector?.stop();
+  cameraOfflineTask?.stop();
+  offlineWatchdogScheduler?.stop();
+  const scheduledDrain = stopCameraSchedules();
+  const discoveryDrain = udpDiscovery?.stopUdpDiscovery();
+  const mqttDrain = mqttClient ? new Promise(resolve => mqttClient.end(false, {}, resolve)) : Promise.resolve();
+  if (httpServer) {
+    httpServer.closeIdleConnections?.();
+    await new Promise(resolve => {
+      httpServer.close(resolve);
+    });
   }
-  if (mqttClient) {
-    mqttClient.end(true);
-  }
-  await Promise.allSettled([producer.disconnect(), pool.end()]);
-  process.exit(0);
+  await Promise.allSettled([scheduledDrain, discoveryDrain, mqttDrain,
+    backgroundWork.drain(), offlineWatchdogScheduler?.drain?.()]);
+  await drainCaptures();
+  await producer.disconnect().catch(() => {});
+  await pool.end();
+  clearTimeout(deadline);
+  process.exit(exitCode === 1 ? 1 : 0);
 }
 
 process.on("SIGINT", shutdown);

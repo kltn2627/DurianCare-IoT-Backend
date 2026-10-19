@@ -1,0 +1,9 @@
+# Opt-in only. Publishing UDP ports does not make bridge broadcasts reach the host LAN.
+services:
+  duriancare-iot-service:
+    ports:
+      - "4210:4210/udp"
+      - "4211:4211/udp"
+    environment:
+      HOST_OVERRIDE_IP: ${HOST_OVERRIDE_IP:-}
+      UDP_DISCOVERY_CAMERA_BINDINGS: ${UDP_DISCOVERY_CAMERA_BINDINGS:-}

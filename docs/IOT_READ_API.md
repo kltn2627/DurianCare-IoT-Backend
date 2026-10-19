@@ -196,3 +196,43 @@ The canonical schema change is `duriancare-iot-service/db/migration/V2__add_iot_
 - No aggregate tables for 5m/1h/1d were found.
 - Thresholds are system config defaults, not per-farm/per-device settings yet.
 - Runtime PostgreSQL E2E depends on a reachable local PostgreSQL instance.
+
+## Demo History Seed
+
+Historical demo telemetry is prepared manually, never at service startup. The script now defaults to dry-run and does NOT load application `.env` files or use the real device as a default:
+
+```powershell
+cd duriancare-iot-service
+$env:IOT_SEED_ACCOUNT_CREATED_AT='<verified UTC account creation timestamp>'
+$env:IOT_SEED_DEVICE_ID='demo-synthetic-sensors'
+node scripts\seed-iot-history.js
+```
+
+No timestamp is invented if the account date is missing. Read the actual Auth `users.created_at` first (stored UTC); do not change the account date. The current telemetry schema has no per-reading source/provenance field. Therefore synthetic writes into `esp32-01` or the real farm are rejected, not silently mixed with device measurements.
+
+Defaults:
+
+- `IOT_SEED_DEVICE_ID=demo-synthetic-sensors` (reserved synthetic prefix required)
+- `IOT_SEED_ACCOUNT_CREATED_AT` is mandatory; no fixed June fallback
+- `IOT_SEED_TO=<current time>`
+
+The seed creates 5-6 representative readings per day with local Vietnam daytime/nighttime variation, soil dry-down and irrigation/rain pulses. Its dry-run summary is explicitly `DEMO_SYNTHETIC`, reports candidates and zero writes. Future/invalid timestamps and excessive ranges are rejected.
+
+An operator-approved separate fixture is required before writing: `IOT_SEED_APPLY=true`, `IOT_SEED_ENVIRONMENT=test`, explicit process-local `IOT_SEED_FIXTURE_PG_URI`, schema `iot_demo_fixture_<suffix>`, `fixture-` farm and zone IDs, and an EXISTING active synthetic registry row whose name starts `DEMO_SYNTHETIC`. `IOT_SEED_OWNER_ID` must identify an active Farmer; the supplied start timestamp is checked against Auth using a UTC conversion. The script does not create devices, farms, schemas or accounts. It takes a transaction advisory lock, uses stable UUIDs and skips existing case-insensitive device/timestamp pairs. Failure rolls back the batch. Never supply connection strings/passwords through chat or logs.
+
+No fixture schema/registry was provisioned or seed write executed in the 2026-10-15 tree/sensor follow-up. Until a separate demonstrably synthetic environment is approved, historical business-device gaps remain missing data. UI ranges use UTC query bounds derived from `Asia/Ho_Chi_Minh` calendar boundaries; polling remains 8 seconds. Each API page is capped at 1,000 samples. Dashboard now reads additional existing legacy pages with a fixed `to`, validates device/date/ID consistency, and stops with an error above its 20,000-row safety bound. There is no aggregation API. If the protected legacy integration is absent (401/404), authorized registry results remain explicitly incomplete, not silently extrapolated. Removing ONLY the Web sensors beforeFiles rewrite allows these reads through the authenticated Gateway proxy; no camera rewrite was changed. The existing season shortcut still starts June 2026, not the account creation date.
+
+Soil-moisture status thresholds used by the REST telemetry response and Web chart are:
+
+- `< 60%`: `DRY_WARNING`
+- `60%..85%`: `OPTIMAL`
+- `> 85%`: `WET_WARNING`
+
+### Legacy GET Ownership Guard (2026-10-15)
+
+GET /api/v1/sensors/latest and /api/v1/sensors/history now require an authenticated actor,
+an explicit device_id, a registry mapping and farm/zone READ_IOT authorization. Missing identity
+returns 401; missing device ID 400; unmapped device 404; cross-scope access 403. Existing authorized
+response shapes are preserved. A user's sole farm does not establish ownership of an unmapped UID.
+This guard does not change ESP32 telemetry POST ingestion or prove physical capture/device security.
+IoT regression: 42 tests passed. See master acceptance report for runtime and hardware limitations.
