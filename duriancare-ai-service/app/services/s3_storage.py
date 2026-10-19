@@ -74,13 +74,17 @@ class S3ImageStorage:
                 Bucket=self.bucket_name,
                 Key=object_key,
             )
-            content_length = response.get("ContentLength")
-            if (
-                content_length is not None
-                and content_length > self.settings.max_image_size_bytes
-            ):
-                raise StorageError("S3 image exceeds the configured size limit")
-            content = response["Body"].read()
+            body = response["Body"]
+            try:
+                content_length = response.get("ContentLength")
+                if (
+                    content_length is not None
+                    and content_length > self.settings.max_image_size_bytes
+                ):
+                    raise StorageError("S3 image exceeds the configured size limit")
+                content = body.read(self.settings.max_image_size_bytes + 1)
+            finally:
+                body.close()
             if len(content) > self.settings.max_image_size_bytes:
                 raise StorageError("S3 image exceeds the configured size limit")
             content_type = response.get("ContentType", "application/octet-stream")
