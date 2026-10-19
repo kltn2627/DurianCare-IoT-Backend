@@ -6,6 +6,9 @@ const { getCameraConfig } = require("../config");
 const { resolveCameraUrl } = require("./deviceService");
 const work = require("../workDrain").createWorkDrain();
 
+// Farmers pick daily capture hours in Vietnam local time (Web UI: 6:00 – 16:00); the container runs in UTC.
+const SCHEDULE_TIMEZONE = "Asia/Ho_Chi_Minh";
+
 // deviceId → ScheduledTask[]
 const activeTasks = new Map();
 
@@ -38,7 +41,7 @@ function scheduleOne({ deviceId, cronExpression, pool, schema, serverBaseUrl, up
     } catch (err) {
       console.error(`[camera-scheduler] Scheduled capture failed for ${deviceId}:`, err.message);
     }
-  }));
+  }), { timezone: SCHEDULE_TIMEZONE });
 
   const list = activeTasks.get(deviceId) ?? [];
   list.push(task);
@@ -78,4 +81,4 @@ async function stopAll() {
   activeTasks.clear();
   await work.drain();
 }
-module.exports = { loadAll, reschedule, stopAll };
+module.exports = { loadAll, reschedule, stopAll, SCHEDULE_TIMEZONE };
