@@ -1,45 +1,160 @@
 name: Continuous Integration
 
+# PRs into dev/main are the gate; pushes to dev/main re-check the merged result.
+# Feature-branch pushes do not trigger runs (their PR does), avoiding duplicate work.
 on:
-  push:
-    branches:
-      - main
   pull_request:
     branches:
+      - dev
       - main
+  push:
+    branches:
+      - dev
+      - main
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   java-build:
-    name: Compile Spring Boot modules
+    name: Spring Boot modules (compile + unit tests)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
-      # Fetch the monorepo source code.
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Install JDK 22 and cache the local Maven repository.
-      - name: Set up JDK 22 with Maven cache
+      # Java 21 matches <java.version> in pom.xml and the eclipse-temurin-21 Dockerfiles.
+      - name: Set up JDK 21 with Maven cache
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "22"
+          java-version: "21"
           cache: maven
 
-      # Compile all modules declared by the parent POM.
-      # Integration tests are intentionally excluded from this CI stage.
-      - name: Compile Spring Boot modules
-        run: mvn --batch-mode --no-transfer-progress clean test-compile -DskipTests
+      # Runs every module's unit tests declared by the parent POM. They need no
+      # database, broker or production secrets (verified locally: 345 run, 7 skipped).
+      - name: Compile and test Spring Boot modules
+        run: mvn --batch-mode --no-transfer-progress clean test
+
+  iot-service:
+    name: IoT service (Node 20)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: duriancare-iot-service
+
+    # Ephemeral PostgreSQL so the isolated-fixture tests run instead of skipping.
+    # Throwaway CI container only; never a real database.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: camera_registry_fixture
+          POSTGRES_USER: fixture_runner
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U fixture_runner -d camera_registry_fixture"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20 with npm cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: duriancare-iot-service/package-lock.json
+
+      - name: Install dependencies (lockfile)
+        run: npm ci
+
+      - name: Syntax check
+        run: npm run check
+
+      - name: Unit and isolated-PostgreSQL tests
+        env:
+          DURIANCARE_CAMERA_FIXTURE_PG_URI: postgres://fixture_runner@localhost:5432/camera_registry_fixture
+        run: npm test
+
+  chat-service:
+    name: Chat service (Node 20)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: duriancare-chat-service
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20 with npm cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: duriancare-chat-service/package-lock.json
+
+      - name: Install dependencies (lockfile)
+        run: npm ci
+
+      - name: Type check
+        run: npm run check
+
+      - name: Build and security tests
+        run: npm run test:security
+
+  ai-service:
+    name: AI service unit tests (Python 3.12)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: duriancare-ai-service
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # The unit tests need only these packages (pinned from requirements.txt).
+      # The full requirements (PyTorch, YOLO, LangChain) are not installed here,
+      # so model inference and RAG with real models are NOT exercised in CI.
+      - name: Install unit-test dependencies (pinned from requirements.txt)
+        run: |
+          sed 's/^\xEF\xBB\xBF//' requirements.txt \
+            | grep -iE '^(fastapi|Pillow|psycopg|python-dotenv|opencv-python-headless)[=\[]' \
+            > /tmp/ci-test-requirements.txt
+          cat /tmp/ci-test-requirements.txt
+          python -m pip install --disable-pip-version-check -r /tmp/ci-test-requirements.txt
+
+      - name: Unit tests
+        run: python -m unittest discover -s tests -p "test_*.py" -v
 
   compose-validation:
     name: Validate Docker Compose
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
-      # Fetch infrastructure/docker-compose.yml and referenced local files.
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -52,3 +167,22 @@ jobs:
           --project-directory .
           -f infrastructure/docker-compose.yml
           config --quiet
+
+  docker-build:
+    name: Docker build (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - duriancare-iot-service
+          - duriancare-chat-service
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Build only; the image is not pushed anywhere.
+      - name: Build image (no push)
+        run: docker build --tag "ci/${{ matrix.service }}:${{ github.sha }}" "${{ matrix.service }}"
