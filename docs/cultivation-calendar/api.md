@@ -112,3 +112,33 @@ Source of truth remains farm-service:
 - Agricultural inputs and residue standards are global catalogs in the current model, not farm-scoped resources.
 - Cultivation season has no canonical catalog/entity. Season authorization is resolved from plans, activities, and harvest batches; empty/unresolvable season scope is not trusted.
 - Verification used the Maven installation bundled with IntelliJ IDEA because the repository has no Maven wrapper and no global `mvn` in PATH.
+
+## Current Contract Addendum - 2026-10-16
+
+This addendum supersedes the historical missing-season-catalog statement above: a canonical
+CultivationSeason catalog/controller now exists. Date-derived status/effectiveStatus remain separate
+from optional productionStatus. Existing stored seasons are not bulk backfilled.
+
+- POST /api/v1/export-releases/{id}/inspect accepts sourceRef, inspectedAt, phiChecked,
+  pestCheckPassed, qualityPassed and optional measuredBrix (0..100). Identity comes from Gateway;
+  no creator/reviewer ID is accepted by this request. A matching harvested lot and fresh compliance/PHI
+  checks determine INSPECTION_PENDING, NOT_ELIGIBLE or INSPECTED_PASSED.
+- POST /api/v1/export-releases/{id}/release retains the legacy APPROVED path and the new
+  INSPECTED_PASSED path. BOTH recheck current compliance and harvest PHI/date at first release.
+  RELEASED retry returns the persisted record without another write/assessment.
+- GET/POST /api/v1/harvest-batches/{id}/dispatch and POST .../dispatch/confirm retain measured
+  quantity, source-reference, chronology, released-dossier and persisted scope validation.
+- POST /api/v1/harvest-batches/{id}/dispatch/delivered accepts sourceRef and deliveredAt.
+  It requires a confirmed dispatch and valid chronology. Identical retries are idempotent;
+  optimistic delivery conflicts return 409. Shipping status is derived from persisted evidence,
+  independently of the ExportRelease RELEASED status.
+- GET /api/v1/harvest-batches/dispatch-summary?farmId=... excludes DEMO_SYNTHETIC sources.
+  No valid operational data means status=NO_VERIFIED_DATA and quantitiesByUnit/shippedByMonth=null.
+- PATCH /api/v1/cultivation-seasons/{id}/production-status accepts status and permits only
+  IN_PROGRESS -> HARVESTED -> COMPLETED with an authorized, positive, date-valid, matching
+  non-synthetic harvested lot. No release/dispatch action implicitly calls this endpoint.
+
+All endpoints retain farm/zone ownership/delegation checks and authenticated Gateway routing.
+Invalid business transitions continue to use the existing 400 response contract. QR/private snapshot
+reads are not public certification; synthetic fixture statuses never prove real shipments or lab results.
+See ../FINAL_TEAM_PUSH_READINESS_2026_10_16.md for actual test/runtime/deployment limits.
