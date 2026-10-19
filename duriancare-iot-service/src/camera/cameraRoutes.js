@@ -1,6 +1,5 @@
 "use strict";
 
-const dns     = require("dns");
 const fs      = require("fs");
 const path    = require("path");
 const http    = require("http");
@@ -8,56 +7,22 @@ const https   = require("https");
 const cron    = require("node-cron");
 const express = require("express");
 
-const { captureAndStore, listCaptures, listSchedules, replaceSchedules } = require("./cameraService");
+const { cameraDownloadLimits, captureAndStore, listCaptures, listSchedules, replaceSchedules } = require("./cameraService");
 const { reschedule } = require("./cameraScheduler");
 const { getCameraConfig } = require("../config");
-const { upsertCamera, resolveCameraUrl, getCamera, listCameras, assignTree, updateCameraUrl } = require("./deviceService");
+const { resolveCameraUrl, getCamera, listCameras, assignTree, updateCameraUrl } = require("./deviceService");
+const { cameraAccess, cameraView, cameraOrigin } = require("./registryRuntime");
 
-/**
- * Resolve a camera base URL, falling back to DEFAULT_ESP32_IP when the hostname
- * is a .local mDNS address that cannot be resolved (common inside Docker/NAT).
- */
 async function resolveCaptureUrl(camUrl, capPath) {
   if (!camUrl) return null;
-  const fullUrl = `${camUrl}${capPath}`;
-  const fallbackIp = process.env.DEFAULT_ESP32_IP;
-  if (!fallbackIp || !fullUrl.includes(".local")) return fullUrl;
-
-  try {
-    const parsed = new URL(fullUrl);
-    await new Promise((resolve, reject) =>
-      dns.lookup(parsed.hostname, (err, addr) => err ? reject(err) : resolve(addr)),
-    );
-    return fullUrl; // mDNS resolved OK
-  } catch (err) {
-    if (err.code === "ENOTFOUND") {
-      const parsed = new URL(fullUrl);
-      const replaced = fullUrl.replace(parsed.hostname, fallbackIp);
-      console.warn(`[camera] mDNS ${parsed.hostname} not found — using ${fallbackIp}`);
-      return replaced;
-    }
-    return fullUrl;
-  }
+  if (typeof capPath !== "string" || (capPath !== "" && !new RegExp("^/[A-Za-z0-9/_-]*$").test(capPath))) throw new Error("Invalid capture path");
+  return `${camUrl}${capPath}`;
 }
 
-/**
- * Parse a URL string and return { hostname, port } or null on failure.
- */
-function parseBaseUrl(urlStr) {
-  try {
-    const p = new URL(urlStr);
-    return {
-      hostname: p.hostname,
-      port: p.port ? parseInt(p.port, 10) : (p.protocol === "https:" ? 443 : 80),
-      protocol: p.protocol.replace(":", ""),
-    };
-  } catch {
-    return null;
-  }
-}
 
-function createCameraRouter({ pool, schema, esp32CameraUrl, esp32CapturePath, serverBaseUrl, uploadsDir, aiServiceUrl }) {
+function createCameraRouter({ pool, schema, esp32CameraUrl, esp32CapturePath, serverBaseUrl, uploadsDir, aiServiceUrl, farmAccessClient }) {
   const router = express.Router();
+  router.use(cameraAccess({ pool, schema, farmAccessClient }));
 
   // ── POST /capture-now ──────────────────────────────────────────────────────
   router.post("/capture-now", async (req, res) => {
@@ -65,23 +30,16 @@ function createCameraRouter({ pool, schema, esp32CameraUrl, esp32CapturePath, se
     const { esp32CameraUrl: fallbackUrl, esp32CapturePath: capPath } = getCameraConfig();
     const { url: camUrl, found } = await resolveCameraUrl(pool, schema, deviceId, fallbackUrl);
 
-    // Auto-register unknown device with fallback URL so it becomes trackable
-    if (!found && fallbackUrl) {
-      const parsed = parseBaseUrl(fallbackUrl);
-      if (parsed) {
-        upsertCamera(pool, schema, { deviceId, ipAddress: parsed.hostname, port: parsed.port, protocol: parsed.protocol })
-          .catch((e) => console.warn("[camera] auto-register failed:", e.message));
-      }
-    }
 
     try {
-      // Apply mDNS fallback to the base camera URL before passing to captureAndStore
-      const resolvedBase = await resolveCaptureUrl(camUrl, "").replace(/\/$/, "");
+      if (req.cameraDevice.status !== "ONLINE") return res.status(503).json({ error: "Camera heartbeat is stale", code: "CAMERA_OFFLINE" });
+      // The registry origin is authoritative, including for mDNS names.
+      const resolvedBase = (await resolveCaptureUrl(camUrl, ""))?.replace(/\/$/, "");
       const capture = await captureAndStore({ pool, schema, deviceId, captureType: "MANUAL", esp32CameraUrl: resolvedBase, esp32CapturePath: capPath, serverBaseUrl, uploadsDir, aiServiceUrl });
       return res.status(201).json(capture);
     } catch (err) {
       console.error("[camera] Capture failed:", err.message);
-      return res.status(502).json({ error: `Capture failed: ${err.message}` });
+      return res.status(502).json({ error: "Camera capture unavailable", code: "CAMERA_CAPTURE_FAILED" });
     }
   });
 
@@ -98,15 +56,14 @@ function createCameraRouter({ pool, schema, esp32CameraUrl, esp32CapturePath, se
 
   // Per-device snapshot state: deviceId → { inFlight, lastBuf, lastAt }
   const deviceSnaps = new Map();
-  function getSnapState(deviceId) {
-    if (!deviceSnaps.has(deviceId)) {
-      deviceSnaps.set(deviceId, { inFlight: false, lastBuf: null, lastAt: 0 });
+  function getSnapState(deviceId, sourceUrl) {
+    if (!deviceSnaps.has(deviceId) || deviceSnaps.get(deviceId).sourceUrl !== sourceUrl) {
+      deviceSnaps.set(deviceId, { sourceUrl, inFlight: false, lastBuf: null, lastAt: 0 });
     }
     return deviceSnaps.get(deviceId);
   }
 
   const CACHE_TTL    =  4_000;  // serve cached frame for up to 4 s
-  const SNAP_TIMEOUT = 12_000;  // abort if ESP32-CAM takes longer than 12 s
 
   function serveLastFrame(res, buf) {
     res.setHeader("Content-Type", "image/jpeg");
@@ -117,8 +74,11 @@ function createCameraRouter({ pool, schema, esp32CameraUrl, esp32CapturePath, se
 
   router.get("/snapshot", async (req, res) => {
     const deviceId = (req.query.device_id || "ESP32-CAM-001").trim();
-    const snap = getSnapState(deviceId);
+    const { esp32CameraUrl: fallbackUrl, esp32CapturePath: capPath } = getCameraConfig();
+    const { url: camUrl, online, found } = await resolveCameraUrl(pool, schema, deviceId, fallbackUrl);
+    const snap = getSnapState(deviceId, camUrl);
     const now = Date.now();
+    if (req.cameraDevice.status !== "ONLINE") return res.status(503).json({ error: "Camera heartbeat is stale", code: "CAMERA_OFFLINE" });
 
     // Serve cache if fresh and not mid-download
     if (snap.lastBuf && !snap.inFlight && (now - snap.lastAt) < CACHE_TTL) {
@@ -127,44 +87,23 @@ function createCameraRouter({ pool, schema, esp32CameraUrl, esp32CapturePath, se
 
     // Another download is already running — return cached frame (or 503)
     if (snap.inFlight) {
-      if (snap.lastBuf) return serveLastFrame(res, snap.lastBuf);
+      if (snap.lastBuf && now - snap.lastAt < CACHE_TTL) return serveLastFrame(res, snap.lastBuf);
       return res.status(503).json({ error: "Camera snapshot in progress — retry shortly" });
-    }
-
-    // Resolve runtime camera URL from DB; fall back to env config
-    const { esp32CameraUrl: fallbackUrl, esp32CapturePath: capPath } = getCameraConfig();
-    const { url: camUrl, online, found } = await resolveCameraUrl(pool, schema, deviceId, fallbackUrl);
-
-    // Serve stale cache immediately when device is known-offline and we have a recent frame.
-    // Do NOT return 503 — fall through to attempt a live fetch regardless of online flag,
-    // because the DB status may lag behind the camera's actual state.
-    if (found && !online && snap.lastBuf) {
-      return serveLastFrame(res, snap.lastBuf);
-    }
-
-    // Auto-register unknown device with fallback URL so it becomes trackable in DB
-    const snapState = snap; // captured for async callback
-    if (!found && fallbackUrl && !snapState._autoRegistered) {
-      snapState._autoRegistered = true;
-      const parsed = parseBaseUrl(fallbackUrl);
-      if (parsed) {
-        upsertCamera(pool, schema, { deviceId, ipAddress: parsed.hostname, port: parsed.port, protocol: parsed.protocol })
-          .catch((e) => console.warn("[camera] auto-register failed:", e.message));
-      }
     }
 
     const captureUrl = await resolveCaptureUrl(camUrl, capPath);
     if (!captureUrl) {
-      return res.status(503).json({ error: "Camera URL chưa được cấu hình. Vui lòng đặt ESP32_CAMERA_URL trong biến môi trường." });
+      return res.status(503).json({ error: "Camera endpoint unavailable", code: "CAMERA_UNAVAILABLE" });
     }
 
     snap.inFlight = true;
     let done = false;
+    const { idleMs, totalMs } = cameraDownloadLimits();  // same idle vs total rule as capture
 
     const client = captureUrl.startsWith("https") ? https : http;
 
     const proxyReq = client.get(captureUrl, {
-      timeout: SNAP_TIMEOUT,
+      timeout: idleMs,
       headers: { Connection: "close", Accept: "image/jpeg" },
     }, (proxyRes) => {
       if (proxyRes.statusCode !== 200) {
@@ -176,23 +115,34 @@ function createCameraRouter({ pool, schema, esp32CameraUrl, esp32CapturePath, se
 
       // Collect full JPEG into memory — never pipe a partial stream to the client
       const chunks = [];
-      proxyRes.on("data", (chunk) => chunks.push(chunk));
-      proxyRes.on("end", () => {
+      let bytes = 0;
+      proxyRes.on("data", (chunk) => {
+        bytes += chunk.length;
+        if (bytes > 4 * 1024 * 1024) return proxyRes.destroy(new Error("Camera frame too large"));
+        chunks.push(chunk);
+      });
+      proxyRes.on("end", async () => {
         if (done) return;
         done = true;
         snap.inFlight = false;
         const buf = Buffer.concat(chunks);
-        if (buf.length > 0) { snap.lastBuf = buf; snap.lastAt = Date.now(); }
         if (res.headersSent) return;
         if (buf.length === 0) {
-          console.warn(`[camera] empty frame from ESP32-CAM — device=${deviceId} url=${captureUrl}`);
           return res.status(502).json({ error: "Empty frame from ESP32-CAM" });
         }
-        const isJpeg = buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF;
+        const isJpeg = buf.length >= 4 && buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF &&
+          buf[buf.length - 2] === 0xFF && buf[buf.length - 1] === 0xD9 &&
+          (proxyRes.headers["content-type"] || "").split(";", 1)[0].trim().toLowerCase() === "image/jpeg";
         if (!isJpeg) {
           console.warn(`[camera] non-JPEG body from ESP32-CAM — device=${deviceId} first=[${buf.slice(0,4).toString("hex")}]`);
           return res.status(502).json({ error: "Non-JPEG response from ESP32-CAM" });
         }
+        try {
+          const current = await resolveCameraUrl(pool, schema, deviceId);
+          if (current.url !== camUrl || !current.online) return res.status(503).json({ error: "Camera endpoint changed", code: "CAMERA_ENDPOINT_CHANGED" });
+        } catch { return res.status(503).json({ error: "Camera registry unavailable" }); }
+        snap.lastBuf = buf;
+        snap.lastAt = Date.now();
         console.log(`[camera] snapshot OK — device=${deviceId} bytes=${buf.length}`);
         res.setHeader("Content-Type", proxyRes.headers["content-type"] || "image/jpeg");
         res.setHeader("Cache-Control", "no-cache, no-store");
@@ -202,8 +152,7 @@ function createCameraRouter({ pool, schema, esp32CameraUrl, esp32CapturePath, se
         if (done) return;
         done = true;
         snap.inFlight = false;
-        if (snap.lastBuf && !res.headersSent) return serveLastFrame(res, snap.lastBuf);
-        if (!res.headersSent) res.status(502).json({ error: `Stream error: ${err.message}` });
+        if (!res.headersSent) res.status(502).json({ error: "Camera response interrupted", code: "CAMERA_RESPONSE_FAILED" });
       });
     });
 
@@ -211,8 +160,7 @@ function createCameraRouter({ pool, schema, esp32CameraUrl, esp32CapturePath, se
       if (done) return;
       done = true;
       snap.inFlight = false;
-      if (snap.lastBuf && !res.headersSent) return serveLastFrame(res, snap.lastBuf);
-      if (!res.headersSent) res.status(502).json({ error: `Snapshot unavailable: ${err.message}` });
+      if (!res.headersSent) res.status(502).json({ error: "Camera snapshot unavailable", code: "CAMERA_UNREACHABLE" });
     });
 
     proxyReq.on("timeout", () => {
@@ -220,15 +168,15 @@ function createCameraRouter({ pool, schema, esp32CameraUrl, esp32CapturePath, se
       done = true;
       snap.inFlight = false;
       proxyReq.destroy();
-      console.warn(`[camera] snapshot timeout after ${SNAP_TIMEOUT}ms — device=${deviceId} url=${captureUrl}`);
-      if (snap.lastBuf && !res.headersSent) return serveLastFrame(res, snap.lastBuf);
-      if (!res.headersSent) res.status(504).json({ error: "ESP32-CAM snapshot timed out", device: deviceId, url: captureUrl });
+      if (!res.headersSent) res.status(504).json({ error: "Camera snapshot timed out", code: "CAMERA_TIMEOUT" });
     });
 
+    const deadline = setTimeout(() => proxyReq.destroy(new Error("Camera snapshot deadline exceeded")), totalMs);
+    proxyReq.once("close", () => clearTimeout(deadline));
     req.on("close", () => { if (!done) proxyReq.destroy(); });
   });
 
-  // ── GET /image/:filename — serve stored images (public, no auth) ───────────
+  // ── GET /image/:filename — stored images; identity + farm scope enforced in cameraAccess ──
   router.get("/image/:filename", (req, res) => {
     const filename = path.basename(req.params.filename);
     if (!/^cam_\d+\.jpg$/.test(filename)) {
@@ -239,7 +187,7 @@ function createCameraRouter({ pool, schema, esp32CameraUrl, esp32CapturePath, se
       return res.status(404).json({ error: "Image not found" });
     }
     res.setHeader("Content-Type", "image/jpeg");
-    res.setHeader("Cache-Control", "public, max-age=86400");
+    res.setHeader("Cache-Control", "private, max-age=86400");
     return res.sendFile(filepath);
   });
 
@@ -281,7 +229,7 @@ function createCameraRouter({ pool, schema, esp32CameraUrl, esp32CapturePath, se
     try {
       const device = await getCamera(pool, schema, req.params.deviceId);
       if (!device) return res.status(404).json({ error: "Camera not found" });
-      return res.json({ device });
+      return res.json({ device: cameraView(device) });
     } catch (err) {
       console.error("[camera] Get device failed:", err.message);
       return res.status(500).json({ error: "Failed to get camera device" });
@@ -318,6 +266,7 @@ function createCameraRouter({ pool, schema, esp32CameraUrl, esp32CapturePath, se
 
     let parsed;
     try {
+      cameraOrigin(camera_url.trim());
       parsed = new URL(camera_url.trim());
     } catch {
       return res.status(400).json({ error: "camera_url must be a valid URL (e.g. http://192.168.1.137 or http://192.168.1.137:81)" });
@@ -333,16 +282,10 @@ function createCameraRouter({ pool, schema, esp32CameraUrl, esp32CapturePath, se
     }
 
     try {
-      let device = await updateCameraUrl(pool, schema, device_id.trim(), { ipAddress, port });
-      if (!device) {
-        // Device not in DB yet — auto-register with the provided IP
-        device = await upsertCamera(pool, schema, {
-          deviceId: device_id.trim(),
-          ipAddress,
-          port,
-          protocol: parsed.protocol.replace(":", ""),
-        });
-      }
+      const device = await updateCameraUrl(pool, schema, device_id.trim(), { ipAddress, port, protocol: parsed.protocol.slice(0, -1),
+        expectedFarmId: req.cameraDevice.farm_id, expectedOrigin: { ipAddress: req.cameraDevice.ip_address,
+          port: Number(req.cameraDevice.port), protocol: req.cameraDevice.protocol } });
+      if (!device) return res.status(409).json({ error: "Camera endpoint changed; reload registry" });
       const resolvedUrl = `${parsed.protocol}//${device.ip_address}:${device.port}`;
       console.log(`[camera] config updated — device=${device.device_id} ip=${device.ip_address} port=${device.port}`);
       return res.json({ device, camera_url: resolvedUrl });

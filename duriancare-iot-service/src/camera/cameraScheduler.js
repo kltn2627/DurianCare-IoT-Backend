@@ -4,6 +4,7 @@ const cron = require("node-cron");
 const { captureAndStore } = require("./cameraService");
 const { getCameraConfig } = require("../config");
 const { resolveCameraUrl } = require("./deviceService");
+const work = require("../workDrain").createWorkDrain();
 
 // deviceId → ScheduledTask[]
 const activeTasks = new Map();
@@ -20,14 +21,14 @@ function scheduleOne({ deviceId, cronExpression, pool, schema, serverBaseUrl, up
     return;
   }
 
-  const task = cron.schedule(cronExpression, async () => {
-    const { esp32CameraUrl: fallbackUrl, esp32CapturePath } = getCameraConfig();
-    const { url: esp32CameraUrl, online, found } = await resolveCameraUrl(pool, schema, deviceId, fallbackUrl);
-    if (found && !online) {
-      console.log(`[camera-scheduler] Camera ${deviceId} is offline — skipping scheduled capture`);
-      return;
-    }
+  const task = cron.schedule(cronExpression, () => work.run(async () => {
     try {
+      const { esp32CameraUrl: fallbackUrl, esp32CapturePath } = getCameraConfig();
+      const { url: esp32CameraUrl, online, found } = await resolveCameraUrl(pool, schema, deviceId, fallbackUrl);
+      if (!esp32CameraUrl || (found && !online)) {
+        console.log(`[camera-scheduler] Camera ${deviceId} is offline — skipping scheduled capture`);
+        return;
+      }
       await captureAndStore({
         pool, schema, deviceId,
         captureType: "SCHEDULED",
@@ -37,7 +38,7 @@ function scheduleOne({ deviceId, cronExpression, pool, schema, serverBaseUrl, up
     } catch (err) {
       console.error(`[camera-scheduler] Scheduled capture failed for ${deviceId}:`, err.message);
     }
-  });
+  }));
 
   const list = activeTasks.get(deviceId) ?? [];
   list.push(task);
@@ -71,4 +72,10 @@ function reschedule({ deviceId, schedules, pool, schema, serverBaseUrl, uploadsD
   }
 }
 
-module.exports = { loadAll, reschedule };
+async function stopAll() {
+  work.stop();
+  for (const deviceId of activeTasks.keys()) clearDevice(deviceId);
+  activeTasks.clear();
+  await work.drain();
+}
+module.exports = { loadAll, reschedule, stopAll };

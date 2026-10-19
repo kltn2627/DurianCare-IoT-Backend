@@ -59,10 +59,11 @@ function startOfflineWatchdogScheduler({
   pool
 }) {
   const intervalMs = Math.round(healthConfig.offlineWatchdogIntervalSeconds * 1000);
+  const work = require("./workDrain").createWorkDrain();
   if (!Number.isFinite(intervalMs) || intervalMs <= 0) {
     throw new Error("IOT_OFFLINE_WATCHDOG_INTERVAL_SECONDS must be a positive number");
   }
-  const run = () =>
+  const run = () => work.run(() =>
     runOfflineWatchdog({
       alertsTable,
       devicesTable,
@@ -74,7 +75,7 @@ function startOfflineWatchdogScheduler({
       pool
     }).catch((error) => {
       logger.error("iot.offlineWatchdog.failed", { message: error.message });
-    });
+    }));
   const timer = setInterval(run, intervalMs);
   if (typeof timer.unref === "function") {
     timer.unref();
@@ -85,7 +86,9 @@ function startOfflineWatchdogScheduler({
     intervalMs,
     stop() {
       clearInterval(timer);
-    }
+      work.stop();
+    },
+    drain: () => work.drain()
   };
 }
 
