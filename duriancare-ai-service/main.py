@@ -13,6 +13,7 @@ from app.api.chat import router as chat_router
 from app.api.admin_rag import router as admin_rag_router
 from app.api.rag import router as rag_router
 from app.api.predict import router as prediction_router
+from app.api.recommendations import router as recommendations_router
 from app.db.migration_runner import run_ai_database_migrations
 from app.decision.decision_service import DecisionSupportService
 from app.core.config import settings
@@ -342,6 +343,7 @@ async def trace_prediction_transport(request: Request, call_next):
 
 
 app.include_router(prediction_router)
+app.include_router(recommendations_router)
 app.include_router(chat_router)
 app.include_router(rag_router)
 app.include_router(admin_rag_router)

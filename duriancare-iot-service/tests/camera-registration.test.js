@@ -8,21 +8,19 @@
  * needed — all HTTP calls are simulated by calling the service functions
  * directly.
  *
- * Requirements:
- *   POSTGRES_HOST / POSTGRES_PORT / POSTGRES_DB / POSTGRES_USER /
- *   POSTGRES_PASSWORD / POSTGRES_SCHEMA must be set in the environment
- *   (or use the defaults that match docker-compose.yml).
- *   V9 migration must have been applied before running these tests.
+ * Requires explicit DURIANCARE_CAMERA_FIXTURE_PG_URI, supplied securely by the operator.
+ * Uses the actual V9 schema in a UUID namespace within a rollback-only transaction.
+ * Never defaults to or performs a global watchdog update on the business schema.
  *
  * Run:
  *   node tests/camera-registration.test.js
  */
 
-// dotenv is optional — env vars can also be set by the caller before running.
-try { require("dotenv").config({ path: "../infrastructure/.env" }); } catch (_) {}
-
 const assert = require("assert/strict");
 const { Pool } = require("pg");
+const { randomUUID } = require("node:crypto");
+const { test } = require("node:test");
+const { createCameraFixtureSchema } = require("../test-support/camera-schema.cjs");
 const {
   upsertCamera,
   heartbeat,
@@ -31,17 +29,12 @@ const {
   assignTree,
   markOfflineStaleCameras,
   resolveCameraUrl,
+  updateCameraUrl,
 } = require("../src/camera/deviceService");
 
-const schema = process.env.POSTGRES_SCHEMA || "duriancare_iot";
-
-const pool = new Pool({
-  host:     process.env.POSTGRES_HOST     || "localhost",
-  port:     Number(process.env.POSTGRES_PORT || 5432),
-  database: process.env.POSTGRES_DB       || "duriancare",
-  user:     process.env.POSTGRES_USER     || "duriancare",
-  password: process.env.POSTGRES_PASSWORD || "",
-});
+const schema = "camera_fixture_" + randomUUID().replaceAll("-", "");
+let client;
+const pool = { query: (...args) => client.query(...args) };
 
 // Unique prefix so tests don't collide with production device IDs
 const PREFIX = `test-cam-${Date.now()}`;
@@ -65,8 +58,8 @@ async function run(label, fn) {
 
 async function cleanup() {
   await pool.query(
-    `DELETE FROM "${schema}".camera_devices WHERE device_id LIKE $1`,
-    [`${PREFIX}%`],
+    `DELETE FROM "${schema}".camera_devices WHERE device_id = ANY($1::text[])`,
+    [[DEV_A, DEV_B]],
   );
 }
 
@@ -79,7 +72,7 @@ async function main() {
     await pool.query("SELECT 1"); // connection smoke-test
   } catch (err) {
     console.error("Cannot connect to PostgreSQL:", err.message);
-    process.exit(1);
+    throw new Error("Fixture database unavailable");
   }
 
   // Clean up any leftovers from a previous interrupted run
@@ -201,15 +194,43 @@ async function main() {
     assert.notEqual(camA.online, camB.online, "Camera A should be online, B offline");
   });
 
+  await run("TC-09 Guarded URL update: existing owner only, retry and stale origin CAS", async () => {
+    const current = await getCamera(pool, schema, DEV_A);
+    const update = { ipAddress: "192.168.9.3", port: 81, protocol: "https", expectedFarmId: "farm-01",
+      expectedOrigin: { ipAddress: current.ip_address, port: current.port, protocol: current.protocol } };
+    assert.equal(await updateCameraUrl(pool, schema, "unknown-fixture", update), null);
+    assert.equal(await updateCameraUrl(pool, schema, DEV_A, { ...update, expectedFarmId: "foreign-farm" }), null);
+    const saved = await updateCameraUrl(pool, schema, DEV_A, update);
+    assert.equal(saved.ip_address, "192.168.9.3");
+    assert.equal((await resolveCameraUrl(pool, schema, DEV_A)).url, "https://192.168.9.3:81");
+    assert.equal(await updateCameraUrl(pool, schema, DEV_A, update), null);
+    assert.equal(await updateCameraUrl(pool, schema, DEV_A, { ...update, ipAddress: "192.168.9.4" }), null);
+    await assert.rejects(updateCameraUrl(pool, schema, DEV_A, { ...update, protocol: "file" }));
+  });
+
   // ── Cleanup ─────────────────────────────────────────────────────────────────
   await cleanup();
-  await pool.end();
 
   console.log(`\nResults: ${passed} passed, ${failed} failed\n`);
-  process.exit(failed > 0 ? 1 : 0);
+  assert.equal(failed, 0, "camera fixture cases failed");
 }
 
-main().catch((err) => {
-  console.error("Unexpected error:", err);
-  process.exit(1);
+test("camera registration/heartbeat: nine cases in a rollback-only isolated schema", {
+  skip: !process.env.DURIANCARE_CAMERA_FIXTURE_PG_URI && "DURIANCARE_CAMERA_FIXTURE_PG_URI required",
+}, async () => {
+  const connectionPool = new Pool({ connectionString: process.env.DURIANCARE_CAMERA_FIXTURE_PG_URI });
+  try {
+    client = await connectionPool.connect();
+    await client.query("BEGIN");
+    await createCameraFixtureSchema(client, schema);
+    await main();
+  } finally {
+    if (client) {
+      await client.query("ROLLBACK");
+      const result = await client.query("SELECT 1 FROM information_schema.schemata WHERE schema_name=$1", [schema]);
+      assert.equal(result.rows.length, 0);
+      client.release();
+    }
+    await connectionPool.end();
+  }
 });

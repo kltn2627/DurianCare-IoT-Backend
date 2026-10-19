@@ -1,9 +1,14 @@
 "use strict";
 
+const crypto = require("crypto");
 const fs    = require("fs");
 const path  = require("path");
 const http  = require("http");
 const https = require("https");
+const captures = require("../workDrain").createWorkDrain();
+let stopping = false;
+// Captures are stored only on the local uploads volume; the IoT service has no S3 path.
+const STORAGE_LOCAL = "LOCAL";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -13,26 +18,55 @@ function ensureCameraDir(uploadsDir) {
   return dir;
 }
 
+// Two separate limits: an idle limit (no connect / no bytes for N ms) catches a dead or stalled camera,
+// while a larger total cap still bounds the request. A weak Wi-Fi link can deliver a valid UXGA frame
+// slowly (measured 2026-10-18: first byte 0.17 s, 66.5 KB in 7.1 s), which a 10 s total cap cut off.
+function cameraDownloadLimits() {
+  const idleMs = Number(process.env.CAMERA_DOWNLOAD_IDLE_MS) || 10_000;
+  const totalMs = Number(process.env.CAMERA_DOWNLOAD_TOTAL_MS) || 30_000;
+  return { idleMs, totalMs: Math.max(totalMs, idleMs) };
+}
+
 function downloadImageBuffer(url) {
+  const { idleMs, totalMs } = cameraDownloadLimits();
   return new Promise((resolve, reject) => {
     const client = url.startsWith("https") ? https : http;
     const req = client.get(url, {
-      timeout: 10_000,
+      timeout: idleMs,
       headers: { Connection: "close", Accept: "image/jpeg" },
     }, (res) => {
       if (res.statusCode !== 200) {
         res.resume();
         return reject(new Error(`ESP32-CAM returned HTTP ${res.statusCode}`));
       }
+      if ((res.headers["content-type"] || "").split(";", 1)[0].trim().toLowerCase() !== "image/jpeg") {
+        res.resume();
+        return reject(new Error("ESP32-CAM did not return image/jpeg"));
+      }
       const chunks = [];
-      res.on("data", (chunk) => chunks.push(chunk));
-      res.on("end",  ()      => resolve(Buffer.concat(chunks)));
+      let bytes = 0;
+      res.on("data", (chunk) => {
+        bytes += chunk.length;
+        if (bytes > 4 * 1024 * 1024) return res.destroy(new Error("Camera frame too large"));
+        chunks.push(chunk);
+      });
+      res.on("end", () => {
+        const buffer = Buffer.concat(chunks);
+        if (buffer.length < 4 || buffer[0] !== 0xFF || buffer[1] !== 0xD8 ||
+            buffer[2] !== 0xFF || buffer[buffer.length - 2] !== 0xFF || buffer[buffer.length - 1] !== 0xD9) {
+          return reject(new Error("ESP32-CAM returned an empty or incomplete JPEG frame"));
+        }
+        resolve(buffer);
+      });
       res.on("error", reject);
     });
     req.on("error", reject);
+    const deadline = setTimeout(
+      () => req.destroy(new Error(`ESP32-CAM transfer exceeded ${totalMs} ms total`)), totalMs);
+    req.once("close", () => clearTimeout(deadline));
     req.on("timeout", () => {
       req.destroy();
-      reject(new Error("ESP32-CAM connection timed out"));
+      reject(new Error(`ESP32-CAM connection timed out (no data for ${idleMs} ms)`));
     });
   });
 }
@@ -92,30 +126,59 @@ const CAPTURE_COLS =
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
-async function captureAndStore({
+function captureAndStore(options) {
+  if (stopping) return Promise.reject(new Error("Camera service shutting down"));
+  return captures.run(() => persistCapture(options));
+}
+
+async function drainCaptures() {
+  stopping = true;
+  captures.stop();
+  await captures.drain();
+}
+
+async function persistCapture({
   pool, schema, deviceId, captureType,
   esp32CameraUrl, esp32CapturePath, serverBaseUrl, uploadsDir, aiServiceUrl,
 }) {
   const cameraDir = ensureCameraDir(uploadsDir);
-  const filename  = `cam_${Date.now()}.jpg`;
+  // Digits only (route accepts ^cam_\d+\.jpg$); random suffix avoids same-millisecond collisions.
+  const filename  = `cam_${Date.now()}${String(crypto.randomInt(0, 1_000_000)).padStart(6, "0")}.jpg`;
   const filepath  = path.join(cameraDir, filename);
 
+  const downloadStarted = Date.now();
   const buf = await downloadImageBuffer(`${esp32CameraUrl}${esp32CapturePath}`);
-  fs.writeFileSync(filepath, buf);
+  console.log(`[camera] frame received device=${deviceId} bytes=${buf.length} ms=${Date.now() - downloadStarted}`);
+  // Local persistent storage (uploads volume). Write to a temp file and rename so a crash never
+  // leaves a partial JPEG under the served name.
+  const tmpPath = `${filepath}.${process.pid}.tmp`;
+  try {
+    fs.writeFileSync(tmpPath, buf, { flag: "wx" });
+    fs.renameSync(tmpPath, filepath);
+  } catch (err) {
+    fs.rmSync(tmpPath, { force: true });
+    throw new Error(`Local image storage failed: ${err.code || err.message}`);
+  }
 
   const imageUrl   = `${serverBaseUrl}/api/v1/camera/image/${filename}`;
   const capturedAt = new Date().toISOString();
 
   // Insert with PROCESSING status so frontend can show a spinner immediately.
   const initStatus = aiServiceUrl ? "PROCESSING" : null;
-  const { rows } = await pool.query(
-    `INSERT INTO "${schema}".camera_captures
-       (device_id, image_url, capture_type, captured_at, ai_status)
-     VALUES ($1, $2, $3, $4, $5)
-     RETURNING ${CAPTURE_COLS}`,
-    [deviceId, imageUrl, captureType, capturedAt, initStatus],
-  );
-  const capture = rows[0];
+  let capture;
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO "${schema}".camera_captures
+         (device_id, image_url, capture_type, captured_at, ai_status)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING ${CAPTURE_COLS}`,
+      [deviceId, imageUrl, captureType, capturedAt, initStatus],
+    );
+    capture = { ...rows[0], storage: STORAGE_LOCAL };
+  } catch (err) {
+    fs.rmSync(filepath, { force: true });  // no orphan file without a record
+    throw err;
+  }
 
   if (!aiServiceUrl) return capture;
 
@@ -132,7 +195,7 @@ async function captureAndStore({
        RETURNING ${CAPTURE_COLS}`,
       [ai.disease_detected, ai.confidence_score, JSON.stringify(ai.diagnosis_result), capture.id],
     );
-    return updated[0];
+    return { ...updated[0], storage: STORAGE_LOCAL };
   } catch (err) {
     console.error("[camera] AI diagnosis failed for capture", capture.id, "—", err.message);
     await pool.query(
@@ -195,4 +258,4 @@ async function replaceSchedules({ pool, schema, deviceId, schedules }) {
   return rows;
 }
 
-module.exports = { captureAndStore, listCaptures, listSchedules, replaceSchedules };
+module.exports = { cameraDownloadLimits, captureAndStore, drainCaptures, listCaptures, listSchedules, replaceSchedules };

@@ -3,8 +3,6 @@
 const express = require("express");
 const crypto  = require("crypto");
 
-const { upsertCamera, heartbeat: heartbeatCamera } = require("../camera/deviceService");
-const config = require("../config");
 
 const VALID_STATUSES = ["PLANNED", "GROWING", "HARVESTING", "EVALUATING", "EXPORTED"];
 
@@ -22,129 +20,8 @@ function createPublicRouter({ pool, schema }) {
   const assessTable = `"${schema}".export_assessments`;
   const telTable    = `"${schema}".telemetry`;
 
-  // ── Camera key middleware ────────────────────────────────────────────────
-  // Validates X-Camera-Key header for camera self-registration endpoints.
-  function requireCameraKey(req, res, next) {
-    const key = req.headers["x-camera-key"];
-    if (!key || key !== config.cameraRegistrationKey) {
-      return res.status(401).json({ error: "Invalid or missing X-Camera-Key" });
-    }
-    next();
-  }
-
-  // Helper: extract real client IP (trusts X-Real-IP or X-Forwarded-For from
-  // the gateway/reverse-proxy only; does NOT blindly trust all forwarded headers).
-  function getClientIp(req) {
-    // The gateway sets X-Real-IP when running behind nginx/Spring Cloud Gateway
-    const xRealIp = req.headers["x-real-ip"];
-    if (xRealIp && isValidIp(xRealIp)) return xRealIp;
-    const xForwarded = req.headers["x-forwarded-for"];
-    if (xForwarded) {
-      const first = xForwarded.split(",")[0].trim();
-      if (isValidIp(first)) return first;
-    }
-    return req.socket?.remoteAddress ?? "unknown";
-  }
-
-  function isValidIp(value) {
-    if (!value || typeof value !== "string") return false;
-    const trimmed = value.trim();
-    // IPv4
-    if (/^(\d{1,3}\.){3}\d{1,3}$/.test(trimmed)) return true;
-    // IPv6 (simplified check)
-    if (trimmed.includes(":")) return true;
-    return false;
-  }
-
-  // ── POST /cameras/register ───────────────────────────────────────────────
-  // ESP32-CAM calls this on boot / Wi-Fi reconnect to announce its current IP.
-  // Requires X-Camera-Key header matching CAMERA_REGISTRATION_KEY.
-  //
-  // Body: { cameraId, ipAddress, port?, protocol?, macAddress?,
-  //         firmwareVersion?, ssid?, treeId?, zoneId?, farmId?, capabilities? }
-  router.post("/cameras/register", requireCameraKey, async (req, res) => {
-    const {
-      cameraId, ipAddress, port, protocol,
-      macAddress, firmwareVersion, ssid,
-      treeId, zoneId, farmId, capabilities,
-    } = req.body ?? {};
-
-    if (!cameraId || typeof cameraId !== "string" || !cameraId.trim()) {
-      return res.status(400).json({ error: "cameraId is required" });
-    }
-
-    // Use explicit ipAddress if provided; fall back to detected client IP
-    const resolvedIp = (typeof ipAddress === "string" && ipAddress.trim())
-      ? ipAddress.trim()
-      : getClientIp(req);
-
-    if (!isValidIp(resolvedIp)) {
-      return res.status(400).json({ error: "Unable to determine a valid IP address" });
-    }
-
-    try {
-      const device = await upsertCamera(pool, schema, {
-        deviceId:        cameraId.trim(),
-        macAddress:      typeof macAddress === "string" ? macAddress.trim() : undefined,
-        ipAddress:       resolvedIp,
-        port:            typeof port === "number" ? port : 80,
-        protocol:        protocol === "https" ? "https" : "http",
-        firmwareVersion: typeof firmwareVersion === "string" ? firmwareVersion.trim() : undefined,
-        ssid:            typeof ssid === "string" ? ssid.trim() : undefined,
-        treeId:          typeof treeId === "string" ? treeId.trim() : undefined,
-        zoneId:          typeof zoneId === "string" ? zoneId.trim() : undefined,
-        farmId:          typeof farmId === "string" ? farmId.trim() : undefined,
-        capabilities:    Array.isArray(capabilities) ? capabilities : undefined,
-      });
-      console.log(`[camera-register] ${cameraId} registered with IP ${resolvedIp}`);
-      return res.status(200).json({ status: "registered", device });
-    } catch (err) {
-      console.error("[camera-register] Failed:", err.message);
-      return res.status(500).json({ error: "Registration failed" });
-    }
-  });
-
-  // ── POST /cameras/heartbeat ──────────────────────────────────────────────
-  // ESP32-CAM calls this periodically (e.g. every 60 s) to stay online.
-  // Requires X-Camera-Key header.
-  //
-  // Body: { cameraId, ipAddress?, port? }
-  router.post("/cameras/heartbeat", requireCameraKey, async (req, res) => {
-    const { cameraId, ipAddress, port } = req.body ?? {};
-
-    if (!cameraId || typeof cameraId !== "string" || !cameraId.trim()) {
-      return res.status(400).json({ error: "cameraId is required" });
-    }
-
-    const resolvedIp = (typeof ipAddress === "string" && ipAddress.trim())
-      ? ipAddress.trim()
-      : getClientIp(req);
-
-    try {
-      const device = await heartbeatCamera(pool, schema, {
-        deviceId:  cameraId.trim(),
-        ipAddress: resolvedIp,
-        port:      typeof port === "number" ? port : 80,
-      });
-
-      if (!device) {
-        // Camera has not registered yet — auto-register with minimal info
-        const registered = await upsertCamera(pool, schema, {
-          deviceId:  cameraId.trim(),
-          ipAddress: resolvedIp,
-          port:      typeof port === "number" ? port : 80,
-          protocol:  "http",
-        });
-        console.log(`[camera-heartbeat] Auto-registered ${cameraId} from heartbeat`);
-        return res.status(200).json({ status: "registered", device: registered });
-      }
-
-      return res.status(200).json({ status: "ok", device });
-    } catch (err) {
-      console.error("[camera-heartbeat] Failed:", err.message);
-      return res.status(500).json({ error: "Heartbeat failed" });
-    }
-  });
+  router.use("/cameras", require("../camera/registryRuntime").createRegistrationRouter({ pool, schema }));
+  router.use("/devices", require("./deviceConfigRoutes").createDeviceConfigRouter());
 
   // ── GET /traceability/:code ─────────────────────────────────────────────
   // Public endpoint — no authentication required.

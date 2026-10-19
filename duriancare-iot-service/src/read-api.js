@@ -14,6 +14,21 @@ function registerReadApi(app, dependencies) {
     telemetryTable
   } = dependencies;
 
+  app.use(["/api/v1/sensors/latest", "/api/v1/sensors/history"], async (request, response, next) => {
+    if (request.method !== "GET") return next();
+    try {
+      const actor = requireActor(request);
+      if (typeof request.query.device_id !== "string" || !request.query.device_id.trim()) {
+        throw apiError(400, "device_id is required for scoped telemetry reads");
+      }
+      const device = await findDevice(pool, devicesTable, telemetryTable, request.query.device_id.trim());
+      await requireDeviceAccess(farmAccessClient, actor, device);
+      next();
+    } catch (error) {
+      writeApiError(response, error);
+    }
+  });
+
   app.get("/api/iot/devices", async (request, response) => {
     try {
       const actor = requireActor(request);
@@ -32,13 +47,14 @@ function registerReadApi(app, dependencies) {
           latest.temperature,
           latest.humidity,
           latest.light,
+          latest.soil_moisture,
           latest."timestamp" AS latest_timestamp,
           latest.received_at AS latest_received_at
         FROM ${devicesTable} d
         LEFT JOIN LATERAL (
-          SELECT id, temperature, humidity, light, "timestamp", received_at
+          SELECT id, temperature, humidity, light, soil_moisture, "timestamp", received_at
           FROM ${telemetryTable}
-          WHERE device_id = d.device_uid
+          WHERE LOWER(device_id) = LOWER(d.device_uid)
           ORDER BY "timestamp" DESC, received_at DESC
           LIMIT 1
         ) latest ON TRUE
@@ -239,9 +255,9 @@ function registerReadApi(app, dependencies) {
       await requireDeviceAccess(farmAccessClient, actor, device);
       const range = parseHistoryRange(request.query);
       const result = await pool.query(
-        `SELECT id, device_id, temperature, humidity, light, "timestamp", received_at
+        `SELECT id, device_id, temperature, humidity, light, soil_moisture, "timestamp", received_at
          FROM ${telemetryTable}
-         WHERE device_id = $1
+         WHERE LOWER(device_id) = LOWER($1)
            AND "timestamp" >= $2
            AND "timestamp" <= $3
          ORDER BY "timestamp" ASC, received_at ASC
@@ -365,17 +381,18 @@ async function findDevice(pool, devicesTable, telemetryTable, identifier, option
       latest.temperature,
       latest.humidity,
       latest.light,
+      latest.soil_moisture,
       latest."timestamp" AS latest_timestamp,
       latest.received_at AS latest_received_at
     FROM ${devicesTable} d
     LEFT JOIN LATERAL (
-      SELECT id, temperature, humidity, light, "timestamp", received_at
+      SELECT id, temperature, humidity, light, soil_moisture, "timestamp", received_at
       FROM ${telemetryTable}
-      WHERE device_id = d.device_uid
+      WHERE LOWER(device_id) = LOWER(d.device_uid)
       ORDER BY "timestamp" DESC, received_at DESC
       LIMIT 1
     ) latest ON TRUE
-    WHERE (d.id::text = $1 OR d.device_uid = $1)
+    WHERE (d.id::text = $1 OR LOWER(d.device_uid) = LOWER($1))
       ${deletedClause}
     LIMIT 1`,
     [identifier.trim()]
@@ -388,9 +405,9 @@ async function findDevice(pool, devicesTable, telemetryTable, identifier, option
 
 async function latestTelemetry(pool, telemetryTable, deviceUid) {
   const result = await pool.query(
-    `SELECT id, device_id, temperature, humidity, light, "timestamp", received_at
+    `SELECT id, device_id, temperature, humidity, light, soil_moisture, "timestamp", received_at
      FROM ${telemetryTable}
-     WHERE device_id = $1
+     WHERE LOWER(device_id) = LOWER($1)
      ORDER BY "timestamp" DESC, received_at DESC
      LIMIT 1`,
     [deviceUid]
@@ -565,6 +582,7 @@ function toDeviceResponse(row, healthConfig) {
           id: row.latest_id,
           light: row.light,
           received_at: row.latest_received_at,
+          soil_moisture: row.soil_moisture,
           temperature: row.temperature,
           timestamp: row.latest_timestamp
         })
@@ -644,13 +662,17 @@ function toAlertResponse(row) {
 }
 
 function toTelemetryResponse(row) {
+  const soilMoisture = numberOrNull(row.soil_moisture ?? row.soilMoisture);
   return {
     deviceUid: row.device_id,
-    humidity: numberOrNull(row.humidity),
+    humidity: numberOrNull(row.humidity ?? row.air_humidity),
     id: row.id,
     light: numberOrNull(row.light),
     measuredAt: toIsoOrNull(row.timestamp),
     receivedAt: toIsoOrNull(row.received_at),
+    soilMoisture,
+    soil_moisture: soilMoisture,
+    status: telemetryStatusFromSoil(soilMoisture),
     temperature: numberOrNull(row.temperature),
     units: {
       humidity: "%",
@@ -658,6 +680,13 @@ function toTelemetryResponse(row) {
       temperature: "°C"
     }
   };
+}
+
+function telemetryStatusFromSoil(soilMoisture) {
+  if (soilMoisture === null || soilMoisture === undefined) return null;
+  if (soilMoisture < 60) return "DRY_WARNING";
+  if (soilMoisture > 85) return "WET_WARNING";
+  return "OPTIMAL";
 }
 
 function numberOrNull(value) {
