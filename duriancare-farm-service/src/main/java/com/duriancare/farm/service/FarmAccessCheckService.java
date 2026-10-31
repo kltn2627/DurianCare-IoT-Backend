@@ -45,6 +45,9 @@ public class FarmAccessCheckService {
             return Objects.equals(farm.ownerUserId(), request.userId().trim())
                     && areaBelongsToFarm(farm, areaId);
         }
+        if ("ADMIN".equals(role) && request.permission() == FarmPermissionType.VIEW_CARE_SCHEDULE) {
+            return areaBelongsToFarm(farm, areaId);
+        }
         if (!rolePolicy.isAgronomist(role)) {
             return false;
         }

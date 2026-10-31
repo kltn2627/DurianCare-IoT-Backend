@@ -14,13 +14,21 @@ import com.duriancare.cultivation.compliance.LabResidueComparator;
 import com.duriancare.cultivation.compliance.SafeHarvestDateCalculator;
 import com.duriancare.cultivation.domain.ActivityStatus;
 import com.duriancare.cultivation.domain.ActivityType;
+import com.duriancare.cultivation.domain.ActivityExecution;
+import com.duriancare.cultivation.domain.ActivityInputUsage;
+import com.duriancare.cultivation.domain.ActiveIngredientSnapshot;
+import com.duriancare.cultivation.domain.AgriculturalInput;
+import com.duriancare.cultivation.domain.BiologicalLevel;
 import com.duriancare.cultivation.domain.CultivationActivity;
 import com.duriancare.cultivation.domain.CultivationPlan;
+import com.duriancare.cultivation.domain.CultivationSeason;
 import com.duriancare.cultivation.domain.ExportRelease;
 import com.duriancare.cultivation.domain.ExportReleaseStatus;
 import com.duriancare.cultivation.domain.ComplianceAssessment;
 import com.duriancare.cultivation.domain.HarvestBatch;
 import com.duriancare.cultivation.domain.HarvestBatchStatus;
+import com.duriancare.cultivation.domain.InputCategory;
+import com.duriancare.cultivation.domain.InputStatus;
 import com.duriancare.cultivation.domain.LabSample;
 import com.duriancare.cultivation.domain.LabSampleStatus;
 import com.duriancare.cultivation.domain.PlanStatus;
@@ -33,6 +41,7 @@ import com.duriancare.cultivation.repository.AuditLogRepository;
 import com.duriancare.cultivation.repository.ComplianceAssessmentRepository;
 import com.duriancare.cultivation.repository.CultivationActivityRepository;
 import com.duriancare.cultivation.repository.CultivationPlanRepository;
+import com.duriancare.cultivation.repository.CultivationSeasonRepository;
 import com.duriancare.cultivation.repository.ExportReleaseRepository;
 import com.duriancare.cultivation.repository.HarvestBatchRepository;
 import com.duriancare.cultivation.repository.LabResidueResultRepository;
@@ -131,6 +140,7 @@ class CultivationCalendarAuthorizationServiceTest {
     }
 
     @Mock private CultivationPlanRepository planRepository;
+    @Mock private CultivationSeasonRepository seasonRepository;
     @Mock private CultivationActivityRepository activityRepository;
     @Mock private ActivityExecutionRepository executionRepository;
     @Mock private ActivityInputUsageRepository inputUsageRepository;
@@ -146,6 +156,7 @@ class CultivationCalendarAuthorizationServiceTest {
     @Mock private ComplianceEngine complianceEngine;
     @Mock private LabResidueComparator labResidueComparator;
     @Mock private CultivationAccessGuard accessGuard;
+    @Mock private com.duriancare.cultivation.repository.LegacyIntegrityMarkerRepository integrityMarkerRepository;
 
     private CultivationCalendarService service;
 
@@ -153,6 +164,7 @@ class CultivationCalendarAuthorizationServiceTest {
     void setUp() {
         service = new CultivationCalendarService(
                 planRepository,
+                seasonRepository,
                 activityRepository,
                 executionRepository,
                 inputUsageRepository,
@@ -167,10 +179,24 @@ class CultivationCalendarAuthorizationServiceTest {
                 safeHarvestDateCalculator,
                 complianceEngine,
                 labResidueComparator,
-                accessGuard);
+                accessGuard,
+                integrityMarkerRepository);
         org.mockito.Mockito.lenient()
                 .when(activityRepository.save(any(CultivationActivity.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
+        org.mockito.Mockito.lenient().when(planRepository.findById("plan-1")).thenAnswer(invocation -> {
+            CultivationActivity activity = activityRepository.findById("activity-1").orElse(null);
+            return Optional.of(plan("plan-1", activity == null ? "farm-1" : activity.farmId(),
+                    activity == null ? "zone-1" : activity.plotId()));
+        });
+        org.mockito.Mockito.lenient().when(seasonRepository.findById("season-1")).thenAnswer(invocation -> {
+            HarvestBatch batch = harvestBatchRepository.findById("batch-1").orElse(null);
+            CultivationActivity activity = activityRepository.findById("activity-1").orElse(null);
+            String farmId = batch != null ? batch.farmId() : activity != null ? activity.farmId() : "farm-1";
+            String plotId = batch != null ? batch.plotId() : activity != null ? activity.plotId() : "zone-1";
+            return Optional.of(season(farmId, plotId));
+        });
+        org.mockito.Mockito.lenient().when(seasonRepository.existsById("season-1")).thenReturn(true);
     }
 
     @Test
@@ -180,6 +206,63 @@ class CultivationCalendarAuthorizationServiceTest {
         service.getPlan(OWNER, "plan-1");
 
         verify(accessGuard).requireView(OWNER, "CultivationPlan", "plan-1", "farm-1", "zone-1");
+    }
+
+    @Test
+    void createPlanRejectsMissingSeason() {
+        var request = createPlanRequest("farm-1", "zone-1");
+        when(seasonRepository.findById("season-1")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.createPlan(OWNER, request))
+                .isInstanceOf(java.util.NoSuchElementException.class);
+        verify(planRepository, never()).save(any(CultivationPlan.class));
+    }
+
+    @Test
+    void createPlanRejectsSeasonFromAnotherZone() {
+        var request = createPlanRequest("farm-1", "zone-1");
+        when(seasonRepository.findById("season-1")).thenReturn(Optional.of(season("farm-1", "zone-2")));
+
+        assertThatThrownBy(() -> service.createPlan(OWNER, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("farm and zone");
+        verify(planRepository, never()).save(any(CultivationPlan.class));
+    }
+
+    @Test
+    void createPlanRejectsSeasonFromAnotherFarm() {
+        var request = createPlanRequest("farm-1", "zone-1");
+        when(seasonRepository.findById("season-1")).thenReturn(Optional.of(season("farm-2", "zone-1")));
+
+        assertThatThrownBy(() -> service.createPlan(OWNER, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("farm and zone");
+        verify(planRepository, never()).save(any(CultivationPlan.class));
+    }
+
+    @Test
+    void createPlanAcceptsSeasonInMatchingFarmAndZone() {
+        var request = createPlanRequest("farm-1", "zone-1");
+        when(seasonRepository.findById("season-1")).thenReturn(Optional.of(season("farm-1", "zone-1")));
+        when(planRepository.save(any(CultivationPlan.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        CultivationPlan saved = service.createPlan(OWNER, request);
+
+        assertThat(saved.cultivationSeasonId()).isEqualTo("season-1");
+        assertThat(saved.farmId()).isEqualTo("farm-1");
+        assertThat(saved.plotId()).isEqualTo("zone-1");
+    }
+
+    private CultivationCalendarDtos.CreatePlanRequest createPlanRequest(String farmId, String plotId) {
+        return new CultivationCalendarDtos.CreatePlanRequest(
+                farmId, plotId, "season-1", null, "Care plan", LocalDate.parse("2026-08-01"),
+                null, List.of("VN"), OWNER.userId());
+    }
+
+    private CultivationSeason season(String farmId, String plotId) {
+        return new CultivationSeason(
+                "season-1", farmId, plotId, "Season 2026", "DURIAN", "Ri6",
+                LocalDate.parse("2026-08-01"), null, OWNER.userId(), Instant.now(), Instant.now());
     }
 
     @Test
@@ -594,8 +677,7 @@ class CultivationCalendarAuthorizationServiceTest {
 
     @Test
     void seasonEndpointResolvesSeasonScopesBeforeSafeHarvestCalculation() {
-        when(planRepository.findByCultivationSeasonId("season-1"))
-                .thenReturn(List.of(plan("plan-1", "farm-2", "zone-9")));
+        when(seasonRepository.findById("season-1")).thenReturn(Optional.of(season("farm-2", "zone-9")));
         org.mockito.Mockito.doThrow(new CultivationAccessDeniedException("denied"))
                 .when(accessGuard)
                 .requireView(OWNER, "CultivationSeason", "season-1", "farm-2", "zone-9");
@@ -619,6 +701,180 @@ class CultivationCalendarAuthorizationServiceTest {
                 "owner-1",
                 Instant.now(),
                 Instant.now());
+    }
+
+    @Test
+    void chemicalCompletionPersistsExecutionUsageAndSnapshots() {
+        prepareCompletion(ActivityType.CHEMICAL_TREATMENT, input("input-1", InputStatus.VERIFIED, BiologicalLevel.CHEMICAL));
+        when(safeHarvestDateCalculator.safeHarvestDate(LocalDate.of(2026, 8, 12), 7))
+                .thenReturn(LocalDate.of(2026, 8, 19));
+
+        var result = service.completeActivity(OWNER, "activity-1", completionRequest(List.of(usage("input-1", "500")), OWNER.userId()));
+
+        CultivationActivity completed = (CultivationActivity) result.activity();
+        ActivityExecution execution = (ActivityExecution) result.execution();
+        assertThat(completed.status()).isEqualTo(ActivityStatus.COMPLETED);
+        assertThat(execution.cultivationActivityId()).isEqualTo("activity-1");
+        assertThat(execution.executedBy()).isEqualTo(OWNER.userId());
+        assertThat(result.inputUsages()).hasSize(1);
+        ActivityInputUsage saved = (ActivityInputUsage) result.inputUsages().getFirst();
+        assertThat(saved.activityExecutionId()).isEqualTo(execution.id());
+        assertThat(saved.agriculturalInputId()).isEqualTo("input-1");
+        assertThat(saved.quantityUsed()).isEqualByComparingTo("500");
+        assertThat(saved.agriculturalInputSnapshot().productName()).isEqualTo("Thuốc A");
+        assertThat(saved.activeIngredientSnapshots()).extracting(ActiveIngredientSnapshot::code).containsExactly("AI");
+        assertThat(saved.agriculturalInputSnapshot().preHarvestIntervalDays()).isEqualTo(7);
+        assertThat(saved.calculatedSafeHarvestDate()).isEqualTo(LocalDate.of(2026, 8, 19));
+
+        when(activityRepository.findAll()).thenReturn(List.of(completed));
+        when(executionRepository.findByCultivationActivityId(completed.id())).thenReturn(List.of(execution));
+        when(inputUsageRepository.findByActivityExecutionId(execution.id())).thenReturn(List.of(saved));
+        when(safeHarvestDateCalculator.earliestSafeHarvestDate(any())).thenCallRealMethod();
+        assertThat(service.safeHarvestDate("season-1")).contains(LocalDate.of(2026, 8, 19));
+    }
+
+    @Test
+    void chemicalCompletionWithoutUsageIsRejectedBeforeWrites() {
+        when(activityRepository.findById("activity-1"))
+                .thenReturn(Optional.of(completionActivity(ActivityType.CHEMICAL_TREATMENT, ActivityStatus.SCHEDULED)));
+
+        assertThatThrownBy(() -> service.completeActivity(OWNER, "activity-1", completionRequest(List.of(), OWNER.userId())))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("At least one");
+        verify(executionRepository, never()).save(any());
+    }
+
+    @Test
+    void fertilizationCompletionWithUsageSucceeds() {
+        prepareCompletion(ActivityType.FERTILIZATION, input("input-1", InputStatus.VERIFIED, BiologicalLevel.CHEMICAL));
+        assertThat(service.completeActivity(OWNER, "activity-1", completionRequest(List.of(usage("input-1", "2")), OWNER.userId()))
+                .inputUsages()).hasSize(1);
+    }
+
+    @Test
+    void missingProductIsRejectedBeforeWrites() {
+        when(activityRepository.findById("activity-1"))
+                .thenReturn(Optional.of(completionActivity(ActivityType.CHEMICAL_TREATMENT, ActivityStatus.SCHEDULED)));
+
+        assertThatThrownBy(() -> service.completeActivity(OWNER, "activity-1", completionRequest(List.of(usage("missing", "1")), OWNER.userId())))
+                .isInstanceOf(RuntimeException.class).hasMessageContaining("Agricultural input");
+        verify(executionRepository, never()).save(any());
+    }
+
+    @Test
+    void prohibitedProductIsRejectedBeforeWrites() {
+        prepareInvalidProduct(input("input-1", InputStatus.PROHIBITED, BiologicalLevel.PROHIBITED));
+        assertThatThrownBy(() -> service.completeActivity(OWNER, "activity-1", completionRequest(List.of(usage("input-1", "1")), OWNER.userId())))
+                .isInstanceOf(IllegalArgumentException.class);
+        verify(executionRepository, never()).save(any());
+    }
+
+    @Test
+    void unverifiedProductIsRejectedBeforeWrites() {
+        prepareInvalidProduct(input("input-1", InputStatus.DRAFT, BiologicalLevel.CHEMICAL));
+        assertThatThrownBy(() -> service.completeActivity(OWNER, "activity-1", completionRequest(List.of(usage("input-1", "1")), OWNER.userId())))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("verified");
+        verify(executionRepository, never()).save(any());
+    }
+
+    @Test
+    void invalidQuantityIsRejectedBeforeWrites() {
+        prepareInvalidProduct(input("input-1", InputStatus.VERIFIED, BiologicalLevel.CHEMICAL));
+        assertThatThrownBy(() -> service.completeActivity(OWNER, "activity-1", completionRequest(List.of(usage("input-1", "0")), OWNER.userId())))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Quantity");
+        verify(executionRepository, never()).save(any());
+    }
+
+    @Test
+    void invalidSecondUsageDoesNotSaveFirstUsageOrExecution() {
+        when(activityRepository.findById("activity-1"))
+                .thenReturn(Optional.of(completionActivity(ActivityType.CHEMICAL_TREATMENT, ActivityStatus.SCHEDULED)));
+        when(agriculturalInputRepository.findById("input-1"))
+                .thenReturn(Optional.of(input("input-1", InputStatus.VERIFIED, BiologicalLevel.CHEMICAL)));
+        when(agriculturalInputRepository.findById("input-2"))
+                .thenReturn(Optional.of(input("input-2", InputStatus.DRAFT, BiologicalLevel.CHEMICAL)));
+
+        assertThatThrownBy(() -> service.completeActivity(OWNER, "activity-1", completionRequest(
+                List.of(usage("input-1", "500"), usage("input-2", "10")), OWNER.userId())))
+                .isInstanceOf(IllegalArgumentException.class);
+        verify(executionRepository, never()).save(any());
+        verify(inputUsageRepository, never()).save(any());
+        verify(activityRepository, never()).save(any());
+    }
+
+    @Test
+    void completedActivityCannotBeCompletedTwice() {
+        when(activityRepository.findById("activity-1"))
+                .thenReturn(Optional.of(completionActivity(ActivityType.CHEMICAL_TREATMENT, ActivityStatus.COMPLETED)));
+        assertThatThrownBy(() -> service.completeActivity(OWNER, "activity-1", completionRequest(List.of(usage("input-1", "1")), OWNER.userId())))
+                .isInstanceOf(IllegalStateException.class);
+        verify(executionRepository, never()).save(any());
+    }
+
+    @Test
+    void careHistoryReturnsActivityExecutionAndUsage() {
+        CultivationActivity activity = completionActivity(ActivityType.CHEMICAL_TREATMENT, ActivityStatus.COMPLETED);
+        ActivityExecution execution = new ActivityExecution("execution-1", activity.id(), Instant.now(), Instant.now(),
+                OWNER.userId(), null, null, null, null, Map.of(), null, null, null, null, List.of(), true, Instant.now());
+        ActivityInputUsage usage = new ActivityInputUsage("usage-1", execution.id(), "input-1", null,
+                null, null, BigDecimal.ONE, "ml", null, null, null, null, null, null, List.of(), null, Instant.now());
+        when(activityRepository.findAll()).thenReturn(List.of(activity));
+        when(accessGuard.canView(OWNER, activity.farmId(), activity.plotId())).thenReturn(true);
+        when(executionRepository.findByCultivationActivityId(activity.id())).thenReturn(List.of(execution));
+        when(inputUsageRepository.findByActivityExecutionId(execution.id())).thenReturn(List.of(usage));
+
+        var history = service.careHistory(OWNER, "season-1");
+        assertThat(history.activities()).isEqualTo(List.of(activity));
+        assertThat(history.executions()).isEqualTo(List.of(execution));
+        assertThat(history.inputUsages()).isEqualTo(List.of(usage));
+    }
+
+    @Test
+    void clientCannotClaimAnotherExecutedByUser() {
+        when(activityRepository.findById("activity-1"))
+                .thenReturn(Optional.of(completionActivity(ActivityType.CHEMICAL_TREATMENT, ActivityStatus.SCHEDULED)));
+        assertThatThrownBy(() -> service.completeActivity(OWNER, "activity-1", completionRequest(List.of(usage("input-1", "1")), "someone-else")))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("authenticated actor");
+        verify(executionRepository, never()).save(any());
+    }
+
+    private void prepareCompletion(ActivityType type, AgriculturalInput input) {
+        when(activityRepository.findById("activity-1"))
+                .thenReturn(Optional.of(completionActivity(type, ActivityStatus.SCHEDULED)));
+        when(agriculturalInputRepository.findById(input.id())).thenReturn(Optional.of(input));
+        when(executionRepository.save(any(ActivityExecution.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(inputUsageRepository.save(any(ActivityInputUsage.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    }
+
+    private void prepareInvalidProduct(AgriculturalInput input) {
+        when(activityRepository.findById("activity-1"))
+                .thenReturn(Optional.of(completionActivity(ActivityType.CHEMICAL_TREATMENT, ActivityStatus.SCHEDULED)));
+        when(agriculturalInputRepository.findById(input.id())).thenReturn(Optional.of(input));
+    }
+
+    private CultivationCalendarDtos.ActivityInputUsageRequest usage(String inputId, String quantity) {
+        return new CultivationCalendarDtos.ActivityInputUsageRequest(inputId, "LOT-1", null,
+                new BigDecimal(quantity), "ml", null, null, null, null, null, null);
+    }
+
+    private CultivationCalendarDtos.CompleteActivityRequest completionRequest(
+            List<CultivationCalendarDtos.ActivityInputUsageRequest> usages, String executedBy) {
+        Instant started = Instant.parse("2026-08-12T07:30:00Z");
+        return new CultivationCalendarDtos.CompleteActivityRequest(started, started.plusSeconds(3600), executedBy,
+                null, null, null, null, Map.of(), null, null, "Đã thực hiện", null, List.of(), usages);
+    }
+
+    private CultivationActivity completionActivity(ActivityType type, ActivityStatus status) {
+        return new CultivationActivity("activity-1", "plan-1", "season-1", "farm-1", "zone-1",
+                List.of(), type, "Phun thuốc", null, Instant.now(), null, null, "NORMAL", status,
+                List.of(), false, null, null, null, null, Instant.now(), Instant.now());
+    }
+
+    private AgriculturalInput input(String id, InputStatus status, BiologicalLevel level) {
+        return new AgriculturalInput(id, "CODE-" + id, "Thuốc A", null, "Nhà sản xuất", "REG-1",
+                InputCategory.CHEMICAL_PESTICIDE, level, null, "ml",
+                List.of(new ActiveIngredientSnapshot("AI", "Hoạt chất", BigDecimal.ONE, "g/L")),
+                List.of(), "500 ml/ha", null, 7, null, List.of(), List.of(), List.of(), List.of(),
+                null, List.of(), status, null, null, Instant.now(), Instant.now());
     }
 
     private CultivationActivity activity(String id, String farmId, String plotId) {

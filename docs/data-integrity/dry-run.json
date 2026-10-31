@@ -1,0 +1,280 @@
+{
+  "mode": "DRY_RUN",
+  "sourceEvidence": "infrastructure/mongodb/init/01_seed_cultivation_calendar.js",
+  "plannedChanges": [
+    {
+      "action": "CREATE_SEASON",
+      "collection": "cultivation_seasons",
+      "id": "season-minh-phat-2026",
+      "oldReference": null,
+      "newReference": {
+        "farmId": "farm-minh-phat-2026",
+        "plotId": "plot-khu-a-truong-thanh"
+      },
+      "reason": "01_seed_cultivation_calendar.js declares this exact ID/scope; existing Plan and Batch agree",
+      "confidence": "HIGH"
+    },
+    {
+      "action": "MARK_LEGACY_UNVERIFIED",
+      "collection": "cultivation_plans",
+      "id": "demo-plan-ri6-nuoi-trai-2026-08",
+      "markerId": "cultivation_plans:demo-plan-ri6-nuoi-trai-2026-08",
+      "oldReference": null,
+      "newReference": null,
+      "reason": "Season missing or Plan scope differs from Season",
+      "confidence": "HIGH"
+    },
+    {
+      "action": "MARK_LEGACY_UNVERIFIED",
+      "collection": "cultivation_plans",
+      "id": "demo-plan-dona-phuc-hoi-2026-08",
+      "markerId": "cultivation_plans:demo-plan-dona-phuc-hoi-2026-08",
+      "oldReference": null,
+      "newReference": null,
+      "reason": "Season missing or Plan scope differs from Season",
+      "confidence": "HIGH"
+    },
+    {
+      "action": "MARK_LEGACY_UNVERIFIED",
+      "collection": "cultivation_activities",
+      "id": "activity-kiem-tra-sau-benh-2026-07-13",
+      "markerId": "cultivation_activities:activity-kiem-tra-sau-benh-2026-07-13",
+      "oldReference": null,
+      "newReference": null,
+      "reason": "Plan/Season missing or Activity scope differs from Plan",
+      "confidence": "HIGH"
+    },
+    {
+      "action": "MARK_LEGACY_UNVERIFIED",
+      "collection": "cultivation_activities",
+      "id": "activity-yeu-cau-phun-hoa-chat-2026-07-16",
+      "markerId": "cultivation_activities:activity-yeu-cau-phun-hoa-chat-2026-07-16",
+      "oldReference": null,
+      "newReference": null,
+      "reason": "Plan/Season missing or Activity scope differs from Plan",
+      "confidence": "HIGH"
+    },
+    {
+      "action": "MARK_LEGACY_UNVERIFIED",
+      "collection": "cultivation_activities",
+      "id": "demo-act-2026-08-05-irrigation-ri6",
+      "markerId": "cultivation_activities:demo-act-2026-08-05-irrigation-ri6",
+      "oldReference": null,
+      "newReference": null,
+      "reason": "Plan/Season missing or Activity scope differs from Plan",
+      "confidence": "HIGH"
+    },
+    {
+      "action": "MARK_LEGACY_UNVERIFIED",
+      "collection": "cultivation_activities",
+      "id": "demo-act-2026-08-05-pest-monitor-ri6",
+      "markerId": "cultivation_activities:demo-act-2026-08-05-pest-monitor-ri6",
+      "oldReference": null,
+      "newReference": null,
+      "reason": "Plan/Season missing or Activity scope differs from Plan",
+      "confidence": "HIGH"
+    },
+    {
+      "action": "MARK_LEGACY_UNVERIFIED",
+      "collection": "cultivation_activities",
+      "id": "demo-act-2026-08-06-fertilization-ri6",
+      "markerId": "cultivation_activities:demo-act-2026-08-06-fertilization-ri6",
+      "oldReference": null,
+      "newReference": null,
+      "reason": "Plan/Season missing or Activity scope differs from Plan",
+      "confidence": "HIGH"
+    },
+    {
+      "action": "MARK_LEGACY_UNVERIFIED",
+      "collection": "cultivation_activities",
+      "id": "demo-act-2026-08-07-pruning-dona",
+      "markerId": "cultivation_activities:demo-act-2026-08-07-pruning-dona",
+      "oldReference": null,
+      "newReference": null,
+      "reason": "Plan/Season missing or Activity scope differs from Plan",
+      "confidence": "HIGH"
+    },
+    {
+      "action": "MARK_LEGACY_UNVERIFIED",
+      "collection": "cultivation_activities",
+      "id": "demo-act-2026-08-09-biological-dona",
+      "markerId": "cultivation_activities:demo-act-2026-08-09-biological-dona",
+      "oldReference": null,
+      "newReference": null,
+      "reason": "Plan/Season missing or Activity scope differs from Plan",
+      "confidence": "HIGH"
+    },
+    {
+      "action": "MARK_LEGACY_UNVERIFIED",
+      "collection": "cultivation_activities",
+      "id": "demo-act-2026-08-12-fruit-bagging-ri6",
+      "markerId": "cultivation_activities:demo-act-2026-08-12-fruit-bagging-ri6",
+      "oldReference": null,
+      "newReference": null,
+      "reason": "Plan/Season missing or Activity scope differs from Plan",
+      "confidence": "HIGH"
+    },
+    {
+      "action": "MARK_LEGACY_UNVERIFIED",
+      "collection": "cultivation_activities",
+      "id": "71b88cc9-0a3e-4486-8326-e306f57ab7c8",
+      "markerId": "cultivation_activities:71b88cc9-0a3e-4486-8326-e306f57ab7c8",
+      "oldReference": null,
+      "newReference": null,
+      "reason": "Plan/Season missing or Activity scope differs from Plan",
+      "confidence": "HIGH"
+    },
+    {
+      "action": "MARK_LEGACY_UNVERIFIED",
+      "collection": "harvest_batches",
+      "id": "demo-harvest-batch-ri6-2026-001",
+      "markerId": "harvest_batches:demo-harvest-batch-ri6-2026-001",
+      "oldReference": null,
+      "newReference": null,
+      "reason": "Season missing or Batch scope differs from Season",
+      "confidence": "HIGH"
+    },
+    {
+      "action": "MARK_LEGACY_UNVERIFIED",
+      "collection": "harvest_batches",
+      "id": "demo-harvest-batch-dona-2026-001",
+      "markerId": "harvest_batches:demo-harvest-batch-dona-2026-001",
+      "oldReference": null,
+      "newReference": null,
+      "reason": "Season missing or Batch scope differs from Season",
+      "confidence": "HIGH"
+    },
+    {
+      "action": "MARK_LEGACY_UNVERIFIED",
+      "collection": "export_releases",
+      "id": "demo-export-release-ri6-eu-2026-001",
+      "markerId": "export_releases:demo-export-release-ri6-eu-2026-001",
+      "oldReference": null,
+      "newReference": null,
+      "reason": "Batch ancestry invalid; historical business status RELEASED does not imply verified compliance",
+      "confidence": "HIGH"
+    },
+    {
+      "action": "MARK_LEGACY_UNVERIFIED",
+      "collection": "cultivation_schedules",
+      "id": "demo-schedule-2026-08-05-irrigation",
+      "markerId": "cultivation_schedules:demo-schedule-2026-08-05-irrigation",
+      "oldReference": null,
+      "newReference": null,
+      "reason": "Deprecated care flow lacks canonical Farm/Season relationship",
+      "confidence": "HIGH"
+    },
+    {
+      "action": "MARK_LEGACY_UNVERIFIED",
+      "collection": "cultivation_schedules",
+      "id": "demo-schedule-2026-08-06-fertilizer",
+      "markerId": "cultivation_schedules:demo-schedule-2026-08-06-fertilizer",
+      "oldReference": null,
+      "newReference": null,
+      "reason": "Deprecated care flow lacks canonical Farm/Season relationship",
+      "confidence": "HIGH"
+    },
+    {
+      "action": "MARK_LEGACY_UNVERIFIED",
+      "collection": "cultivation_schedules",
+      "id": "demo-schedule-2026-08-07-pruning",
+      "markerId": "cultivation_schedules:demo-schedule-2026-08-07-pruning",
+      "oldReference": null,
+      "newReference": null,
+      "reason": "Deprecated care flow lacks canonical Farm/Season relationship",
+      "confidence": "HIGH"
+    }
+  ],
+  "skipped": [
+    {
+      "collection": "cultivation_plans",
+      "id": "demo-plan-ri6-nuoi-trai-2026-08",
+      "reason": "Business linkage and status left unchanged; marker records unresolved ancestry"
+    },
+    {
+      "collection": "cultivation_plans",
+      "id": "demo-plan-dona-phuc-hoi-2026-08",
+      "reason": "Business linkage and status left unchanged; marker records unresolved ancestry"
+    },
+    {
+      "collection": "cultivation_activities",
+      "id": "activity-kiem-tra-sau-benh-2026-07-13",
+      "reason": "Business linkage and status left unchanged; marker records unresolved ancestry"
+    },
+    {
+      "collection": "cultivation_activities",
+      "id": "activity-yeu-cau-phun-hoa-chat-2026-07-16",
+      "reason": "Business linkage and status left unchanged; marker records unresolved ancestry"
+    },
+    {
+      "collection": "cultivation_activities",
+      "id": "demo-act-2026-08-05-irrigation-ri6",
+      "reason": "Business linkage and status left unchanged; marker records unresolved ancestry"
+    },
+    {
+      "collection": "cultivation_activities",
+      "id": "demo-act-2026-08-05-pest-monitor-ri6",
+      "reason": "Business linkage and status left unchanged; marker records unresolved ancestry"
+    },
+    {
+      "collection": "cultivation_activities",
+      "id": "demo-act-2026-08-06-fertilization-ri6",
+      "reason": "Business linkage and status left unchanged; marker records unresolved ancestry"
+    },
+    {
+      "collection": "cultivation_activities",
+      "id": "demo-act-2026-08-07-pruning-dona",
+      "reason": "Business linkage and status left unchanged; marker records unresolved ancestry"
+    },
+    {
+      "collection": "cultivation_activities",
+      "id": "demo-act-2026-08-09-biological-dona",
+      "reason": "Business linkage and status left unchanged; marker records unresolved ancestry"
+    },
+    {
+      "collection": "cultivation_activities",
+      "id": "demo-act-2026-08-12-fruit-bagging-ri6",
+      "reason": "Business linkage and status left unchanged; marker records unresolved ancestry"
+    },
+    {
+      "collection": "cultivation_activities",
+      "id": "71b88cc9-0a3e-4486-8326-e306f57ab7c8",
+      "reason": "Business linkage and status left unchanged; marker records unresolved ancestry"
+    },
+    {
+      "collection": "harvest_batches",
+      "id": "demo-harvest-batch-ri6-2026-001",
+      "reason": "Business linkage and status left unchanged; marker records unresolved ancestry"
+    },
+    {
+      "collection": "harvest_batches",
+      "id": "demo-harvest-batch-dona-2026-001",
+      "reason": "Business linkage and status left unchanged; marker records unresolved ancestry"
+    },
+    {
+      "collection": "export_releases",
+      "id": "demo-export-release-ri6-eu-2026-001",
+      "reason": "Business linkage and status left unchanged; marker records unresolved ancestry"
+    },
+    {
+      "collection": "cultivation_schedules",
+      "id": "demo-schedule-2026-08-05-irrigation",
+      "reason": "Business linkage and status left unchanged; marker records unresolved ancestry"
+    },
+    {
+      "collection": "cultivation_schedules",
+      "id": "demo-schedule-2026-08-06-fertilizer",
+      "reason": "Business linkage and status left unchanged; marker records unresolved ancestry"
+    },
+    {
+      "collection": "cultivation_schedules",
+      "id": "demo-schedule-2026-08-07-pruning",
+      "reason": "Business linkage and status left unchanged; marker records unresolved ancestry"
+    }
+  ],
+  "counts": {
+    "createSeason": 1,
+    "markUnverified": 17,
+    "skipped": 17
+  }
+}

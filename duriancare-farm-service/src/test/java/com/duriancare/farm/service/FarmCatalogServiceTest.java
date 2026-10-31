@@ -8,10 +8,14 @@ import static org.mockito.Mockito.when;
 import com.duriancare.farm.domain.Farm;
 import com.duriancare.farm.domain.FarmStatus;
 import com.duriancare.farm.domain.FarmZone;
+import com.duriancare.farm.domain.FarmAuthorization;
+import com.duriancare.farm.domain.AuthorizationStatus;
+import com.duriancare.farm.domain.FarmPermissionType;
 import com.duriancare.farm.domain.ZoneStatus;
 import com.duriancare.farm.dto.FarmCatalogDtos;
 import com.duriancare.farm.dto.RequestActor;
 import com.duriancare.farm.repository.FarmRepository;
+import com.duriancare.farm.repository.FarmAuthorizationRepository;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
@@ -28,12 +32,14 @@ class FarmCatalogServiceTest {
 
     @Mock
     private FarmRepository farmRepository;
+    @Mock
+    private FarmAuthorizationRepository authorizationRepository;
 
     private FarmCatalogService service;
 
     @BeforeEach
     void setUp() {
-        service = new FarmCatalogService(farmRepository, new AgronomistRolePolicy());
+        service = new FarmCatalogService(farmRepository, authorizationRepository, new AgronomistRolePolicy());
     }
 
     @Test
@@ -82,6 +88,51 @@ class FarmCatalogServiceTest {
                 new RequestActor("engineer-1", "eng@example.com", "ENGINEER"),
                 new FarmCatalogDtos.CreateFarmRequest("Farm", null, null, null, null, null, null)))
                 .isInstanceOf(FarmAccessDeniedException.class);
+    }
+
+    @Test
+    void engineerCalendarListsOnlyAuthorizedZonesById() {
+        var grant = authorization(List.of(FarmPermissionType.VIEW_CARE_SCHEDULE),
+                Instant.now().plusSeconds(3600), List.of("zone-1"));
+        var original = farm("farm-1", "owner-1");
+        var secondZone = new FarmZone("zone-2", "Zone 2", "Z2", BigDecimal.ONE, Map.of(),
+                null, ZoneStatus.ACTIVE, Instant.now(), Instant.now());
+        var twoZoneFarm = new Farm(original.id(), original.ownerUserId(), original.name(), original.address(),
+                original.province(), original.district(), original.latitude(), original.longitude(),
+                original.areaHectares(), original.status(), List.of(original.zones().getFirst(), secondZone),
+                original.createdAt(), original.updatedAt());
+        when(authorizationRepository.findByAgronomistIdAndStatus("engineer-1", AuthorizationStatus.ACTIVE))
+                .thenReturn(List.of(grant));
+        when(farmRepository.findById("farm-1")).thenReturn(Optional.of(twoZoneFarm));
+
+        var visible = service.listCalendarFarms(new RequestActor("engineer-1", "e@example.com", "ENGINEER"));
+
+        assertThat(visible).hasSize(1);
+        assertThat(visible.getFirst().zones()).extracting(FarmCatalogDtos.FarmZoneResponse::id)
+                .containsExactly("zone-1");
+    }
+
+    @Test
+    void expiredEngineerGrantDoesNotExposeFarmCalendar() {
+        when(authorizationRepository.findByAgronomistIdAndStatus("engineer-1", AuthorizationStatus.ACTIVE))
+                .thenReturn(List.of(authorization(List.of(FarmPermissionType.VIEW_CARE_SCHEDULE),
+                        Instant.now().minusSeconds(1), List.of("zone-1"))));
+        assertThat(service.listCalendarFarms(new RequestActor("engineer-1", "e@example.com", "ENGINEER")))
+                .isEmpty();
+    }
+
+    @Test
+    void administratorCalendarUsesPersistedFarmsWithoutArchivedEntries() {
+        when(farmRepository.findAll()).thenReturn(List.of(farm("farm-1", "owner-1")));
+        assertThat(service.listCalendarFarms(new RequestActor("admin-1", "a@example.com", "ADMIN")))
+                .extracting(FarmCatalogDtos.FarmResponse::id).containsExactly("farm-1");
+    }
+
+    private FarmAuthorization authorization(List<FarmPermissionType> permissions, Instant validUntil,
+            List<String> zones) {
+        return new FarmAuthorization("auth-1", "farm-1", "owner-1", "engineer-1",
+                AuthorizationStatus.ACTIVE, false, permissions, zones, Instant.now(), validUntil,
+                null, Instant.now(), Instant.now(), null);
     }
 
     private RequestActor owner() {

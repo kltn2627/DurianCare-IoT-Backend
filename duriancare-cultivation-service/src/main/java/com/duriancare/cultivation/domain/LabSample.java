@@ -20,5 +20,19 @@ public record LabSample(
         String laboratoryAccreditation,
         @Indexed LabSampleStatus status,
         List<String> attachments,
-        Instant createdAt) {
+        Instant createdAt,
+        List<String> expectedActiveIngredientCodes) {
+
+    public LabSample(String id, String cultivationSeasonId, String harvestBatchId, String sampleCode,
+            SampleType sampleType, Instant sampledAt, String sampledBy, String samplingLocation,
+            String laboratoryName, String laboratoryAccreditation, LabSampleStatus status,
+            List<String> attachments, Instant createdAt) {
+        this(id, cultivationSeasonId, harvestBatchId, sampleCode, sampleType, sampledAt, sampledBy,
+                samplingLocation, laboratoryName, laboratoryAccreditation, status, attachments, createdAt, List.of());
+    }
+
+    public LabSample {
+        expectedActiveIngredientCodes = expectedActiveIngredientCodes == null
+                ? List.of() : List.copyOf(expectedActiveIngredientCodes);
+    }
 }

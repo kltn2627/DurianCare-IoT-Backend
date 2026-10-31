@@ -279,8 +279,11 @@ public class CultivationCalendarController {
     }
 
     @PostMapping("/api/v1/residue-standards")
-    ResponseEntity<?> createResidueStandard(@Valid @RequestBody CultivationCalendarDtos.CreateResidueStandardRequest request) {
-        var standard = service.createResidueStandard(request);
+    ResponseEntity<?> createResidueStandard(@Valid @RequestBody CultivationCalendarDtos.CreateResidueStandardRequest request,
+            @RequestHeader("X-Auth-User-Id") String userId,
+            @RequestHeader(value = "X-Auth-Email", required = false) String email,
+            @RequestHeader("X-Auth-Role") String role) {
+        var standard = service.createResidueStandard(actor(userId, email, role), request);
         return ResponseEntity.created(URI.create("/api/v1/residue-standards/" + standard.id())).body(standard);
     }
 
@@ -294,8 +297,11 @@ public class CultivationCalendarController {
 
     @PostMapping("/api/v1/residue-standards/import")
     List<ResidueStandard> importResidueStandards(
-            @Valid @RequestBody List<CultivationCalendarDtos.CreateResidueStandardRequest> requests) {
-        return service.importResidueStandards(requests);
+            @Valid @RequestBody List<CultivationCalendarDtos.CreateResidueStandardRequest> requests,
+            @RequestHeader("X-Auth-User-Id") String userId,
+            @RequestHeader(value = "X-Auth-Email", required = false) String email,
+            @RequestHeader("X-Auth-Role") String role) {
+        return service.importResidueStandards(actor(userId, email, role), requests);
     }
 
     @PostMapping("/api/v1/lab-samples")
@@ -327,6 +333,14 @@ public class CultivationCalendarController {
         return service.getLabSample(actor(userId, email, role), id);
     }
 
+    @PostMapping("/api/v1/lab-samples/{id}/send")
+    Object sendLabSample(@PathVariable String id,
+            @RequestHeader("X-Auth-User-Id") String userId,
+            @RequestHeader(value = "X-Auth-Email", required = false) String email,
+            @RequestHeader("X-Auth-Role") String role) {
+        return service.sendLabSample(actor(userId, email, role), id);
+    }
+
     @PostMapping("/api/v1/lab-results")
     ResponseEntity<?> createLabResult(
             @Valid @RequestBody CultivationCalendarDtos.CreateLabResultRequest request,
@@ -335,6 +349,14 @@ public class CultivationCalendarController {
             @RequestHeader("X-Auth-Role") String role) {
         var result = service.createLabResult(actor(userId, email, role), request);
         return ResponseEntity.created(URI.create("/api/v1/lab-results/" + result.id())).body(result);
+    }
+
+    @GetMapping("/api/v1/lab-samples/{id}/results")
+    Object listLabResults(@PathVariable String id,
+            @RequestHeader("X-Auth-User-Id") String userId,
+            @RequestHeader(value = "X-Auth-Email", required = false) String email,
+            @RequestHeader("X-Auth-Role") String role) {
+        return service.listLabResults(actor(userId, email, role), id);
     }
 
     @PostMapping("/api/v1/harvest-batches")
@@ -409,21 +431,19 @@ public class CultivationCalendarController {
     @PostMapping("/api/v1/export-releases/{id}/submit")
     Object submitExportRelease(
             @PathVariable String id,
-            @Valid @RequestBody CultivationCalendarDtos.ApprovalRequest request,
             @RequestHeader("X-Auth-User-Id") String userId,
             @RequestHeader(value = "X-Auth-Email", required = false) String email,
             @RequestHeader("X-Auth-Role") String role) {
-        return service.submitExportRelease(actor(userId, email, role), id, request.userId());
+        return service.submitExportRelease(actor(userId, email, role), id, userId);
     }
 
     @PostMapping("/api/v1/export-releases/{id}/approve")
     Object approveExportRelease(
             @PathVariable String id,
-            @Valid @RequestBody CultivationCalendarDtos.ApprovalRequest request,
             @RequestHeader("X-Auth-User-Id") String userId,
             @RequestHeader(value = "X-Auth-Email", required = false) String email,
             @RequestHeader("X-Auth-Role") String role) {
-        return service.approveExportRelease(actor(userId, email, role), id, request.userId());
+        return service.approveExportRelease(actor(userId, email, role), id, userId);
     }
 
     @PostMapping("/api/v1/export-releases/{id}/inspect")
@@ -438,11 +458,10 @@ public class CultivationCalendarController {
     @PostMapping("/api/v1/export-releases/{id}/release")
     Object releaseExportRelease(
             @PathVariable String id,
-            @Valid @RequestBody CultivationCalendarDtos.ApprovalRequest request,
             @RequestHeader("X-Auth-User-Id") String userId,
             @RequestHeader(value = "X-Auth-Email", required = false) String email,
             @RequestHeader("X-Auth-Role") String role) {
-        return service.releaseExportRelease(actor(userId, email, role), id, request.userId());
+        return service.releaseExportRelease(actor(userId, email, role), id, userId);
     }
 
     @PostMapping("/api/v1/export-releases/{id}/recall")
@@ -452,7 +471,7 @@ public class CultivationCalendarController {
             @RequestHeader("X-Auth-User-Id") String userId,
             @RequestHeader(value = "X-Auth-Email", required = false) String email,
             @RequestHeader("X-Auth-Role") String role) {
-        return service.recallExportRelease(actor(userId, email, role), id, request.userId(), request.reason());
+        return service.recallExportRelease(actor(userId, email, role), id, userId, request.reason());
     }
 
     @GetMapping("/api/v1/export-releases/{id}/traceability")
@@ -467,8 +486,11 @@ public class CultivationCalendarController {
     @GetMapping("/api/v1/audit-logs")
     Object auditLogs(
             @RequestParam(required = false) String resourceType,
-            @RequestParam(required = false) String resourceId) {
-        return service.auditLogs(resourceType, resourceId);
+            @RequestParam(required = false) String resourceId,
+            @RequestHeader("X-Auth-User-Id") String userId,
+            @RequestHeader(value = "X-Auth-Email", required = false) String email,
+            @RequestHeader("X-Auth-Role") String role) {
+        return service.auditLogs(actor(userId, email, role), resourceType, resourceId);
     }
 
     private CultivationActor actor(String userId, String email, String role) {

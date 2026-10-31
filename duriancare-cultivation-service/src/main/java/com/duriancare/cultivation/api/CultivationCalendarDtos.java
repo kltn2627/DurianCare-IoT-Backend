@@ -6,6 +6,7 @@ import com.duriancare.cultivation.domain.AgriculturalInputSnapshot;
 import com.duriancare.cultivation.domain.BiologicalLevel;
 import com.duriancare.cultivation.domain.BlockingReason;
 import com.duriancare.cultivation.domain.ComplianceWarning;
+import com.duriancare.cultivation.domain.ExportReleaseStatus;
 import com.duriancare.cultivation.domain.InputCategory;
 import com.duriancare.cultivation.domain.InputStatus;
 import com.duriancare.cultivation.domain.LabResultStatus;
@@ -108,7 +109,7 @@ public final class CultivationCalendarDtos {
             List<String> assignedUserIds) {
     }
 
-    public record ApprovalRequest(@NotBlank String userId) {
+    public record ApprovalRequest(String userId) {
     }
 
     public record SelfInspectionRequest(
@@ -122,7 +123,7 @@ public final class CultivationCalendarDtos {
     public record RejectionRequest(@NotBlank String userId, @NotBlank String reason) {
     }
 
-    public record RecallRequest(@NotBlank String userId, @NotBlank String reason) {
+    public record RecallRequest(String userId, @NotBlank String reason) {
     }
 
     public record ActivityInputUsageRequest(
@@ -209,21 +210,30 @@ public final class CultivationCalendarDtos {
             @NotBlank String laboratoryName,
             String laboratoryAccreditation,
             LabSampleStatus status,
-            List<String> attachments) {
+            List<String> attachments,
+            List<@NotBlank String> expectedActiveIngredientCodes) {
+
+        public CreateLabSampleRequest(String cultivationSeasonId, String harvestBatchId, String sampleCode,
+                SampleType sampleType, Instant sampledAt, String sampledBy, String samplingLocation,
+                String laboratoryName, String laboratoryAccreditation, LabSampleStatus status,
+                List<String> attachments) {
+            this(cultivationSeasonId, harvestBatchId, sampleCode, sampleType, sampledAt, sampledBy,
+                    samplingLocation, laboratoryName, laboratoryAccreditation, status, attachments, List.of());
+        }
     }
 
     public record CreateLabResultRequest(
             @NotBlank String labSampleId,
             @NotBlank String activeIngredientCode,
             @NotBlank String activeIngredientName,
-            BigDecimal measuredValue,
+            @PositiveOrZero BigDecimal measuredValue,
             @NotBlank String unit,
-            BigDecimal detectionLimit,
-            BigDecimal quantificationLimit,
-            BigDecimal applicableMrl,
-            String applicableMrlSource,
-            LabResultStatus resultStatus,
-            String verifiedBy) {
+            @PositiveOrZero BigDecimal detectionLimit,
+            @PositiveOrZero BigDecimal quantificationLimit,
+            @Deprecated BigDecimal applicableMrl,
+            @Deprecated String applicableMrlSource,
+            @Deprecated LabResultStatus resultStatus,
+            @Deprecated String verifiedBy) {
     }
 
     public record CreateHarvestBatchRequest(
@@ -235,7 +245,7 @@ public final class CultivationCalendarDtos {
             @NotNull @Positive BigDecimal quantity,
             @NotBlank String quantityUnit,
             @NotBlank String expectedDestinationMarket,
-            @NotBlank String createdBy,
+            String createdBy,
             boolean overrideSafeHarvestDate,
             String overrideReason) {
     }
@@ -249,7 +259,7 @@ public final class CultivationCalendarDtos {
             @NotBlank String releaseCode,
             @NotBlank String harvestBatchId,
             @NotBlank String targetMarketCode,
-            @NotBlank String submittedBy) {
+            String submittedBy) {
     }
 
     public record MessageResponse(String message) {
@@ -265,7 +275,8 @@ public final class CultivationCalendarDtos {
     public record CareHistoryResponse(List<?> activities, List<?> executions, List<?> inputUsages) {
     }
 
-    public record TraceabilityResponse(String releaseId, Map<String, Object> snapshot) {
+    public record TraceabilityResponse(String releaseId, ExportReleaseStatus status,
+            Instant recalledAt, String recallReason, Map<String, Object> snapshot) {
     }
 
     public static AgriculturalInputSnapshot snapshotOf(com.duriancare.cultivation.domain.AgriculturalInput input) {

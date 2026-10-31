@@ -20,7 +20,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
-@Tag(name = "Cultivation Schedules", description = "Daily cultivation scheduling and status tracking")
+@Deprecated
+@Tag(name = "Cultivation Schedules (legacy)", description = "Deprecated legacy care records; use CultivationPlan and CultivationActivity for the canonical calendar")
 @RequestMapping("/api/cultivation-schedules")
 public class CultivationScheduleController {
 
