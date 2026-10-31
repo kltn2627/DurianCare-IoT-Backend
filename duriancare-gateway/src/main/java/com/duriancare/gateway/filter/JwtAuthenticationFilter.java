@@ -7,6 +7,8 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 import java.time.Instant;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.Ordered;
@@ -23,6 +25,8 @@ import reactor.core.publisher.Mono;
 
 @Component
 public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
     private static final List<String> INTERNAL_IDENTITY_HEADERS = List.of(
             "X-Auth-User-Id",
@@ -102,12 +106,15 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
         return redisTemplate.hasKey("duriancare:jwt:revoked:" + tokenId)
                 .timeout(revocationTimeout)
+                .onErrorResume(exception -> {
+                    LOGGER.warn("Token revocation lookup failed", exception);
+                    return revocationFailOpen
+                            ? Mono.just(false)
+                            : serviceUnavailable(exchange).then(Mono.<Boolean>empty());
+                })
                 .flatMap(revoked -> revoked
                         ? unauthorized(exchange, "Token has been revoked")
-                        : forward(exchange, chain, claims))
-                .onErrorResume(exception -> revocationFailOpen
-                        ? forward(exchange, chain, claims)
-                        : serviceUnavailable(exchange));
+                        : forward(exchange, chain, claims));
     }
 
     private Mono<Void> forward(ServerWebExchange exchange, GatewayFilterChain chain, Claims claims) {

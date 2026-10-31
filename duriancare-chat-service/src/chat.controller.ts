@@ -294,8 +294,8 @@ export class ChatController {
     );
     await this.assertAcceptedConnection(authorization, actor, existingConversation);
     await this.conversationService.deleteForParticipant(conversationId, actor);
-    this.chatGateway.emitConversationDeleted(conversationId, { id: conversationId });
-    return { ok: true };
+    this.chatGateway.emitConversationDeleted(conversationId, { id: conversationId, conversationId });
+    return { ok: true, conversationId };
   }
 
   private async toResponse(

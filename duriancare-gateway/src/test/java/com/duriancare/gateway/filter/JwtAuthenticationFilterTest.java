@@ -17,6 +17,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -165,6 +166,87 @@ class JwtAuthenticationFilterTest {
 
         assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
         verify(chain, never()).filter(exchange);
+    }
+
+    @Test
+    void downstreamFailureIsNotRetriedOrReclassifiedAsRedisFailure() {
+        for (boolean failOpen : new boolean[] {true, false}) {
+            JwtAuthenticationFilter configured = new JwtAuthenticationFilter(
+                    new JwtTokenValidator(new JwtProperties(SECRET, "duriancare-auth-service")),
+                    new PublicEndpointMatcher(), redisTemplate, Duration.ofMillis(100), failOpen);
+            MockServerWebExchange exchange = authenticatedExchange(token("user", "FARMER", "user@example.com"));
+            AtomicInteger calls = new AtomicInteger();
+            IllegalStateException failure = new IllegalStateException("downstream failed");
+
+            StepVerifier.create(configured.filter(exchange, next -> {
+                calls.incrementAndGet();
+                return Mono.error(failure);
+            })).expectErrorMatches(error -> error == failure).verify();
+
+            assertThat(calls.get()).isEqualTo(1);
+            assertThat(exchange.getResponse().getStatusCode()).isNull();
+        }
+    }
+
+    @Test
+    void revokedTokenIsRejected() {
+        when(redisTemplate.hasKey(anyString())).thenReturn(Mono.just(true));
+        MockServerWebExchange exchange = authenticatedExchange(token("user", "FARMER", "user@example.com"));
+        AtomicInteger calls = new AtomicInteger();
+        StepVerifier.create(filter.filter(exchange, next -> {
+            calls.incrementAndGet();
+            return Mono.empty();
+        })).verifyComplete();
+        assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(calls.get()).isZero();
+    }
+
+    @Test
+    void invalidTokensNeverReachRedisOrDownstream() {
+        Instant now = Instant.now();
+        String expired = Jwts.builder().id("expired").subject("user")
+                .issuer("duriancare-auth-service").claim("type", "access").claim("role", "FARMER")
+                .expiration(Date.from(now.minusSeconds(60)))
+                .signWith(Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8))).compact();
+        String wrongSignature = Jwts.builder().id("wrong-key").subject("user")
+                .issuer("duriancare-auth-service").claim("type", "access").claim("role", "FARMER")
+                .expiration(Date.from(now.plusSeconds(60)))
+                .signWith(Keys.hmacShaKeyFor(("x".repeat(64)).getBytes(StandardCharsets.UTF_8))).compact();
+        for (String invalid : new String[] {"not-a-jwt", expired, wrongSignature}) {
+            MockServerWebExchange exchange = authenticatedExchange(invalid);
+            AtomicInteger calls = new AtomicInteger();
+            StepVerifier.create(filter.filter(exchange, next -> {
+                calls.incrementAndGet();
+                return Mono.empty();
+            })).verifyComplete();
+            assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+            assertThat(calls.get()).isZero();
+        }
+        verify(redisTemplate, never()).hasKey(anyString());
+    }
+
+    @Test
+    void redisTimeoutHonorsFailOpenAndFailClosed() {
+        when(redisTemplate.hasKey(anyString())).thenReturn(Mono.never());
+        for (boolean failOpen : new boolean[] {true, false}) {
+            JwtAuthenticationFilter configured = new JwtAuthenticationFilter(
+                    new JwtTokenValidator(new JwtProperties(SECRET, "duriancare-auth-service")),
+                    new PublicEndpointMatcher(), redisTemplate, Duration.ofSeconds(1), failOpen);
+            MockServerWebExchange exchange = authenticatedExchange(token("user", "FARMER", "user@example.com"));
+            AtomicInteger calls = new AtomicInteger();
+            StepVerifier.withVirtualTime(() -> configured.filter(exchange, next -> {
+                calls.incrementAndGet();
+                return Mono.empty();
+            })).thenAwait(Duration.ofSeconds(2)).verifyComplete();
+            assertThat(calls.get()).isEqualTo(failOpen ? 1 : 0);
+            assertThat(exchange.getResponse().getStatusCode())
+                    .isEqualTo(failOpen ? null : HttpStatus.SERVICE_UNAVAILABLE);
+        }
+    }
+
+    private MockServerWebExchange authenticatedExchange(String jwt) {
+        return MockServerWebExchange.from(MockServerHttpRequest.get("/api/chat/conversations")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt).build());
     }
 
     private String token(String subject, String role, String email) {

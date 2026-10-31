@@ -189,4 +189,44 @@ class NotificationEventListenerTest {
         assertThatCode(() -> listener.handle("not-json")).doesNotThrowAnyException();
         verifyNoInteractions(notificationService);
     }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {
+            "CONNECTION_REQUEST_RECEIVED", "CONNECTION_REQUEST_ACCEPTED",
+            "CONNECTION_REQUEST_REJECTED", "CONNECTION_REQUEST_CANCELLED", "CONNECTION_DISCONNECTED"
+    })
+    void routesConnectionEventsAsExpertNotifications(String eventType) {
+        listener.handle("""
+                {"eventType":"%s","receiverId":" farmer-1 ","title":" Connection ",
+                 "message":" Updated ","eventId":"11111111-1111-1111-1111-111111111111"}
+                """.formatted(eventType));
+        ArgumentCaptor<CreateNotificationRequest> captor = ArgumentCaptor.forClass(CreateNotificationRequest.class);
+        verify(notificationService).createNotification(captor.capture());
+        org.assertj.core.api.Assertions.assertThat(captor.getValue().type()).isEqualTo(NotificationType.EXPERT);
+        org.assertj.core.api.Assertions.assertThat(captor.getValue().receiverId()).isEqualTo("farmer-1");
+        org.assertj.core.api.Assertions.assertThat(captor.getValue().sourceEventId())
+                .isEqualTo("11111111-1111-1111-1111-111111111111");
+    }
+
+    @Test
+    void careFollowupWithoutExplicitTypeStillRoutesToCare() {
+        listener.handle("""
+                {"eventType":"CARE_FOLLOWUP","receiverId":"farmer-1","title":"Care",
+                 "message":"Follow up","sourceEventId":" followup-1 "}
+                """);
+        ArgumentCaptor<CreateNotificationRequest> captor = ArgumentCaptor.forClass(CreateNotificationRequest.class);
+        verify(notificationService).createNotification(captor.capture());
+        org.assertj.core.api.Assertions.assertThat(captor.getValue().type()).isEqualTo(NotificationType.CARE);
+        org.assertj.core.api.Assertions.assertThat(captor.getValue().sourceEventId()).isEqualTo("followup-1");
+    }
+
+    @Test
+    void persistenceFailurePropagatesForKafkaRetry() {
+        IllegalStateException failure = new IllegalStateException("database unavailable");
+        when(notificationService.createNotification(any(CreateNotificationRequest.class))).thenThrow(failure);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> listener.handle("""
+                {"eventType":"CONNECTION_DISCONNECTED","receiverId":"farmer-1",
+                 "title":"Connection","message":"Disconnected"}
+                """ )).isSameAs(failure);
+    }
 }
