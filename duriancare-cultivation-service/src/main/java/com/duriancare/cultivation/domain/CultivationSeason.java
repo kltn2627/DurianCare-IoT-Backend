@@ -20,5 +20,10 @@ public record CultivationSeason(
         LocalDate endDate,
         String createdBy,
         Instant createdAt,
-        Instant updatedAt) {
+        Instant updatedAt,
+        SeasonProductionStatus productionStatus) {
+    public CultivationSeason(String id, String farmId, String plotId, String name, String crop, String variety,
+            LocalDate startDate, LocalDate endDate, String createdBy, Instant createdAt, Instant updatedAt) {
+        this(id, farmId, plotId, name, crop, variety, startDate, endDate, createdBy, createdAt, updatedAt, null);
+    }
 }

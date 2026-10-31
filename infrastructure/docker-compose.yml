@@ -216,9 +216,9 @@ services:
       MAX_IMAGE_SIZE_BYTES: ${MAX_IMAGE_SIZE_BYTES:-10485760}
       ENGINEER_DOCUMENT_MAX_UPLOAD_SIZE_BYTES: ${ENGINEER_DOCUMENT_MAX_UPLOAD_SIZE_BYTES:-10485760}
       ENGINEER_DOCUMENT_MAX_REQUEST_SIZE_BYTES: ${ENGINEER_DOCUMENT_MAX_REQUEST_SIZE_BYTES:-20971520}
-      DEFAULT_ADMIN_ENABLED: ${DEFAULT_ADMIN_ENABLED:-true}
+      DEFAULT_ADMIN_ENABLED: ${DEFAULT_ADMIN_ENABLED:-false}
       DEFAULT_ADMIN_EMAIL: ${DEFAULT_ADMIN_EMAIL:-admin@duriancare.local}
-      DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD:-Admin@12345}
+      DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD:-}
       DEFAULT_ADMIN_FULL_NAME: ${DEFAULT_ADMIN_FULL_NAME:-DurianCare Administrator}
       DEFAULT_ADMIN_PHONE_NUMBER: ${DEFAULT_ADMIN_PHONE_NUMBER:-0900000000}
     depends_on:
@@ -249,6 +249,7 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       KAFKA_ALERT_TOPIC: ${KAFKA_ALERT_TOPIC}
       AUTH_SERVICE_URL: http://duriancare-auth-service:8081
+      AI_SERVICE_URL: http://duriancare-ai-service:8000
     depends_on:
       config-server:
         condition: service_started
@@ -294,12 +295,19 @@ services:
     image: duriancare/iot-service:local
     container_name: duriancare-iot-service
     restart: unless-stopped
+    stop_grace_period: 90s
+    volumes:
+      - iot_uploads:/app/uploads
     ports:
       - "3001:3001"
     environment:
       PORT: 3001
+      UPLOADS_DIR: /app/uploads
       MQTT_URL: mqtt://emqx:1883
       MQTT_TOPIC: duriancare/devices/+/telemetry
+      MQTT_PUBLIC_HOST: ${MQTT_PUBLIC_HOST:-}
+      MQTT_PUBLIC_PORT: ${MQTT_PUBLIC_PORT:-1883}
+      MQTT_REGISTER_TOPIC: ${MQTT_REGISTER_TOPIC:-esp32/camera/register}
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
       POSTGRES_DB: ${POSTGRES_DB}
@@ -308,10 +316,14 @@ services:
       POSTGRES_SCHEMA: ${POSTGRES_SCHEMA:-duriancare_iot}
       KAFKA_BROKERS: kafka:29092
       KAFKA_TELEMETRY_TOPIC: iot.telemetry.received
-      ESP32_CAMERA_URL: ${ESP32_CAMERA_URL:-http://192.168.1.10}
+      ESP32_CAMERA_URL: ${ESP32_CAMERA_URL:-}
+      CAMERA_LEGACY_ENABLED: ${CAMERA_LEGACY_ENABLED:-false}
+      CAMERA_DEVICE_BINDINGS: ${CAMERA_DEVICE_BINDINGS:-}
+      CAMERA_OFFLINE_TIMEOUT_MIN: ${CAMERA_OFFLINE_TIMEOUT_MIN:-5}
       ESP32_CAPTURE_PATH: ${ESP32_CAPTURE_PATH:-/capture}
-      DEFAULT_ESP32_IP: ${DEFAULT_ESP32_IP:-192.168.1.10}
       FARM_SERVICE_URL: http://duriancare-farm-service:8082
+      # Camera capture AI diagnosis; without it config.js falls back to localhost:8000 (the IoT container itself).
+      AI_SERVICE_URL: ${IOT_AI_SERVICE_URL:-http://duriancare-ai-service:8000}
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-local-internal-token}
     depends_on:
       postgres:
@@ -559,4 +571,5 @@ volumes:
   emqx_log:
   ai_vector_store:
   ai_artifacts:
+  iot_uploads:
   elasticsearch_data:

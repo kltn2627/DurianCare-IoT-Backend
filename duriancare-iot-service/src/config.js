@@ -1,11 +1,15 @@
 require("dotenv").config();
+let warnedLegacyCamera = false;
 
-// Re-reads ESP32_CAMERA_URL and ESP32_CAPTURE_PATH from .env on every call so
-// you can update the IP without restarting the service — just save .env.
+// Registry is authoritative. Legacy configuration is an explicit opt-in only.
 function getCameraConfig() {
-  require("dotenv").config({ override: true });
+  if (!warnedLegacyCamera && (process.env.ESP32_CAMERA_URL || process.env.DEFAULT_ESP32_IP || process.env.CAMERA_REGISTRATION_KEY)) {
+    console.warn("[camera] Legacy address/shared-key configuration is deprecated; use registry and device bindings.");
+    warnedLegacyCamera = true;
+  }
   return {
-    esp32CameraUrl:   (process.env.ESP32_CAMERA_URL   || "http://192.168.1.100").replace(/\/$/, ""),
+    esp32CameraUrl: process.env.CAMERA_LEGACY_ENABLED === "true"
+      ? (process.env.ESP32_CAMERA_URL || "").replace(/\/$/, "") : null,
     esp32CapturePath: (process.env.ESP32_CAPTURE_PATH || "/capture").replace(/^([^/])/, "/$1"),
   };
 }
@@ -59,13 +63,13 @@ module.exports = {
   kafkaBrokers: (process.env.KAFKA_BROKERS || "localhost:9092").split(","),
   kafkaTopic: process.env.KAFKA_TELEMETRY_TOPIC || "iot.telemetry.received",
   notificationTopic: process.env.NOTIFICATION_EVENTS_TOPIC || "duriancare.notification.events",
-  esp32CameraUrl:    (process.env.ESP32_CAMERA_URL    || "http://192.168.1.100").replace(/\/$/, ""),
+  esp32CameraUrl: getCameraConfig().esp32CameraUrl,
   esp32CapturePath:  (process.env.ESP32_CAPTURE_PATH  || "/capture").replace(/^([^/])/, "/$1"),
   serverBaseUrl:  (process.env.SERVER_BASE_URL  || "http://localhost:8080").replace(/\/$/, ""),
   aiServiceUrl:   (process.env.AI_SERVICE_URL   || "http://localhost:8000").replace(/\/$/, ""),
   uploadsDir: process.env.UPLOADS_DIR || "./uploads",
-  cameraRegistrationKey: process.env.CAMERA_REGISTRATION_KEY || "duriancare-esp32-dev-key",
-  cameraOfflineTimeoutMinutes: Number(process.env.CAMERA_OFFLINE_TIMEOUT_MIN || 5),
+  cameraRegistrationKey: process.env.CAMERA_REGISTRATION_KEY || "",
+  cameraOfflineTimeoutMinutes: positiveNumber("CAMERA_OFFLINE_TIMEOUT_MIN", 5),
   getCameraConfig,
   iotHealth: {
     expectedTelemetryIntervalSeconds,
@@ -73,6 +77,9 @@ module.exports = {
     offlineWatchdogIntervalSeconds,
     staleAfterIntervals
   },
+  // Threshold alerts for HTTP POST /api/v1/sensors/data readings (MQTT readings are always evaluated).
+  // Off by default: enabling it starts real notifications for HTTP-only sensors such as esp32-01.
+  httpTelemetryAlertsEnabled: process.env.IOT_HTTP_TELEMETRY_ALERTS_ENABLED === "true",
   iotThresholds: {
     temperatureHigh: Number(process.env.IOT_TEMPERATURE_HIGH || 38),
     temperatureLow: Number(process.env.IOT_TEMPERATURE_LOW || 15),

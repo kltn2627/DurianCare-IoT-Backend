@@ -56,6 +56,7 @@ import java.time.ZoneOffset;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -72,8 +73,15 @@ import org.springframework.util.StringUtils;
 @Service
 public class CultivationCalendarService {
 
+    private static final String DURIAN_COMMODITY_CODE = "DURIAN";
+
     private static final String RULES_VERSION = "cultivation-calendar-v2";
+
     private static final String LAB_EVALUATION_VERSION = "SERVER_MRL_V1";
+
+    private static final EnumSet<HarvestBatchStatus> EXPORT_RELEASE_ELIGIBLE_BATCH_STATUSES = EnumSet.of(
+            HarvestBatchStatus.APPROVED,
+            HarvestBatchStatus.HARVESTED);
 
     private final CultivationPlanRepository planRepository;
     private final CultivationSeasonRepository seasonRepository;
@@ -144,7 +152,8 @@ public class CultivationCalendarService {
         return plan;
     }
 
-    public List<CultivationPlan> listPlans(CultivationActor actor, String farmId, String plotId, String cultivationSeasonId) {
+    public List<CultivationPlan> listPlans(CultivationActor actor, String farmId, String plotId,
+            String cultivationSeasonId) {
         return listPlans(farmId, plotId, cultivationSeasonId).stream()
                 .filter(plan -> accessGuard.canView(actor, plan.farmId(), plan.plotId()))
                 .toList();
@@ -159,7 +168,8 @@ public class CultivationCalendarService {
                 .toList();
     }
 
-    public CultivationActivity createActivity(CultivationActor actor, CultivationCalendarDtos.CreateActivityRequest request) {
+    public CultivationActivity createActivity(CultivationActor actor,
+            CultivationCalendarDtos.CreateActivityRequest request) {
         CultivationPlan plan = getPlan(actor, request.cultivationPlanId());
         requireSamePlanScope(plan, request);
         accessGuard.requireCreate(actor, "CultivationActivity", null, request.farmId(), request.plotId());
@@ -262,7 +272,8 @@ public class CultivationCalendarService {
             CultivationActor actor,
             String cultivationSeasonId,
             CultivationCalendarDtos.AssessComplianceRequest request) {
-        HarvestBatch harvestBatch = request.harvestBatchId() == null ? null : getHarvestBatch(actor, request.harvestBatchId());
+        HarvestBatch harvestBatch = request.harvestBatchId() == null ? null
+                : getHarvestBatch(actor, request.harvestBatchId());
         if (harvestBatch == null) {
             requireCanViewSeason(actor, cultivationSeasonId);
         } else if (!harvestBatch.cultivationSeasonId().equals(cultivationSeasonId)) {
@@ -315,7 +326,8 @@ public class CultivationCalendarService {
         return labResidueResultRepository.findByLabSampleId(sample.id());
     }
 
-    public LabResidueResult createLabResult(CultivationActor actor, CultivationCalendarDtos.CreateLabResultRequest request) {
+    public LabResidueResult createLabResult(CultivationActor actor,
+            CultivationCalendarDtos.CreateLabResultRequest request) {
         LabSample sample = getLabSample(actor, request.labSampleId());
         if (sample.sampleType() != SampleType.FRUIT) {
             throw new IllegalArgumentException("Only fruit samples can support harvest residue results");
@@ -332,7 +344,8 @@ public class CultivationCalendarService {
         return createLabResult(request, sample, batch, actor.userId());
     }
 
-    public HarvestBatch createHarvestBatch(CultivationActor actor, CultivationCalendarDtos.CreateHarvestBatchRequest request) {
+    public HarvestBatch createHarvestBatch(CultivationActor actor,
+            CultivationCalendarDtos.CreateHarvestBatchRequest request) {
         CultivationSeason season = requireSeason(request.cultivationSeasonId());
         requireBatchScope(season, request.farmId(), request.plotId());
         accessGuard.requireCreate(actor, "HarvestBatch", null, season.farmId(), season.plotId());
@@ -362,36 +375,46 @@ public class CultivationCalendarService {
         return assessCompliance(actor, batch.cultivationSeasonId(), request);
     }
 
-    public ExportRelease createExportRelease(CultivationActor actor, CultivationCalendarDtos.CreateExportReleaseRequest request) {
-        HarvestBatch batch = getHarvestBatch(actor, request.harvestBatchId());
+    public ExportRelease createExportRelease(CultivationActor actor,
+            CultivationCalendarDtos.CreateExportReleaseRequest request) {
+        requireSameActor(actor, request.submittedBy());
+        HarvestBatch batch = getHarvestBatch(actor, requireText(request.harvestBatchId(), "Harvest batch is required"));
+        requireExportReleaseEligibleBatch(batch);
         accessGuard.requireUpdate(actor, "ExportRelease", null, batch.farmId(), batch.plotId());
         return createExportRelease(request, actor.userId());
     }
 
     public ExportRelease submitExportRelease(CultivationActor actor, String id, String userId) {
+        requireSameActor(actor, userId);
         ExportRelease release = getExportRelease(actor, id);
         HarvestBatch batch = getHarvestBatch(actor, release.harvestBatchId());
+        requireExportReleaseEligibleBatch(batch);
         accessGuard.requireUpdate(actor, "ExportRelease", id, batch.farmId(), batch.plotId());
         return submitExportRelease(id, actor.userId());
     }
 
     public ExportRelease approveExportRelease(CultivationActor actor, String id, String reviewerId) {
+        requireSameActor(actor, reviewerId);
         ExportRelease release = getExportRelease(actor, id);
         HarvestBatch batch = getHarvestBatch(actor, release.harvestBatchId());
+        requireExportReleaseEligibleBatch(batch);
         accessGuard.requireUpdate(actor, "ExportRelease", id, batch.farmId(), batch.plotId());
         requireTechnicalReviewer(actor);
         return approveExportRelease(id, actor.userId());
     }
 
     public ExportRelease releaseExportRelease(CultivationActor actor, String id, String reviewerId) {
+        requireSameActor(actor, reviewerId);
         ExportRelease release = getExportRelease(actor, id);
         HarvestBatch batch = getHarvestBatch(actor, release.harvestBatchId());
+        requireExportReleaseEligibleBatch(batch);
         accessGuard.requireUpdate(actor, "ExportRelease", id, batch.farmId(), batch.plotId());
         requireTechnicalReviewer(actor);
         return releaseExportRelease(id, actor.userId());
     }
 
     public ExportRelease recallExportRelease(CultivationActor actor, String id, String reviewerId, String reason) {
+        requireSameActor(actor, reviewerId);
         ExportRelease release = getExportRelease(actor, id);
         HarvestBatch batch = getHarvestBatch(actor, release.harvestBatchId());
         accessGuard.requireUpdate(actor, "ExportRelease", id, batch.farmId(), batch.plotId());
@@ -452,7 +475,8 @@ public class CultivationCalendarService {
 
     public CultivationPlan getPlan(String id) {
         CultivationPlan plan = planRepository.findById(id).orElseThrow(() -> notFound("Cultivation plan", id));
-        if (!hasValidPlanAncestry(plan)) throw notFound("Cultivation plan", id);
+        if (!hasValidPlanAncestry(plan))
+            throw notFound("Cultivation plan", id);
         return plan;
     }
 
@@ -491,7 +515,8 @@ public class CultivationCalendarService {
             }
             if (inputs.stream().anyMatch(this::requiresChemicalApproval)) {
                 requireText(request.targetPestOrDisease(), "Target pest or disease is required for chemical treatment");
-                requireText(request.biologicalControlReason(), "Biological/IPM reason is required for chemical treatment");
+                requireText(request.biologicalControlReason(),
+                        "Biological/IPM reason is required for chemical treatment");
                 requireText(request.approvalUserId(), "Approval user is required for chemical treatment");
                 status = ActivityStatus.PENDING_APPROVAL;
             }
@@ -525,10 +550,12 @@ public class CultivationCalendarService {
         return saved;
     }
 
-    public List<CultivationActivity> listActivities(String cultivationSeasonId, ActivityType activityType, ActivityStatus status) {
+    public List<CultivationActivity> listActivities(String cultivationSeasonId, ActivityType activityType,
+            ActivityStatus status) {
         return activityRepository.findAll().stream()
                 .filter(this::hasValidActivityAncestry)
-                .filter(activity -> cultivationSeasonId == null || cultivationSeasonId.equals(activity.cultivationSeasonId()))
+                .filter(activity -> cultivationSeasonId == null
+                        || cultivationSeasonId.equals(activity.cultivationSeasonId()))
                 .filter(activity -> activityType == null || activityType == activity.activityType())
                 .filter(activity -> status == null || status == activity.status())
                 .sorted(Comparator.comparing(CultivationActivity::scheduledStartAt))
@@ -536,8 +563,10 @@ public class CultivationCalendarService {
     }
 
     public CultivationActivity getActivity(String id) {
-        CultivationActivity activity = activityRepository.findById(id).orElseThrow(() -> notFound("Cultivation activity", id));
-        if (!hasValidActivityAncestry(activity)) throw notFound("Cultivation activity", id);
+        CultivationActivity activity = activityRepository.findById(id)
+                .orElseThrow(() -> notFound("Cultivation activity", id));
+        if (!hasValidActivityAncestry(activity))
+            throw notFound("Cultivation activity", id);
         return activity;
     }
 
@@ -552,7 +581,8 @@ public class CultivationCalendarService {
             throw new IllegalArgumentException("Scheduled end time must not be before start time");
         }
         CultivationActivity saved = activityRepository.save(new CultivationActivity(
-                current.id(), current.cultivationPlanId(), current.cultivationSeasonId(), current.farmId(), current.plotId(),
+                current.id(), current.cultivationPlanId(), current.cultivationSeasonId(), current.farmId(),
+                current.plotId(),
                 current.treeIds(), current.activityType(),
                 defaultString(request.title(), current.title()),
                 request.description() == null ? current.description() : request.description(),
@@ -572,7 +602,8 @@ public class CultivationCalendarService {
         requirePendingApproval(current);
         String reviewerId = requireText(userId, "Approval user is required");
         CultivationActivity approved = withStatus(current, ActivityStatus.APPROVED, reviewerId, Instant.now(), null);
-        audit(AuditAction.CULTIVATION_ACTIVITY_APPROVED, "CultivationActivity", approved.id(), reviewerId, null, Map.of());
+        audit(AuditAction.CULTIVATION_ACTIVITY_APPROVED, "CultivationActivity", approved.id(), reviewerId, null,
+                Map.of());
         return approved;
     }
 
@@ -581,8 +612,10 @@ public class CultivationCalendarService {
         requirePendingApproval(current);
         String reviewerId = requireText(userId, "Rejection user is required");
         String rejectionReason = requireText(reason, "Rejection reason is required");
-        CultivationActivity rejected = withStatus(current, ActivityStatus.CANCELLED, reviewerId, Instant.now(), rejectionReason);
-        audit(AuditAction.CULTIVATION_ACTIVITY_REJECTED, "CultivationActivity", rejected.id(), reviewerId, rejectionReason, Map.of());
+        CultivationActivity rejected = withStatus(current, ActivityStatus.CANCELLED, reviewerId, Instant.now(),
+                rejectionReason);
+        audit(AuditAction.CULTIVATION_ACTIVITY_REJECTED, "CultivationActivity", rejected.id(), reviewerId,
+                rejectionReason, Map.of());
         return rejected;
     }
 
@@ -592,7 +625,8 @@ public class CultivationCalendarService {
         if (current.status() == ActivityStatus.CANCELLED || current.status() == ActivityStatus.COMPLETED) {
             throw new IllegalStateException("Cancelled or completed activity cannot be started");
         }
-        return withStatus(current, ActivityStatus.IN_PROGRESS, current.approvedBy(), current.approvedAt(), current.rejectionReason());
+        return withStatus(current, ActivityStatus.IN_PROGRESS, current.approvedBy(), current.approvedAt(),
+                current.rejectionReason());
     }
 
     public CultivationActivity skipActivity(String id) {
@@ -623,7 +657,8 @@ public class CultivationCalendarService {
             case FERTILIZATION, FERTIGATION, BIOLOGICAL_TREATMENT, CHEMICAL_TREATMENT -> true;
             default -> false;
         } && usageRequests.isEmpty()) {
-            throw new IllegalArgumentException("At least one agricultural input usage is required for this activity type");
+            throw new IllegalArgumentException(
+                    "At least one agricultural input usage is required for this activity type");
         }
         LocalDate completedDate = LocalDate.ofInstant(request.completedAt(), ZoneOffset.UTC);
         List<AgriculturalInput> validatedInputs = new ArrayList<>();
@@ -639,7 +674,8 @@ public class CultivationCalendarService {
             validateInputCanBeUsed(input, usageRequest);
             validatedInputs.add(input);
             snapshots.add(CultivationCalendarDtos.snapshotOf(input));
-            safeHarvestDates.add(safeHarvestDateCalculator.safeHarvestDate(completedDate, input.preHarvestIntervalDays()));
+            safeHarvestDates
+                    .add(safeHarvestDateCalculator.safeHarvestDate(completedDate, input.preHarvestIntervalDays()));
         }
         ActivityExecution execution = executionRepository.save(new ActivityExecution(
                 newId(), id, request.startedAt(), request.completedAt(), request.executedBy().trim(),
@@ -657,8 +693,10 @@ public class CultivationCalendarService {
                     usageRequest.concentration(), usageRequest.concentrationUnit(), usageRequest.treatedArea(),
                     usageRequest.areaUnit(), input.activeIngredients(), safeHarvestDates.get(index), Instant.now())));
         }
-        CultivationActivity completed = withStatus(activity, ActivityStatus.COMPLETED, activity.approvedBy(), activity.approvedAt(), null);
-        audit(AuditAction.CULTIVATION_ACTIVITY_COMPLETED, "CultivationActivity", completed.id(), request.executedBy(), null,
+        CultivationActivity completed = withStatus(activity, ActivityStatus.COMPLETED, activity.approvedBy(),
+                activity.approvedAt(), null);
+        audit(AuditAction.CULTIVATION_ACTIVITY_COMPLETED, "CultivationActivity", completed.id(), request.executedBy(),
+                null,
                 Map.of("executionId", execution.id(), "inputUsageCount", usages.size()));
         return new CultivationCalendarDtos.CompleteActivityResponse(
                 completed,
@@ -679,7 +717,8 @@ public class CultivationCalendarService {
     }
 
     public List<CultivationActivity> chemicalHistory(String cultivationSeasonId) {
-        return activityRepository.findByCultivationSeasonIdAndActivityType(cultivationSeasonId, ActivityType.CHEMICAL_TREATMENT)
+        return activityRepository
+                .findByCultivationSeasonIdAndActivityType(cultivationSeasonId, ActivityType.CHEMICAL_TREATMENT)
                 .stream().filter(this::hasValidActivityAncestry).toList();
     }
 
@@ -690,13 +729,15 @@ public class CultivationCalendarService {
     public AgriculturalInput createAgriculturalInput(CultivationCalendarDtos.CreateAgriculturalInputRequest request) {
         Instant now = Instant.now();
         AgriculturalInput saved = agriculturalInputRepository.save(new AgriculturalInput(
-                newId(), request.code().trim(), request.productName().trim(), request.tradeName(), request.manufacturer(),
+                newId(), request.code().trim(), request.productName().trim(), request.tradeName(),
+                request.manufacturer(),
                 request.registrationNumber(), request.category(), request.biologicalLevel(), request.formulation(),
                 request.unit(), copy(request.activeIngredients()), copy(request.beneficialOrganisms()),
                 request.recommendedDose(), request.maximumDose(), request.preHarvestIntervalDays(),
                 request.reEntryIntervalHours(), copy(request.targetPests()), copy(request.applicableCrops()),
                 copy(request.allowedMarketCodes()), copy(request.prohibitedMarketCodes()), request.labelDocumentUrl(),
-                copy(request.certificateDocumentUrls()), request.status() == null ? InputStatus.DRAFT : request.status(),
+                copy(request.certificateDocumentUrls()),
+                request.status() == null ? InputStatus.DRAFT : request.status(),
                 request.verifiedBy(), request.verifiedBy() == null ? null : now, now, now));
         audit(AuditAction.AGRICULTURAL_INPUT_CREATED, "AgriculturalInput", saved.id(), saved.verifiedBy(), null,
                 Map.of("code", saved.code(), "biologicalLevel", saved.biologicalLevel().name()));
@@ -715,7 +756,8 @@ public class CultivationCalendarService {
         return agriculturalInputRepository.findById(id).orElseThrow(() -> notFound("Agricultural input", id));
     }
 
-    public ResidueStandard createResidueStandard(CultivationActor actor, CultivationCalendarDtos.CreateResidueStandardRequest request) {
+    public ResidueStandard createResidueStandard(CultivationActor actor,
+            CultivationCalendarDtos.CreateResidueStandardRequest request) {
         requireStandardAdministrator(actor);
         return createResidueStandard(request, actor.userId());
     }
@@ -736,8 +778,10 @@ public class CultivationCalendarService {
         }
         Instant now = Instant.now();
         ResidueStandard saved = residueStandardRepository.save(new ResidueStandard(
-                newId(), normalizeCode(request.marketCode()), normalizeCode(request.commodityCode()), request.commodityName(),
-                normalizeCode(request.activeIngredientCode()), request.activeIngredientName(), request.mrlValue(), request.unit().trim(),
+                newId(), normalizeCode(request.marketCode()), normalizeCode(request.commodityCode()),
+                request.commodityName(),
+                normalizeCode(request.activeIngredientCode()), request.activeIngredientName(), request.mrlValue(),
+                request.unit().trim(),
                 request.effectiveFrom(), request.effectiveTo(), request.sourceType(), request.sourceReference(), null,
                 request.verified(), request.active(), now, now));
         audit(AuditAction.RESIDUE_STANDARD_CREATED, "ResidueStandard", saved.id(), actorId, null,
@@ -745,11 +789,13 @@ public class CultivationCalendarService {
         return saved;
     }
 
-    public List<ResidueStandard> listResidueStandards(String marketCode, String commodityCode, String activeIngredientCode) {
+    public List<ResidueStandard> listResidueStandards(String marketCode, String commodityCode,
+            String activeIngredientCode) {
         return residueStandardRepository.findAll().stream()
                 .filter(standard -> marketCode == null || marketCode.equalsIgnoreCase(standard.marketCode()))
                 .filter(standard -> commodityCode == null || commodityCode.equalsIgnoreCase(standard.commodityCode()))
-                .filter(standard -> activeIngredientCode == null || activeIngredientCode.equalsIgnoreCase(standard.activeIngredientCode()))
+                .filter(standard -> activeIngredientCode == null
+                        || activeIngredientCode.equalsIgnoreCase(standard.activeIngredientCode()))
                 .toList();
     }
 
@@ -784,7 +830,8 @@ public class CultivationCalendarService {
     public List<LabSample> listLabSamples(String cultivationSeasonId, String harvestBatchId) {
         return labSampleRepository.findAll().stream()
                 .filter(this::hasValidLabSampleAncestry)
-                .filter(sample -> cultivationSeasonId == null || cultivationSeasonId.equals(sample.cultivationSeasonId()))
+                .filter(sample -> cultivationSeasonId == null
+                        || cultivationSeasonId.equals(sample.cultivationSeasonId()))
                 .filter(sample -> harvestBatchId == null || harvestBatchId.equals(sample.harvestBatchId()))
                 .sorted(Comparator.comparing(LabSample::sampledAt).reversed())
                 .toList();
@@ -792,7 +839,8 @@ public class CultivationCalendarService {
 
     public LabSample getLabSample(String id) {
         LabSample sample = labSampleRepository.findById(id).orElseThrow(() -> notFound("Lab sample", id));
-        if (!hasValidLabSampleAncestry(sample)) throw notFound("Lab sample", id);
+        if (!hasValidLabSampleAncestry(sample))
+            throw notFound("Lab sample", id);
         return sample;
     }
 
@@ -860,7 +908,8 @@ public class CultivationCalendarService {
         audit(AuditAction.HARVEST_BATCH_CREATED, "HarvestBatch", saved.id(), actorId, null,
                 Map.of("batchCode", saved.batchCode(), "status", saved.status().name()));
         if (request.overrideSafeHarvestDate()) {
-            audit(AuditAction.SAFE_HARVEST_DATE_OVERRIDDEN, "HarvestBatch", saved.id(), actorId, request.overrideReason(),
+            audit(AuditAction.SAFE_HARVEST_DATE_OVERRIDDEN, "HarvestBatch", saved.id(), actorId,
+                    request.overrideReason(),
                     Map.of("earliestSafeHarvestDate", String.valueOf(earliestSafeHarvestDate)));
         }
         return saved;
@@ -868,7 +917,8 @@ public class CultivationCalendarService {
 
     public HarvestBatch getHarvestBatch(String id) {
         HarvestBatch batch = harvestBatchRepository.findById(id).orElseThrow(() -> notFound("Harvest batch", id));
-        if (!hasValidBatchAncestry(batch)) throw notFound("Harvest batch", id);
+        if (!hasValidBatchAncestry(batch))
+            throw notFound("Harvest batch", id);
         return batch;
     }
 
@@ -882,7 +932,8 @@ public class CultivationCalendarService {
                 .toList();
     }
 
-    public ComplianceAssessment assessCompliance(String cultivationSeasonId, CultivationCalendarDtos.AssessComplianceRequest request) {
+    public ComplianceAssessment assessCompliance(String cultivationSeasonId,
+            CultivationCalendarDtos.AssessComplianceRequest request) {
         return assessCompliance(cultivationSeasonId, request, null);
     }
 
@@ -904,7 +955,8 @@ public class CultivationCalendarService {
                 blockers.add(BlockingReason.HARVEST_BATCH_NOT_ELIGIBLE);
             }
         }
-        LocalDate harvestDate = harvestBatch == null ? null : LocalDate.ofInstant(harvestBatch.harvestedAt(), ZoneOffset.UTC);
+        LocalDate harvestDate = harvestBatch == null ? null
+                : LocalDate.ofInstant(harvestBatch.harvestedAt(), ZoneOffset.UTC);
         LocalDate applicableOn = harvestDate == null ? LocalDate.now(ZoneOffset.UTC) : harvestDate;
         String commodity = normalizeCode(season.crop());
         LocalDate earliestSafeHarvestDate = safeHarvestDate(cultivationSeasonId).orElse(null);
@@ -931,12 +983,16 @@ public class CultivationCalendarService {
         return assessCompliance(batch.cultivationSeasonId(), request);
     }
 
-    private ExportRelease createExportRelease(CultivationCalendarDtos.CreateExportReleaseRequest request, String actorId) {
-        HarvestBatch batch = getHarvestBatch(request.harvestBatchId());
+    private ExportRelease createExportRelease(CultivationCalendarDtos.CreateExportReleaseRequest request,
+            String actorId) {
+        HarvestBatch batch = getHarvestBatch(requireText(request.harvestBatchId(), "Harvest batch is required"));
+        requireExportReleaseEligibleBatch(batch);
+        requireNoActiveExportRelease(batch.id());
         requireMarketMatchesBatch(batch, normalizeCode(request.targetMarketCode()));
         ComplianceAssessment assessment = assessCompliance(batch.cultivationSeasonId(),
                 new CultivationCalendarDtos.AssessComplianceRequest(batch.id(), request.targetMarketCode()), actorId);
-        ExportReleaseStatus status = assessment.eligibleForExportRelease() ? ExportReleaseStatus.DRAFT : ExportReleaseStatus.BLOCKED;
+        ExportReleaseStatus status = assessment.eligibleForExportRelease() ? ExportReleaseStatus.DRAFT
+                : ExportReleaseStatus.BLOCKED;
         ExportRelease saved = exportReleaseRepository.save(new ExportRelease(
                 newId(), request.releaseCode(), batch.id(), normalizeCode(request.targetMarketCode()),
                 traceabilitySnapshot(batch, assessment), complianceSnapshot(assessment), status,
@@ -949,7 +1005,8 @@ public class CultivationCalendarService {
     private ExportRelease submitExportRelease(String id, String userId) {
         ExportRelease release = getExportRelease(id);
         requireReleaseStatus(release, ExportReleaseStatus.DRAFT);
-        ExportRelease submitted = saveRelease(release, ExportReleaseStatus.UNDER_REVIEW, userId, Instant.now(), release.reviewedBy(), release.reviewedAt(), null, release.releasedAt());
+        ExportRelease submitted = saveRelease(release, ExportReleaseStatus.UNDER_REVIEW, userId, Instant.now(),
+                release.reviewedBy(), release.reviewedAt(), null, release.releasedAt());
         audit(AuditAction.EXPORT_RELEASE_SUBMITTED, "ExportRelease", submitted.id(), userId, null, Map.of());
         return submitted;
     }
@@ -966,7 +1023,21 @@ public class CultivationCalendarService {
 
     private ExportRelease releaseExportRelease(String id, String reviewerId) {
         ExportRelease release = getExportRelease(id);
-        requireReleaseStatus(release, ExportReleaseStatus.APPROVED);
+        if (release.status() == ExportReleaseStatus.RELEASED) {
+            return release;
+        }
+        if (release.status() != ExportReleaseStatus.APPROVED
+                && release.status() != ExportReleaseStatus.INSPECTED_PASSED) {
+            throw new IllegalStateException("Only approved or inspected-passed export releases can be released");
+        }
+        HarvestBatch batch = getHarvestBatch(release.harvestBatchId());
+        requireExportReleaseEligibleBatch(batch);
+        if (batch.harvestedAt() == null || batch.harvestedAt().isAfter(Instant.now())
+                || (batch.latestSafeHarvestDate() != null
+                        && LocalDate.ofInstant(batch.harvestedAt(), ZoneOffset.UTC)
+                                .isBefore(batch.latestSafeHarvestDate()))) {
+            throw new IllegalStateException("Harvest precedes safe PHI date or is not yet completed");
+        }
         ComplianceAssessment assessment = reassessRelease(release, reviewerId);
         ExportRelease released = saveAssessedRelease(release, assessment, ExportReleaseStatus.RELEASED,
                 reviewerId, Instant.now());
@@ -974,11 +1045,67 @@ public class CultivationCalendarService {
         return released;
     }
 
+    public ExportRelease inspectExportRelease(CultivationActor actor, String id,
+            CultivationCalendarDtos.SelfInspectionRequest request) {
+        ExportRelease release = getExportRelease(actor, id);
+        HarvestBatch batch = getHarvestBatch(release.harvestBatchId());
+        accessGuard.requireUpdate(actor, "ExportRelease", id, batch.farmId(), batch.plotId());
+        requireExportReleaseEligibleBatch(batch);
+        if (!java.util.Set.of(ExportReleaseStatus.DRAFT, ExportReleaseStatus.UNDER_REVIEW,
+                ExportReleaseStatus.BLOCKED, ExportReleaseStatus.NOT_ELIGIBLE,
+                ExportReleaseStatus.INSPECTION_PENDING, ExportReleaseStatus.INSPECTED_PASSED)
+                .contains(release.status())) {
+            throw new IllegalStateException("Release cannot be inspected in its current state");
+        }
+        if (batch.status() != HarvestBatchStatus.HARVESTED || batch.harvestedAt() == null || request == null ||
+                !StringUtils.hasText(request.sourceRef()) || request.inspectedAt() == null ||
+                request.inspectedAt().isAfter(Instant.now()) || request.inspectedAt().isBefore(batch.harvestedAt()) ||
+                (request.measuredBrix() != null && (request.measuredBrix().signum() < 0
+                        || request.measuredBrix().compareTo(BigDecimal.valueOf(100)) > 0))) {
+            throw new IllegalArgumentException("Valid harvested lot and dated inspection evidence are required");
+        }
+        Map<String, Object> inspection = new LinkedHashMap<>();
+        inspection.put("sourceRef", request.sourceRef().trim());
+        inspection.put("inspectedBy", actor.userId());
+        inspection.put("inspectedAt", request.inspectedAt().toString());
+        inspection.put("phiChecked", request.phiChecked());
+        inspection.put("pestCheckPassed", request.pestCheckPassed());
+        inspection.put("qualityPassed", request.qualityPassed());
+        if (request.measuredBrix() != null) {
+            inspection.put("measuredBrix", request.measuredBrix());
+        }
+        ComplianceAssessment current = assessCompliance(batch.cultivationSeasonId(),
+                new CultivationCalendarDtos.AssessComplianceRequest(batch.id(), release.targetMarketCode()));
+        boolean safeDatePassed = batch.latestSafeHarvestDate() == null
+                || !LocalDate.ofInstant(batch.harvestedAt(), ZoneOffset.UTC).isBefore(batch.latestSafeHarvestDate());
+        ExportReleaseStatus status = !current.eligibleForExportRelease() || !safeDatePassed
+                ? ExportReleaseStatus.NOT_ELIGIBLE
+                : request.phiChecked() && request.pestCheckPassed() && request.qualityPassed()
+                        ? ExportReleaseStatus.INSPECTED_PASSED
+                        : ExportReleaseStatus.INSPECTION_PENDING;
+        if (release.status() == status && release.traceabilitySnapshot() != null
+                && inspection.equals(release.traceabilitySnapshot().get("farmerInspection"))) {
+            return release;
+        }
+        Map<String, Object> snapshot = new LinkedHashMap<>(traceabilitySnapshot(batch, current));
+        snapshot.put("farmerInspection", inspection);
+        snapshot.put("phiDatePassed", safeDatePassed);
+        snapshot.put("dataOrigin", batch.dataOrigin());
+        ExportRelease saved = exportReleaseRepository.save(new ExportRelease(release.id(), release.releaseCode(),
+                batch.id(), release.targetMarketCode(), snapshot, complianceSnapshot(current), status,
+                release.submittedBy(), release.submittedAt(), actor.userId(), Instant.now(),
+                null, null, release.createdAt()));
+        audit(AuditAction.EXPORT_RELEASE_APPROVED, "ExportRelease", id, actor.userId(), null,
+                Map.of("inspectionStatus", status.name(), "selfVerification", true));
+        return saved;
+    }
+
     private ExportRelease recallExportRelease(String id, String reviewerId, String reason) {
         ExportRelease release = getExportRelease(id);
         requireReleaseStatus(release, ExportReleaseStatus.RELEASED);
         requireText(reason, "Recall reason is required");
-        ExportRelease recalled = saveRelease(release, ExportReleaseStatus.RECALLED, release.submittedBy(), release.submittedAt(),
+        ExportRelease recalled = saveRelease(release, ExportReleaseStatus.RECALLED, release.submittedBy(),
+                release.submittedAt(),
                 release.reviewedBy(), release.reviewedAt(), reason, release.releasedAt());
         audit(AuditAction.EXPORT_RELEASE_RECALLED, "ExportRelease", recalled.id(), reviewerId, reason, Map.of());
         return recalled;
@@ -986,15 +1113,18 @@ public class CultivationCalendarService {
 
     public ExportRelease getExportRelease(String id) {
         ExportRelease release = exportReleaseRepository.findById(id).orElseThrow(() -> notFound("Export release", id));
-        if (!hasValidReleaseAncestry(release)) throw notFound("Export release", id);
+        if (!hasValidReleaseAncestry(release))
+            throw notFound("Export release", id);
         return release;
     }
 
-    public List<ExportRelease> listExportReleases(String harvestBatchId, String targetMarketCode, ExportReleaseStatus status) {
+    public List<ExportRelease> listExportReleases(String harvestBatchId, String targetMarketCode,
+            ExportReleaseStatus status) {
         return exportReleaseRepository.findAll().stream()
                 .filter(this::hasValidReleaseAncestry)
                 .filter(release -> harvestBatchId == null || harvestBatchId.equals(release.harvestBatchId()))
-                .filter(release -> targetMarketCode == null || targetMarketCode.equalsIgnoreCase(release.targetMarketCode()))
+                .filter(release -> targetMarketCode == null
+                        || targetMarketCode.equalsIgnoreCase(release.targetMarketCode()))
                 .filter(release -> status == null || status == release.status())
                 .sorted(Comparator.comparing(ExportRelease::createdAt).reversed())
                 .toList();
@@ -1024,7 +1154,8 @@ public class CultivationCalendarService {
 
     private boolean hasValidPlanAncestry(CultivationPlan plan) {
         if (!StringUtils.hasText(plan.cultivationSeasonId())
-                || isLegacyUnverified("cultivation_plans", plan.id())) return false;
+                || isLegacyUnverified("cultivation_plans", plan.id()))
+            return false;
         return seasonRepository.findById(plan.cultivationSeasonId())
                 .filter(season -> Objects.equals(season.farmId(), plan.farmId())
                         && Objects.equals(season.plotId(), plan.plotId()))
@@ -1033,7 +1164,8 @@ public class CultivationCalendarService {
 
     private boolean hasValidActivityAncestry(CultivationActivity activity) {
         if (!StringUtils.hasText(activity.cultivationPlanId())
-                || isLegacyUnverified("cultivation_activities", activity.id())) return false;
+                || isLegacyUnverified("cultivation_activities", activity.id()))
+            return false;
         return planRepository.findById(activity.cultivationPlanId())
                 .filter(this::hasValidPlanAncestry)
                 .filter(plan -> Objects.equals(plan.farmId(), activity.farmId())
@@ -1044,7 +1176,8 @@ public class CultivationCalendarService {
 
     private boolean hasValidBatchAncestry(HarvestBatch batch) {
         if (!StringUtils.hasText(batch.cultivationSeasonId())
-                || isLegacyUnverified("harvest_batches", batch.id())) return false;
+                || isLegacyUnverified("harvest_batches", batch.id()))
+            return false;
         return seasonRepository.findById(batch.cultivationSeasonId())
                 .filter(season -> Objects.equals(season.farmId(), batch.farmId())
                         && Objects.equals(season.plotId(), batch.plotId()))
@@ -1053,9 +1186,12 @@ public class CultivationCalendarService {
 
     private boolean hasValidLabSampleAncestry(LabSample sample) {
         if (!StringUtils.hasText(sample.cultivationSeasonId())
-                || isLegacyUnverified("lab_samples", sample.id())) return false;
-        if (!seasonRepository.existsById(sample.cultivationSeasonId())) return false;
-        if (!StringUtils.hasText(sample.harvestBatchId())) return true;
+                || isLegacyUnverified("lab_samples", sample.id()))
+            return false;
+        if (!seasonRepository.existsById(sample.cultivationSeasonId()))
+            return false;
+        if (!StringUtils.hasText(sample.harvestBatchId()))
+            return true;
         return harvestBatchRepository.findById(sample.harvestBatchId())
                 .filter(this::hasValidBatchAncestry)
                 .filter(batch -> Objects.equals(batch.cultivationSeasonId(), sample.cultivationSeasonId()))
@@ -1064,7 +1200,8 @@ public class CultivationCalendarService {
 
     private boolean hasValidReleaseAncestry(ExportRelease release) {
         if (!StringUtils.hasText(release.harvestBatchId())
-                || isLegacyUnverified("export_releases", release.id())) return false;
+                || isLegacyUnverified("export_releases", release.id()))
+            return false;
         return harvestBatchRepository.findById(release.harvestBatchId())
                 .filter(this::hasValidBatchAncestry)
                 .isPresent();
@@ -1089,7 +1226,8 @@ public class CultivationCalendarService {
         if (scopes.isEmpty()) {
             throw notFound("Cultivation season", cultivationSeasonId);
         }
-        scopes.forEach(scope -> accessGuard.requireView(actor, "CultivationSeason", cultivationSeasonId, scope.farmId(), scope.plotId()));
+        scopes.forEach(scope -> accessGuard.requireView(actor, "CultivationSeason", cultivationSeasonId, scope.farmId(),
+                scope.plotId()));
     }
 
     private List<ResourceScope> seasonScopes(String cultivationSeasonId) {
@@ -1110,7 +1248,8 @@ public class CultivationCalendarService {
 
     private void requireCanViewLabSample(CultivationActor actor, LabSample sample) {
         if (!canViewLabSample(actor, sample)) {
-            throw new com.duriancare.cultivation.security.CultivationAccessDeniedException("Access denied for cultivation resource");
+            throw new com.duriancare.cultivation.security.CultivationAccessDeniedException(
+                    "Access denied for cultivation resource");
         }
     }
 
@@ -1122,12 +1261,17 @@ public class CultivationCalendarService {
     private record ResourceScope(String farmId, String plotId) {
     }
 
-    private CultivationActivity withStatus(CultivationActivity current, ActivityStatus status, String approvedBy, Instant approvedAt, String rejectionReason) {
+    private CultivationActivity withStatus(CultivationActivity current, ActivityStatus status, String approvedBy,
+            Instant approvedAt, String rejectionReason) {
         return activityRepository.save(new CultivationActivity(
-                current.id(), current.cultivationPlanId(), current.cultivationSeasonId(), current.farmId(), current.plotId(),
-                current.treeIds(), current.activityType(), current.title(), current.description(), current.scheduledStartAt(),
-                current.scheduledEndAt(), current.recurrenceRule(), current.priority(), status, current.assignedUserIds(),
-                current.approvalRequired(), approvedBy, approvedAt, rejectionReason, current.version(), current.createdAt(), Instant.now()));
+                current.id(), current.cultivationPlanId(), current.cultivationSeasonId(), current.farmId(),
+                current.plotId(),
+                current.treeIds(), current.activityType(), current.title(), current.description(),
+                current.scheduledStartAt(),
+                current.scheduledEndAt(), current.recurrenceRule(), current.priority(), status,
+                current.assignedUserIds(),
+                current.approvalRequired(), approvedBy, approvedAt, rejectionReason, current.version(),
+                current.createdAt(), Instant.now()));
     }
 
     private static void requirePendingApproval(CultivationActivity activity) {
@@ -1153,7 +1297,22 @@ public class CultivationCalendarService {
         }
     }
 
-    private void validateInputCanBePlanned(AgriculturalInput input, CultivationCalendarDtos.CreateActivityRequest request) {
+    private static void requireExportReleaseEligibleBatch(HarvestBatch batch) {
+        if (!EXPORT_RELEASE_ELIGIBLE_BATCH_STATUSES.contains(batch.status())) {
+            throw new IllegalStateException("Harvest batch status is not eligible for export release");
+        }
+    }
+
+    private void requireNoActiveExportRelease(String harvestBatchId) {
+        boolean exists = exportReleaseRepository.findByHarvestBatchId(harvestBatchId).stream()
+                .anyMatch(release -> release.status() != ExportReleaseStatus.RECALLED);
+        if (exists) {
+            throw new IllegalStateException("An active export release already exists for this harvest batch");
+        }
+    }
+
+    private void validateInputCanBePlanned(AgriculturalInput input,
+            CultivationCalendarDtos.CreateActivityRequest request) {
         if (input.status() == InputStatus.PROHIBITED || input.biologicalLevel() == BiologicalLevel.PROHIBITED) {
             throw new IllegalArgumentException("Prohibited agricultural input cannot be planned");
         }
@@ -1168,7 +1327,8 @@ public class CultivationCalendarService {
         }
     }
 
-    private void validateInputCanBeUsed(AgriculturalInput input, CultivationCalendarDtos.ActivityInputUsageRequest request) {
+    private void validateInputCanBeUsed(AgriculturalInput input,
+            CultivationCalendarDtos.ActivityInputUsageRequest request) {
         if (request.quantityUsed() == null || request.quantityUsed().signum() <= 0) {
             throw new IllegalArgumentException("Quantity used must be positive");
         }
@@ -1196,7 +1356,8 @@ public class CultivationCalendarService {
 
     private List<AgriculturalInput> loadInputs(List<String> ids) {
         return copy(ids).stream()
-                .map(id -> agriculturalInputRepository.findById(id).orElseThrow(() -> notFound("Agricultural input", id)))
+                .map(id -> agriculturalInputRepository.findById(id)
+                        .orElseThrow(() -> notFound("Agricultural input", id)))
                 .toList();
     }
 
@@ -1233,11 +1394,13 @@ public class CultivationCalendarService {
             blockers.add(BlockingReason.MISSING_ACTIVE_INGREDIENT);
             return;
         }
-        if (usage.agriculturalInputSnapshot().prohibitedMarketCodes().stream().anyMatch(targetMarketCode::equalsIgnoreCase)) {
+        if (usage.agriculturalInputSnapshot().prohibitedMarketCodes().stream()
+                .anyMatch(targetMarketCode::equalsIgnoreCase)) {
             blockers.add(BlockingReason.ACTIVE_INGREDIENT_NOT_ALLOWED_FOR_MARKET);
         }
         if (!usage.agriculturalInputSnapshot().allowedMarketCodes().isEmpty()
-                && usage.agriculturalInputSnapshot().allowedMarketCodes().stream().noneMatch(targetMarketCode::equalsIgnoreCase)) {
+                && usage.agriculturalInputSnapshot().allowedMarketCodes().stream()
+                        .noneMatch(targetMarketCode::equalsIgnoreCase)) {
             blockers.add(BlockingReason.ACTIVE_INGREDIENT_NOT_ALLOWED_FOR_MARKET);
         }
         for (var ingredient : usage.activeIngredientSnapshots()) {
@@ -1258,7 +1421,8 @@ public class CultivationCalendarService {
         if (harvestBatch == null) {
             return;
         }
-        List<LabSample> samples = labSampleRepository.findByCultivationSeasonId(harvestBatch.cultivationSeasonId()).stream()
+        List<LabSample> samples = labSampleRepository.findByCultivationSeasonId(harvestBatch.cultivationSeasonId())
+                .stream()
                 .filter(sample -> harvestBatch.id().equals(sample.harvestBatchId()))
                 .filter(sample -> sample.status() != LabSampleStatus.CANCELLED)
                 .filter(sample -> sample.sampleType() == SampleType.FRUIT)
@@ -1362,10 +1526,13 @@ public class CultivationCalendarService {
             }
         }
         snapshot.put("resolvedLabEvidence", resolvedLabEvidence);
-        snapshot.put("labAssessmentStatus", assessment.warnings().contains(ComplianceWarning.LAB_NOT_ASSESSED) ? "NOT_ASSESSED"
-                : assessment.blockingReasons().stream().anyMatch(reason -> reason == BlockingReason.LAB_RESULT_PENDING
-                        || reason == BlockingReason.LAB_RESULT_FAILED || reason == BlockingReason.LAB_EVIDENCE_UNVERIFIED
-                        || reason == BlockingReason.NO_APPLICABLE_MRL) ? "NOT_CLEARED" : "ASSESSED");
+        snapshot.put("labAssessmentStatus",
+                assessment.warnings().contains(ComplianceWarning.LAB_NOT_ASSESSED) ? "NOT_ASSESSED"
+                        : assessment.blockingReasons().stream()
+                                .anyMatch(reason -> reason == BlockingReason.LAB_RESULT_PENDING
+                                        || reason == BlockingReason.LAB_RESULT_FAILED
+                                        || reason == BlockingReason.LAB_EVIDENCE_UNVERIFIED
+                                        || reason == BlockingReason.NO_APPLICABLE_MRL) ? "NOT_CLEARED" : "ASSESSED");
         snapshot.put("generatedAt", Instant.now());
         return snapshot;
     }
@@ -1453,6 +1620,7 @@ public class CultivationCalendarService {
 
     private ComplianceAssessment reassessRelease(ExportRelease release, String actorId) {
         HarvestBatch batch = getHarvestBatch(release.harvestBatchId());
+        requireExportReleaseEligibleBatch(batch);
         requireMarketMatchesBatch(batch, release.targetMarketCode());
         ComplianceAssessment assessment = assessCompliance(batch.cultivationSeasonId(),
                 new CultivationCalendarDtos.AssessComplianceRequest(batch.id(), release.targetMarketCode()), actorId);
@@ -1466,21 +1634,36 @@ public class CultivationCalendarService {
     private ExportRelease saveAssessedRelease(ExportRelease release, ComplianceAssessment assessment,
             ExportReleaseStatus status, String reviewerId, Instant releasedAt) {
         HarvestBatch batch = getHarvestBatch(release.harvestBatchId());
+        Map<String, Object> snapshot = new LinkedHashMap<>(traceabilitySnapshot(batch, assessment));
+        if (release.traceabilitySnapshot() != null) {
+            // Inspection evidence is immutable history; new compliance calculations replace
+            // stale assessment data.
+            for (String key : List.of("farmerInspection", "phiDatePassed")) {
+                if (release.traceabilitySnapshot().containsKey(key)) {
+                    snapshot.put(key, release.traceabilitySnapshot().get(key));
+                }
+            }
+        }
+        snapshot.put("dataOrigin", batch.dataOrigin());
         return exportReleaseRepository.save(new ExportRelease(
                 release.id(), release.releaseCode(), release.harvestBatchId(), release.targetMarketCode(),
-                traceabilitySnapshot(batch, assessment), complianceSnapshot(assessment), status,
+                snapshot, complianceSnapshot(assessment), status,
                 release.submittedBy(), release.submittedAt(), reviewerId, Instant.now(),
                 release.rejectionReason(), releasedAt, release.createdAt()));
     }
 
     private CultivationCalendarDtos.TraceabilityResponse traceabilityResponse(ExportRelease release) {
         boolean recalled = release.status() == ExportReleaseStatus.RECALLED;
-        Instant recalledAt = recalled ? auditLogRepository.findByResourceTypeAndResourceId("ExportRelease", release.id()).stream()
-                .filter(log -> log.action() == AuditAction.EXPORT_RELEASE_RECALLED)
-                .map(AuditLog::createdAt).max(Comparator.naturalOrder()).orElse(null) : null;
+        Instant recalledAt = recalled
+                ? auditLogRepository.findByResourceTypeAndResourceId("ExportRelease", release.id()).stream()
+                        .filter(log -> log.action() == AuditAction.EXPORT_RELEASE_RECALLED)
+                        .map(AuditLog::createdAt).max(Comparator.naturalOrder()).orElse(null)
+                : null;
+        Map<String, Object> snapshot = new LinkedHashMap<>(
+                release.traceabilitySnapshot() == null ? Map.of() : release.traceabilitySnapshot());
+        snapshot.put("dataOrigin", release.dataOrigin());
         return new CultivationCalendarDtos.TraceabilityResponse(release.id(), release.status(),
-                recalledAt, recalled ? release.rejectionReason() : null,
-                release.traceabilitySnapshot());
+                recalledAt, recalled ? release.rejectionReason() : null, snapshot);
     }
 
     private LabSample withLabSampleStatus(LabSample sample, LabSampleStatus status) {
@@ -1515,7 +1698,8 @@ public class CultivationCalendarService {
 
     private void requireStandardAdministrator(CultivationActor actor) {
         if (actor == null || !StringUtils.hasText(actor.userId()) || !"ADMIN".equalsIgnoreCase(actor.role())) {
-            throw new CultivationAccessDeniedException("Standard administration requires an authenticated administrator");
+            throw new CultivationAccessDeniedException(
+                    "Standard administration requires an authenticated administrator");
         }
     }
 
@@ -1544,11 +1728,13 @@ public class CultivationCalendarService {
             Instant releasedAt) {
         return exportReleaseRepository.save(new ExportRelease(
                 release.id(), release.releaseCode(), release.harvestBatchId(), release.targetMarketCode(),
-                release.traceabilitySnapshot(), release.complianceAssessmentSnapshot(), status, submittedBy, submittedAt,
+                release.traceabilitySnapshot(), release.complianceAssessmentSnapshot(), status, submittedBy,
+                submittedAt,
                 reviewedBy, reviewedAt, rejectionReason, releasedAt, release.createdAt()));
     }
 
-    private void audit(AuditAction action, String resourceType, String resourceId, String actorId, String reason, Map<String, Object> details) {
+    private void audit(AuditAction action, String resourceType, String resourceId, String actorId, String reason,
+            Map<String, Object> details) {
         auditLogRepository.save(new AuditLog(
                 newId(),
                 action,

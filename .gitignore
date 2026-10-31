@@ -247,3 +247,4 @@ venv/
 duriancare-ai-service/evaluate_model.py
 *.png
 *.jpg
+!duriancare-iot-service/.env.example

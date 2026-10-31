@@ -16,8 +16,11 @@ class FakeS3Client:
         stored = self.objects[kwargs["Key"]]
 
         class Body:
-            def read(self) -> bytes:
-                return stored["Body"]
+            def read(self, size: int = -1) -> bytes:
+                return stored["Body"] if size < 0 else stored["Body"][:size]
+
+            def close(self) -> None:
+                pass
 
         return {
             "Body": Body(),
@@ -35,6 +38,15 @@ class FakeS3Client:
 
 
 class S3ImageStorageTest(unittest.TestCase):
+    def test_download_bounds_stream_read_when_content_length_is_missing(self) -> None:
+        from unittest.mock import Mock
+        body = Mock()
+        body.read.return_value = b"image-bytes"
+        self.client.get_object = Mock(return_value={"Body": body, "ContentType": "image/jpeg"})
+        self.storage.download_image("disease-images/fixture.jpg")
+        body.read.assert_called_once_with(self.storage.settings.max_image_size_bytes + 1)
+        body.close.assert_called_once()
+
     def setUp(self) -> None:
         configured_settings = replace(
             settings,

@@ -13,6 +13,7 @@ import com.duriancare.cultivation.domain.LabResultStatus;
 import com.duriancare.cultivation.domain.LabSampleStatus;
 import com.duriancare.cultivation.domain.SampleType;
 import com.duriancare.cultivation.domain.SourceType;
+import com.duriancare.cultivation.domain.CultivationSeasonStatus;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -82,6 +83,23 @@ public final class CultivationCalendarDtos {
             LocalDate endDate) {
     }
 
+    public record CultivationSeasonResponse(
+            String id,
+            String farmId,
+            String plotId,
+            String name,
+            String crop,
+            String variety,
+            LocalDate startDate,
+            LocalDate endDate,
+            String createdBy,
+            Instant createdAt,
+            Instant updatedAt,
+            CultivationSeasonStatus effectiveStatus,
+            CultivationSeasonStatus status,
+            com.duriancare.cultivation.domain.SeasonProductionStatus productionStatus) {
+    }
+
     public record UpdateActivityRequest(
             @Size(max = 180) String title,
             @Size(max = 2000) String description,
@@ -93,6 +111,14 @@ public final class CultivationCalendarDtos {
 
     public record ApprovalRequest(String userId) {
     }
+
+    public record SelfInspectionRequest(
+            @NotBlank @Size(max = 500) String sourceRef,
+            @NotNull Instant inspectedAt,
+            boolean phiChecked,
+            boolean pestCheckPassed,
+            boolean qualityPassed,
+            @PositiveOrZero BigDecimal measuredBrix) { }
 
     public record RejectionRequest(@NotBlank String userId, @NotBlank String reason) {
     }

@@ -1,9 +1,11 @@
 package com.duriancare.notification.service.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -11,8 +13,11 @@ import com.duriancare.notification.domain.Notification;
 import com.duriancare.notification.domain.NotificationStatus;
 import com.duriancare.notification.domain.NotificationType;
 import com.duriancare.notification.dto.CreateNotificationRequest;
+import com.duriancare.notification.dto.NotificationResponse;
 import com.duriancare.notification.mapper.NotificationMapper;
 import com.duriancare.notification.repository.NotificationRepository;
+import com.duriancare.notification.service.NotificationAccessDeniedException;
+import com.duriancare.notification.service.NotificationNotFoundException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -139,22 +144,65 @@ class NotificationServiceImplTest {
     }
 
     @Test
+    void markAsReadRejectsNotificationOwnedByAnotherUser() {
+        when(repository.findByIdAndReceiverId("2", "user-1")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.markAsRead("user-1", "2"))
+                .isInstanceOf(NotificationNotFoundException.class)
+                .hasMessageContaining("Notification not found");
+
+        verify(repository, never()).save(any(Notification.class));
+    }
+
+    @Test
+    void markAsReadRequiresCurrentUserIdentity() {
+        assertThatThrownBy(() -> service.markAsRead(" ", "1"))
+                .isInstanceOf(NotificationAccessDeniedException.class)
+                .hasMessageContaining("Current user identity is required");
+
+        verify(repository, never()).save(any(Notification.class));
+    }
+
+    @Test
+    void markAsReadPreservesReceiverAndKeepsNotificationReadableByOwner() {
+        Notification notification = notification("1", "user-1", "Title", "Body",
+                NotificationType.GENERAL, false);
+        when(repository.findByIdAndReceiverId("1", "user-1"))
+                .thenReturn(Optional.of(notification), Optional.of(notification));
+        when(repository.save(any(Notification.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var readResponse = service.markAsRead("user-1", "1");
+        var page = new PageImpl<>(List.of(notification), PageRequest.of(0, 20), 1);
+        when(repository.findByReceiverIdOrderByCreatedAtDesc(eq("user-1"), any(Pageable.class)))
+                .thenReturn(page);
+        var listResponse = service.findNotifications("user-1", PageRequest.of(0, 20));
+
+        assertThat(readResponse.id()).isEqualTo("1");
+        assertThat(notification.getReceiverId()).isEqualTo("user-1");
+        assertThat(listResponse.notifications()).extracting(NotificationResponse::id).containsExactly("1");
+    }
+
+    @Test
     void markAllAsReadUpdatesUnreadItemsOnly() {
-        Notification first = notification("1", "user-1", "Title A", "Body A",
-                NotificationType.SYSTEM, false);
-        Notification second = notification("2", "user-1", "Title B", "Body B",
-                NotificationType.SYSTEM, false);
-        when(repository.findByReceiverIdAndIsReadFalseOrderByCreatedAtDesc(
-                eq("user-1"),
-                any(Pageable.class)))
-                .thenReturn(new PageImpl<>(List.of(first, second), PageRequest.of(0, 20), 2));
+        when(repository.markUnreadAsRead(eq("user-1"), any(Instant.class))).thenReturn(2L);
 
         var response = service.markAllAsRead("user-1");
 
         assertThat(response.updatedCount()).isEqualTo(2);
-        assertThat(first.isRead()).isTrue();
-        assertThat(second.isRead()).isTrue();
-        verify(repository).saveAll(any(Iterable.class));
+        verify(repository).markUnreadAsRead(eq("user-1"), any(Instant.class));
+        verify(repository, never()).saveAll(any(Iterable.class));
+    }
+
+    @Test
+    void markAllAsReadOnlyUpdatesCurrentUserUnreadNotifications() {
+        when(repository.markUnreadAsRead(eq("user-1"), any(Instant.class))).thenReturn(1L, 0L);
+
+        var response = service.markAllAsRead(" user-1 ");
+
+        assertThat(response.updatedCount()).isEqualTo(1);
+        assertThat(service.markAllAsRead("user-1").updatedCount()).isZero();
+        verify(repository, times(2)).markUnreadAsRead(eq("user-1"), any(Instant.class));
+        verify(repository, never()).saveAll(any(Iterable.class));
     }
 
     @Test

@@ -26,7 +26,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-@WebMvcTest(SearchController.class)
+@WebMvcTest(controllers = SearchController.class, properties = "duriancare.internal.auth-token=fixture-only-internal-token")
 @Import(SearchApiExceptionHandler.class)
 class SearchControllerTest {
 
@@ -117,6 +117,7 @@ class SearchControllerTest {
                 });
 
         mockMvc.perform(post("/api/search/internal/index")
+                        .header("X-Internal-Token", "fixture-only-internal-token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -132,6 +133,31 @@ class SearchControllerTest {
                 .andExpect(jsonPath("$.type").value("ARTICLE"));
 
         verify(searchService).index(any(SearchIndexRequest.class));
+    }
+
+    @Test
+    void internalIndexRejectsMissingInternalAuthentication() throws Exception {
+        mockMvc.perform(post("/api/search/internal/index").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"id\":\"fixture\",\"type\":\"ARTICLE\",\"title\":\"fixture\",\"content\":\"fixture\"}"))
+                .andExpect(status().isUnauthorized());
+        org.mockito.Mockito.verifyNoInteractions(searchService);
+    }
+
+    @Test
+    void internalIndexRejectsWrongInternalAuthentication() throws Exception {
+        mockMvc.perform(post("/api/search/internal/index").header("X-Internal-Token", "wrong-fixture-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"id\":\"fixture\",\"type\":\"ARTICLE\",\"title\":\"fixture\",\"content\":\"fixture\"}"))
+                .andExpect(status().isForbidden());
+        org.mockito.Mockito.verifyNoInteractions(searchService);
+    }
+
+    @Test
+    void invalidInternalPayloadIsBadRequestNotServerError() throws Exception {
+        mockMvc.perform(post("/api/search/internal/index").header("X-Internal-Token", "fixture-only-internal-token")
+                .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isBadRequest());
+        org.mockito.Mockito.verifyNoInteractions(searchService);
     }
 
     private SearchDocument document(

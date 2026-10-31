@@ -12,17 +12,22 @@ import com.duriancare.farm.domain.Farm;
 import com.duriancare.farm.domain.TreeDiagnosisRecord;
 import com.duriancare.farm.domain.TreeHealthStatus;
 import com.duriancare.farm.domain.TreeStatus;
+import com.duriancare.farm.dto.CreateTreeRequest;
+import com.duriancare.farm.dto.GenerateTreesRequest;
 import com.duriancare.farm.dto.RequestActor;
 import com.duriancare.farm.dto.TreeDetailResponse;
 import com.duriancare.farm.repository.DurianTreeRepository;
 import com.duriancare.farm.repository.FarmRepository;
 import com.duriancare.farm.repository.TreeDiagnosisRecordRepository;
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
@@ -67,6 +72,148 @@ class TreeServiceRecoveryGateTest {
     @BeforeEach
     void setUp() {
         service = new TreeService(farmRepository, treeRepository, diagnosisRepository);
+    }
+
+    @Test
+    void createTreeDefaultsToHealthyAndCreatesNoDiagnosis() {
+        when(farmRepository.findByZoneId("zone-1")).thenReturn(Optional.of(FARM));
+        when(treeRepository.existsByFarmZoneIdAndTreeCode("zone-1", "DC-T100")).thenReturn(false);
+        when(treeRepository.save(any(DurianTree.class))).thenAnswer(invocation -> {
+            DurianTree tree = invocation.getArgument(0);
+            return new DurianTree(
+                    "tree-new", tree.farmId(), tree.farmZoneId(), tree.speciesId(), tree.treeCode(),
+                    tree.nickname(), tree.variety(), tree.plantedDate(), tree.latitude(), tree.longitude(),
+                    tree.positionX(), tree.positionY(), tree.healthStatus(), tree.status(), tree.notes(),
+                    tree.createdAt(), tree.updatedAt());
+        });
+
+        TreeDetailResponse created = service.createTree(
+                ACTOR,
+                "zone-1",
+                new CreateTreeRequest(
+                        "DC-T100",
+                        "Cay moi",
+                        "Ri6",
+                        "durian",
+                        LocalDate.parse("2026-10-14"),
+                        BigDecimal.valueOf(10.1),
+                        BigDecimal.valueOf(106.1),
+                        0.2,
+                        0.4,
+                        "New planting"));
+
+        assertThat(created.healthStatus()).isEqualTo(TreeHealthStatus.HEALTHY.name());
+        ArgumentCaptor<DurianTree> captor = ArgumentCaptor.forClass(DurianTree.class);
+        verify(treeRepository).save(captor.capture());
+        assertThat(captor.getValue().healthStatus()).isEqualTo(TreeHealthStatus.HEALTHY);
+        verify(diagnosisRepository, never()).save(any(TreeDiagnosisRecord.class));
+    }
+
+    @Test
+    void generateTreesDefaultsEveryGeneratedTreeToHealthy() {
+        when(farmRepository.findByZoneId("zone-1")).thenReturn(Optional.of(FARM));
+        when(treeRepository.existsByFarmZoneIdAndTreeCode("zone-1", "H01-C01")).thenReturn(false);
+        when(treeRepository.existsByFarmZoneIdAndTreeCode("zone-1", "H01-C02")).thenReturn(false);
+        when(treeRepository.save(any(DurianTree.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.generateTrees(
+                ACTOR,
+                "zone-1",
+                new GenerateTreesRequest(1, 2, "Ri6", LocalDate.parse("2026-10-14"), "Grid"));
+
+        ArgumentCaptor<DurianTree> captor = ArgumentCaptor.forClass(DurianTree.class);
+        verify(treeRepository, org.mockito.Mockito.times(2)).save(captor.capture());
+        assertThat(captor.getAllValues())
+                .extracting(DurianTree::healthStatus)
+                .containsOnly(TreeHealthStatus.HEALTHY);
+        verify(diagnosisRepository, never()).save(any(TreeDiagnosisRecord.class));
+    }
+
+    @Test
+    void listTreesForMapReturnsOnlyActiveTrees() {
+        when(farmRepository.findByZoneId("zone-1")).thenReturn(Optional.of(FARM));
+        when(treeRepository.findByFarmZoneIdAndStatus("zone-1", TreeStatus.ACTIVE))
+                .thenReturn(List.of(TREATING_TREE));
+        when(diagnosisRepository.findTopByTreeIdOrderByDiagnosedAtDesc(TREE_ID))
+                .thenReturn(Optional.empty());
+        when(diagnosisRepository.countByTreeId(TREE_ID)).thenReturn(0L);
+
+        assertThat(service.listTreesForMap(ACTOR, "zone-1"))
+                .extracting("id")
+                .containsExactly(TREE_ID);
+
+        verify(treeRepository).findByFarmZoneIdAndStatus("zone-1", TreeStatus.ACTIVE);
+    }
+
+    @Test
+    void authorizedFarmerCanSoftRemoveTreeWithHistory() {
+        TreeDiagnosisRecord latest = diagRecord(TREE_ID, "PHOMOPSIS_LEAF_SPOT", 0.8,
+                Instant.parse("2026-10-01T10:00:00Z"));
+        stubTreeAndFarm();
+        when(treeRepository.save(any(DurianTree.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(diagnosisRepository.findTopByTreeIdOrderByDiagnosedAtDesc(TREE_ID))
+                .thenReturn(Optional.of(latest));
+        when(diagnosisRepository.countByTreeId(TREE_ID)).thenReturn(3L);
+
+        TreeDetailResponse removed = service.removeTree(ACTOR, TREE_ID);
+
+        assertThat(removed.status()).isEqualTo(TreeStatus.REMOVED.name());
+        assertThat(removed.diagnosisCount()).isEqualTo(3L);
+        assertThat(removed.latestDiseaseCode()).isEqualTo("PHOMOPSIS_LEAF_SPOT");
+        ArgumentCaptor<DurianTree> captor = ArgumentCaptor.forClass(DurianTree.class);
+        verify(treeRepository).save(captor.capture());
+        assertThat(captor.getValue().status()).isEqualTo(TreeStatus.REMOVED);
+        assertThat(captor.getValue().healthStatus()).isEqualTo(TREATING_TREE.healthStatus());
+    }
+
+    @Test
+    void repeatedRemoveTreeIsIdempotent() {
+        DurianTree removedTree = new DurianTree(
+                TREE_ID, FARM_ID, "zone-1", null,
+                "DC-T026", null, null, null,
+                null, null, 0.3, 0.5,
+                TreeHealthStatus.TREATING, TreeStatus.REMOVED, null,
+                Instant.parse("2026-09-01T00:00:00Z"), Instant.parse("2026-10-01T00:00:00Z"));
+        when(treeRepository.findById(TREE_ID)).thenReturn(Optional.of(removedTree));
+        when(farmRepository.findById(FARM_ID)).thenReturn(Optional.of(FARM));
+        when(diagnosisRepository.findTopByTreeIdOrderByDiagnosedAtDesc(TREE_ID))
+                .thenReturn(Optional.empty());
+        when(diagnosisRepository.countByTreeId(TREE_ID)).thenReturn(0L);
+
+        TreeDetailResponse response = service.removeTree(ACTOR, TREE_ID);
+
+        assertThat(response.status()).isEqualTo(TreeStatus.REMOVED.name());
+        verify(treeRepository, never()).save(any(DurianTree.class));
+    }
+
+    @Test
+    void unauthorizedFarmerCannotRemoveTree() {
+        when(treeRepository.findById(TREE_ID)).thenReturn(Optional.of(TREATING_TREE));
+        when(farmRepository.findById(FARM_ID)).thenReturn(Optional.of(FARM));
+        RequestActor otherActor = new RequestActor("other-user", null, "FARMER");
+
+        assertThatThrownBy(() -> service.removeTree(otherActor, TREE_ID))
+                .isInstanceOf(FarmAccessDeniedException.class);
+
+        verify(treeRepository, never()).save(any(DurianTree.class));
+    }
+
+    @Test
+    void removedTreeCannotTransitionHealthStatus() {
+        DurianTree removedTree = new DurianTree(
+                TREE_ID, FARM_ID, "zone-1", null,
+                "DC-T026", null, null, null,
+                null, null, 0.3, 0.5,
+                TreeHealthStatus.TREATING, TreeStatus.REMOVED, null,
+                Instant.parse("2026-09-01T00:00:00Z"), Instant.parse("2026-10-01T00:00:00Z"));
+        when(treeRepository.findById(TREE_ID)).thenReturn(Optional.of(removedTree));
+        when(farmRepository.findById(FARM_ID)).thenReturn(Optional.of(FARM));
+
+        assertThatThrownBy(() -> service.transitionHealthStatus(ACTOR, TREE_ID, TreeHealthStatus.TREATING))
+                .isInstanceOf(FarmConflictException.class)
+                .hasMessageContaining("after removal");
+
+        verify(treeRepository, never()).save(any(DurianTree.class));
     }
 
     // ── Bypass-attack test ────────────────────────────────────────────────────
@@ -150,11 +297,10 @@ class TreeServiceRecoveryGateTest {
      */
     @Test
     void improvedEvaluationAllowsRecoveredTransition() {
-        // prevConf=0.85, currConf=0.60 → delta = 0.25 > 0.15 → IMPROVED
         TreeDiagnosisRecord current = diagRecord(TREE_ID, "LEAF_BLIGHT", 0.60,
-                Instant.parse("2026-10-02T10:00:00Z"));
+                Instant.parse("2026-10-02T10:00:00Z"), TreeHealthStatus.SUSPECTED);
         TreeDiagnosisRecord previous = diagRecord(TREE_ID, "LEAF_BLIGHT", 0.85,
-                Instant.parse("2026-09-15T10:00:00Z"));
+                Instant.parse("2026-09-15T10:00:00Z"), TreeHealthStatus.DISEASED);
 
         stubTreeAndFarm();
         when(diagnosisRepository.findByTreeIdOrderByDiagnosedAtDesc(any(), any(Pageable.class)))
@@ -176,7 +322,6 @@ class TreeServiceRecoveryGateTest {
      */
     @Test
     void stableEvaluationBlocksRecoveredTransition() {
-        // prevConf=0.80, currConf=0.75 → delta = 0.05 → STABLE
         TreeDiagnosisRecord current = diagRecord(TREE_ID, "LEAF_BLIGHT", 0.75,
                 Instant.parse("2026-10-02T10:00:00Z"));
         TreeDiagnosisRecord previous = diagRecord(TREE_ID, "LEAF_BLIGHT", 0.80,
@@ -221,10 +366,19 @@ class TreeServiceRecoveryGateTest {
 
     private static TreeDiagnosisRecord diagRecord(
             String treeId, String diseaseCode, double confidence, Instant diagnosedAt) {
+        return diagRecord(treeId, diseaseCode, confidence, diagnosedAt, null);
+    }
+
+    private static TreeDiagnosisRecord diagRecord(
+            String treeId,
+            String diseaseCode,
+            double confidence,
+            Instant diagnosedAt,
+            TreeHealthStatus impliedHealthStatus) {
         return new TreeDiagnosisRecord(
                 null, treeId, FARM_ID, "zone-1",
                 "http://img", diseaseCode, null,
                 confidence, null, "AI_MODEL", USER_ID,
-                null, diagnosedAt, diagnosedAt);
+                impliedHealthStatus, diagnosedAt, diagnosedAt);
     }
 }

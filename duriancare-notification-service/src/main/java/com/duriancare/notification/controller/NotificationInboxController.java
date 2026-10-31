@@ -29,7 +29,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @Validated
 @RestController
 @Tag(name = "Notification Inbox", description = "Authenticated notification inbox for mobile and web clients")
-@RequestMapping({"/api/v1/notification/notifications", "/api/notifications"})
+@RequestMapping({
+        "/api/v1/notification/notifications",
+        "/api/notifications",
+        "/api/notifications/notifications"
+})
 public class NotificationInboxController {
 
     private static final int MAX_PAGE_SIZE = 100;

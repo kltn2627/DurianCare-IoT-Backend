@@ -22,4 +22,10 @@ public record ExportRelease(
         String rejectionReason,
         Instant releasedAt,
         Instant createdAt) {
+    @com.fasterxml.jackson.annotation.JsonProperty("dataOrigin")
+    public String dataOrigin() {
+        return (releaseCode != null && releaseCode.startsWith("DEMO-SYNTHETIC-")) ||
+                (traceabilitySnapshot != null && "DEMO_SYNTHETIC".equals(traceabilitySnapshot.get("dataOrigin")))
+                ? "DEMO_SYNTHETIC" : "OPERATIONAL";
+    }
 }

@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node src/main.js",
     "dev": "node --watch src/main.js",
-    "check": "node --check src/main.js && node --check src/read-api.js && node --check src/alert-engine.js && node --check src/iot-runtime.js",
+    "check": "node --check src/main.js && node --check src/read-api.js && node --check src/alert-engine.js && node --check src/iot-runtime.js && node --check src/workDrain.js && node --check src/discovery/udpDiscoveryService.js && node --check src/camera/deviceService.js && node --check src/camera/cameraRoutes.js && node --check src/camera/registryRuntime.js && node --check src/camera/cameraScheduler.js && node --check src/camera/cameraService.js",
     "test": "node --test"
   },
   "engines": {

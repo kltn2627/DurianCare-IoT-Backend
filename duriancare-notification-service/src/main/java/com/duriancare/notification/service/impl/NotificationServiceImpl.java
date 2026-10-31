@@ -13,7 +13,6 @@ import com.duriancare.notification.service.NotificationAccessDeniedException;
 import com.duriancare.notification.service.NotificationNotFoundException;
 import com.duriancare.notification.service.NotificationService;
 import java.time.Instant;
-import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -82,22 +81,7 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     public NotificationBulkUpdateResponse markAllAsRead(String receiverId) {
         String normalizedReceiverId = normalizeReceiverId(receiverId);
-        List<Notification> unreadNotifications = repository
-                .findByReceiverIdAndIsReadFalseOrderByCreatedAtDesc(
-                        normalizedReceiverId,
-                        Pageable.unpaged())
-                .getContent();
-        if (unreadNotifications.isEmpty()) {
-            return new NotificationBulkUpdateResponse(0);
-        }
-        Instant now = Instant.now();
-        unreadNotifications.forEach(notification -> {
-            notification.setRead(true);
-            notification.setStatus(NotificationStatus.READ);
-            notification.setUpdatedAt(now);
-        });
-        repository.saveAll(unreadNotifications);
-        return new NotificationBulkUpdateResponse(unreadNotifications.size());
+        return new NotificationBulkUpdateResponse(repository.markUnreadAsRead(normalizedReceiverId, Instant.now()));
     }
 
     @Override

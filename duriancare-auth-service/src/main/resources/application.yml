@@ -66,7 +66,7 @@ duriancare:
     events-topic: ${AUTH_EVENTS_TOPIC:duriancare.auth.events}
   security:
     jwt:
-      secret: ${JWT_SECRET:duriancare-local-development-jwt-secret-2026-change-before-production-9f4c2b7a8e1d}
+      secret: ${JWT_SECRET:}
       issuer: ${JWT_ISSUER:duriancare-auth-service}
       access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:1h}
       refresh-token-ttl: ${JWT_REFRESH_TOKEN_TTL:7d}
@@ -106,8 +106,8 @@ duriancare:
         - image/webp
   bootstrap:
     admin:
-      enabled: ${DEFAULT_ADMIN_ENABLED:true}
+      enabled: ${DEFAULT_ADMIN_ENABLED:false}
       email: ${DEFAULT_ADMIN_EMAIL:admin@duriancare.local}
-      password: ${DEFAULT_ADMIN_PASSWORD:Admin@12345}
+      password: ${DEFAULT_ADMIN_PASSWORD:}
       full-name: ${DEFAULT_ADMIN_FULL_NAME:DurianCare Administrator}
       phone-number: ${DEFAULT_ADMIN_PHONE_NUMBER:0900000000}

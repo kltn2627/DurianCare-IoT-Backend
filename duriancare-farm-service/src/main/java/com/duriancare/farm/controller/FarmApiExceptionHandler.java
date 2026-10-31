@@ -12,6 +12,8 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -43,7 +45,8 @@ public class FarmApiExceptionHandler {
         return response(HttpStatus.CONFLICT, "A conflicting farm authorization record already exists");
     }
 
-    @ExceptionHandler({FarmInvalidRequestException.class, MethodArgumentNotValidException.class})
+    @ExceptionHandler({FarmInvalidRequestException.class, MethodArgumentNotValidException.class,
+            MissingRequestHeaderException.class})
     ResponseEntity<Map<String, Object>> handleBadRequest(Exception exception) {
         String message = exception instanceof MethodArgumentNotValidException validationException
                 ? validationException.getBindingResult().getFieldErrors().stream()
@@ -56,6 +59,11 @@ public class FarmApiExceptionHandler {
     @ExceptionHandler(Exception.class)
     ResponseEntity<Map<String, Object>> handleUnexpected(Exception exception) {
         return response(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred");
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    ResponseEntity<Map<String, Object>> handleMethodNotAllowed(HttpRequestMethodNotSupportedException exception) {
+        return response(HttpStatus.METHOD_NOT_ALLOWED, "Phuong thuc khong duoc ho tro cho thao tac nay.");
     }
 
     private ResponseEntity<Map<String, Object>> response(HttpStatus status, String message) {

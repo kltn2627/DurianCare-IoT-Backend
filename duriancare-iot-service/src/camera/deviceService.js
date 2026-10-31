@@ -58,8 +58,8 @@ async function upsertCamera(pool, schema, {
  * Heartbeat: update last_seen, ip_address, port, and mark online.
  * Does NOT change tree/zone/farm assignments.
  */
-async function heartbeat(pool, schema, { deviceId, ipAddress, port = 80 }) {
-  const now = new Date().toISOString();
+async function heartbeat(pool, schema, { deviceId, ipAddress, port = 80, protocol = null, expectedFarmId = null, announcedAt = null }) {
+  const now = new Date(announcedAt ?? Date.now()).toISOString();
   const { rows } = await pool.query(
     `UPDATE "${schema}".camera_devices
      SET ip_address = $2,
@@ -67,9 +67,12 @@ async function heartbeat(pool, schema, { deviceId, ipAddress, port = 80 }) {
          online     = true,
          last_seen  = $4,
          updated_at = $4
+         , protocol = COALESCE($5, protocol)
      WHERE device_id = $1
+       AND ($6::text IS NULL OR farm_id = $6)
+       AND ($7::boolean = false OR last_seen IS NULL OR last_seen < $4::timestamptz)
      RETURNING ${DEVICE_COLS}`,
-    [deviceId, ipAddress, port, now],
+    [deviceId, ipAddress, port, now, protocol, expectedFarmId, announcedAt !== null],
   );
   if (rows.length === 0) return null;
   return rows[0];
@@ -154,7 +157,9 @@ async function resolveCameraUrl(pool, schema, deviceId, fallbackUrl) {
     ? ""
     : `:${port}`;
   const url = `${cam.protocol}://${cam.ip_address}${portSuffix}`;
-  return { url, online: Boolean(cam.online), found: true };
+  const timeout = Number(process.env.CAMERA_OFFLINE_TIMEOUT_MIN || 5) * 60000;
+  const age = Date.now() - new Date(cam.last_seen).getTime();
+  return { url, online: Boolean(cam.online) && Number.isFinite(age) && age >= -30000 && age < timeout, found: true };
 }
 
 /**
@@ -162,16 +167,26 @@ async function resolveCameraUrl(pool, schema, deviceId, fallbackUrl) {
  * Used by the /config endpoint so operators can change the camera IP
  * at runtime (e.g. when switching Wi-Fi networks) without restarting containers.
  */
-async function updateCameraUrl(pool, schema, deviceId, { ipAddress, port = 80 }) {
-  const now = new Date().toISOString();
+async function updateCameraUrl(pool, schema, deviceId, { ipAddress, port = 80, protocol = null, expectedFarmId = null, expectedOrigin = null, announcedAt = null }) {
+  if (typeof ipAddress !== "string" || !ipAddress.trim() || !Number.isInteger(port) || port < 1 || port > 65535 ||
+      (protocol !== null && !["http", "https"].includes(protocol))) throw new Error("Invalid camera origin");
+  if (announcedAt !== null && !Number.isSafeInteger(announcedAt)) throw new Error("Invalid announcement timestamp");
+  const now = new Date(announcedAt ?? Date.now()).toISOString();
   const { rows } = await pool.query(
     `UPDATE "${schema}".camera_devices
      SET ip_address = $2,
          port       = $3,
-         updated_at = $4
+         updated_at = $4,
+         protocol = COALESCE($5, protocol),
+         last_seen = CASE WHEN $11::boolean THEN $4::timestamptz ELSE last_seen END,
+         online = CASE WHEN $11::boolean THEN true ELSE online END
      WHERE device_id = $1
+       AND ($6::text IS NULL OR farm_id = $6)
+       AND ($11::boolean OR NOT $7::boolean OR (ip_address IS NOT DISTINCT FROM $8 AND port IS NOT DISTINCT FROM $9 AND protocol IS NOT DISTINCT FROM $10))
+       AND ($6::text IS NULL OR ip_address IS DISTINCT FROM $2 OR port IS DISTINCT FROM $3 OR protocol IS DISTINCT FROM $5)
+       AND (NOT $11::boolean OR last_seen IS NULL OR last_seen < $4::timestamptz)
      RETURNING ${DEVICE_COLS}`,
-    [deviceId, ipAddress, port, now],
+    [deviceId, ipAddress, port, now, protocol, expectedFarmId, Boolean(expectedOrigin), expectedOrigin?.ipAddress ?? null, expectedOrigin?.port ?? null, expectedOrigin?.protocol ?? null, announcedAt !== null],
   );
   return rows[0] ?? null;
 }

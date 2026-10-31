@@ -283,3 +283,56 @@ function alert(overrides = {}) {
 function dateAt(offsetSeconds) {
   return new Date(Date.UTC(2026, 8, 13, 0, 0, 0) + offsetSeconds * 1000);
 }
+
+describe("HTTP sensor telemetry through the threshold engine (gated)", () => {
+  const { httpTelemetryEvent } = require("../src/telemetryRegistry");
+  const httpReading = (temperature, humidity = 80) => httpTelemetryEvent({
+    id: `t-${temperature}`, deviceId: "esp32-01", temperature, humidity, soilMoisture: 100,
+    receivedAt: new Date().toISOString()
+  });
+  const context = (pool, notifications) => ({
+    alertsTable: "iot_alerts",
+    device: device(),
+    farmAccessClient: { alertRecipients: async () => ["owner-1"] },
+    notificationPublisher: { publish: async (event) => notifications.push(event) },
+    pool,
+    thresholds: { temperatureHigh: 38, humidityHigh: 95 }
+  });
+
+  it("below threshold creates nothing; crossing creates one alert; repeats are deduplicated; recovery notifies once", async () => {
+    const pool = createAlertPool();
+    const notifications = [];
+    const ctx = context(pool, notifications);
+    assert.equal((await evaluateTelemetryAlerts({ ...ctx, telemetry: httpReading(30) })).created.length, 0);
+    assert.equal((await evaluateTelemetryAlerts({ ...ctx, telemetry: httpReading(40) })).created.length, 1);
+    for (const t of [41, 42, 40]) {
+      assert.equal((await evaluateTelemetryAlerts({ ...ctx, telemetry: httpReading(t) })).created.length, 0);
+    }
+    assert.equal(pool.alerts.filter((a) => a.status === "ALERTING").length, 1);
+    const recovered = await evaluateTelemetryAlerts({ ...ctx, telemetry: httpReading(31) });
+    assert.equal(recovered.recovered.length, 1);
+    assert.equal(notifications.length, 2, "one alert + one recovery, no storm");
+  });
+
+  it("HTTP events carry no light value and never fabricate one", () => {
+    const event = httpReading(30);
+    assert.equal(event.light, null);
+    assert.equal(event.timestamp, event.receivedAt);
+  });
+
+  it("HTTP threshold alerts are disabled unless explicitly enabled", () => {
+    const saved = process.env.IOT_HTTP_TELEMETRY_ALERTS_ENABLED;
+    try {
+      delete process.env.IOT_HTTP_TELEMETRY_ALERTS_ENABLED;
+      delete require.cache[require.resolve("../src/config")];
+      assert.equal(require("../src/config").httpTelemetryAlertsEnabled, false);
+      process.env.IOT_HTTP_TELEMETRY_ALERTS_ENABLED = "true";
+      delete require.cache[require.resolve("../src/config")];
+      assert.equal(require("../src/config").httpTelemetryAlertsEnabled, true);
+    } finally {
+      if (saved === undefined) delete process.env.IOT_HTTP_TELEMETRY_ALERTS_ENABLED;
+      else process.env.IOT_HTTP_TELEMETRY_ALERTS_ENABLED = saved;
+      delete require.cache[require.resolve("../src/config")];
+    }
+  });
+});
