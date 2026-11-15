@@ -1,0 +1,14 @@
+﻿Mã,Linh kiện,Số lượng,Trạng thái / bằng chứng
+U1,"Board phát triển ESP32 (chip ESP32-D0WD-V3), dự kiến DevKit V1 30 chân",1,Chip đã xác minh (esptool); loại board CẦN XÁC NHẬN
+S1,Cảm biến nhiệt độ/độ ẩm DHT22 / AM2302,1,Đã xác minh (firmware + dữ liệu thật); dạng module CẦN XÁC NHẬN
+R1,Điện trở 10 kΩ 1/4 W (kéo lên DATA),0–1,Chỉ khi S1 là cảm biến 4 chân trần
+S2,Module so sánh LM393 cho cảm biến ẩm đất (AO/DO),1,Chân AO đã khai báo trong firmware; dây CẦN XÁC NHẬN
+P1,Đầu dò ẩm đất 2 cực (YL-69 theo báo cáo B),1,CẦN XÁC NHẬN
+J1,Cách chia 3V3 cho S1 và S2 (breadboard / dây chữ Y / mối hàn),1,CẦN XÁC NHẬN — không thêm vào BOM khi chưa rõ
+PS1,Nguồn USB 5 V + cáp micro-USB cho U1,1,CẦN XÁC NHẬN
+W1–W7,Dây jumper (cái–cái nếu cắm thẳng header),7,Loại đầu cắm CẦN XÁC NHẬN
+U2,"AI-Thinker ESP32-CAM (OV2640, PSRAM, LED flash)",1,Xác minh gián tiếp (backend nhận ảnh 19/10/2026)
+J2,"Adapter USB-TTL 3,3 V hoặc đế ESP32-CAM-MB",1,CẦN XÁC NHẬN loại
+JP1,"Dây jumper IO0–GND (chỉ khi nạp, nếu dùng USB-TTL)",1,Không cần nếu dùng đế MB
+PS2,Nguồn 5 V ≥ 1 A cho ESP32-CAM khi vận hành,1,CẦN XÁC NHẬN
+"C1–C4, C6–C7",Dây jumper cái–cái,6,Theo phương án nạp/nguồn

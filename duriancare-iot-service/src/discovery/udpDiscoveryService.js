@@ -6,6 +6,7 @@ const net = require("node:net");
 const fs = require("node:fs");
 const crypto = require("node:crypto");
 const devices = require("../camera/deviceService");
+const { buildServerAnnouncement, buildLegacyAnnouncement } = require("./serverAnnouncement");
 
 function usableIPv4(ip) {
   if (!net.isIPv4(ip)) return false;
@@ -26,17 +27,26 @@ function selectLanIPv4(interfaces, override, isContainer = false) {
   }
   // A container's eth0 is not evidence of a host LAN address.
   if (isContainer) return null;
+  return selectLanInterface(interfaces)?.ip ?? null;
+}
+
+/** Best physical LAN IPv4 interface: { ip, name, netmask, reason } or null. */
+function selectLanInterface(interfaces) {
   const candidates = [];
   for (const [name, addresses] of Object.entries(interfaces)) {
     if (/^(veth|br-|docker|virbr|vbox|vmnet|vEthernet|loopback|lo$|tun|tap|tailscale|utun|wg\d)|wsl|hyper-v|virtual|vmware|vpn/i.test(name)) continue;
     for (const address of addresses ?? []) {
       if (!['IPv4', 4].includes(address.family) || address.internal || !usableIPv4(address.address)) continue;
       const physical = /^(wi-fi|wifi|ethernet|wlan\d*|eth\d*|en\d*|enp\w*|ens\w*)/i.test(name);
-      candidates.push({ ip: address.address, rank: (physical ? 100 : 0) + (privateIPv4(address.address) ? 10 : 0), name });
+      const isPrivate = privateIPv4(address.address);
+      candidates.push({ ip: address.address, netmask: address.netmask, name,
+        rank: (physical ? 100 : 0) + (isPrivate ? 10 : 0),
+        reason: `${physical ? "physical" : "unrecognized"} interface name, ${isPrivate ? "private" : "public"} IPv4` });
     }
   }
   candidates.sort((a, b) => b.rank - a.rank || a.name.localeCompare(b.name) || a.ip.localeCompare(b.ip));
-  return candidates[0]?.ip ?? null;
+  const best = candidates[0];
+  return best ? { ip: best.ip, name: best.name, netmask: best.netmask, reason: best.reason, candidates: candidates.length } : null;
 }
 
 function parseCameraAnnouncement(packet, validateAddress = privateIPv4) {
@@ -171,8 +181,12 @@ function createUdpDiscoveryService(options = {}) {
             state.beaconReady = true;
             const send = () => {
               if (!running || epoch !== generation) return;
-              try { socket.send(Buffer.from(`DURIANCARE_SERVER:http://${ip}:${servicePort}`), 4210, "255.255.255.255", error => { if (error) warn(); }); }
-              catch { warn(); }
+              try {
+                // v1 (documented contract) first, then the legacy line for already-flashed firmware.
+                for (const text of [buildServerAnnouncement({ ip, port: servicePort }), buildLegacyAnnouncement({ ip, port: servicePort })]) {
+                  socket.send(Buffer.from(text), 4210, "255.255.255.255", error => { if (error) warn(); });
+                }
+              } catch { warn(); }
             };
             send();
             timer = setTimer(send, 3000);
@@ -205,4 +219,4 @@ let singleton;
 function startUdpDiscovery(options) { singleton ??= createUdpDiscoveryService(options); return singleton.startUdpDiscovery(); }
 function stopUdpDiscovery() { return singleton?.stopUdpDiscovery() ?? Promise.resolve(); }
 
-module.exports = { createUdpDiscoveryService, startUdpDiscovery, stopUdpDiscovery, selectLanIPv4, parseCameraAnnouncement, privateIPv4 };
+module.exports = { createUdpDiscoveryService, startUdpDiscovery, stopUdpDiscovery, selectLanIPv4, selectLanInterface, parseCameraAnnouncement, privateIPv4 };

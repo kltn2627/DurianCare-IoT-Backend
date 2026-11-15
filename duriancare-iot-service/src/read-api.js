@@ -2,6 +2,12 @@ const MAX_HISTORY_LIMIT = 1000;
 const DEFAULT_HISTORY_LIMIT = 288;
 const DEVICE_UID_PATTERN = /^[A-Za-z0-9._:-]{3,150}$/;
 const DEVICE_STATUSES = new Set(["ACTIVE", "INACTIVE", "MAINTENANCE"]);
+const DEFAULT_MAX_BUCKETS = 240;
+const MAX_BUCKETS = 1000;
+// Candidate bucket widths (seconds); the smallest that keeps the range within maxBuckets wins.
+const BUCKET_STEPS_SECONDS = [60, 300, 600, 1800, 3600, 10800, 21600, 43200, 86400, 172800, 604800];
+// Buckets align to Vietnam (UTC+7) midnight so daily buckets match the farm's calendar days.
+const BUCKET_ORIGIN = "2000-01-01T00:00:00+07:00";
 const { connectivityForDevice } = require("./alert-engine");
 
 function registerReadApi(app, dependencies) {
@@ -13,6 +19,27 @@ function registerReadApi(app, dependencies) {
     pool,
     telemetryTable
   } = dependencies;
+
+  if (dependencies.schema) {
+    require("./devices/deviceLifecycle").registerDeviceLifecycleApi(app, {
+      claimTtlHours: dependencies.claimTtlHours,
+      farmAccessClient,
+      pool,
+      schema: dependencies.schema,
+      thresholds: dependencies.thresholds,
+      helpers: {
+        apiError,
+        findDevice: (identifier) => findDevice(pool, devicesTable, telemetryTable, String(identifier || "")),
+        healthConfig,
+        normalizeDeviceUid,
+        requireActor,
+        requireDeviceAccess,
+        requireFarmManagement,
+        toDeviceResponse,
+        writeApiError
+      }
+    });
+  }
 
   app.use(["/api/v1/sensors/latest", "/api/v1/sensors/history"], async (request, response, next) => {
     if (request.method !== "GET") return next();
@@ -43,22 +70,34 @@ function registerReadApi(app, dependencies) {
           d.last_seen_at,
           d.created_at,
           d.updated_at,
+          d.device_type,
+          d.provisioning_status,
+          d.firmware_version,
+          d.claimed_at,
           latest.id AS latest_id,
           latest.temperature,
           latest.humidity,
           latest.light,
           latest.soil_moisture,
+      latest.soil_raw,
+      latest.soil_status,
+      latest.dht_status,
+          latest.soil_raw,
+          latest.soil_status,
+          latest.dht_status,
           latest."timestamp" AS latest_timestamp,
           latest.received_at AS latest_received_at
         FROM ${devicesTable} d
         LEFT JOIN LATERAL (
-          SELECT id, temperature, humidity, light, soil_moisture, "timestamp", received_at
+          SELECT id, temperature, humidity, light, soil_moisture, "timestamp", received_at, soil_raw, soil_status, dht_status
           FROM ${telemetryTable}
-          WHERE LOWER(device_id) = LOWER(d.device_uid)
+          WHERE LOWER(device_id) = LOWER(d.device_uid) AND source = 'DEVICE'
           ORDER BY "timestamp" DESC, received_at DESC
           LIMIT 1
         ) latest ON TRUE
         WHERE d.status <> 'DELETED'
+          AND d.provisioning_status = 'CLAIMED'
+          AND d.farm_id IS NOT NULL
         ORDER BY COALESCE(d.last_seen_at, d.updated_at, d.created_at) DESC
         LIMIT 100`
       );
@@ -134,19 +173,26 @@ function registerReadApi(app, dependencies) {
   app.post("/api/iot/devices", async (request, response) => {
     try {
       const actor = requireActor(request);
+      // Knowing a UID is not proof of possession: farmers add devices with a claim code
+      // (POST /api/iot/devices/claim). Direct binding stays available to administrators only.
+      if (String(actor.role).toUpperCase() !== "ADMIN") {
+        throw apiError(403, "Use the device claim code to add a device");
+      }
       const body = parseDeviceMutationBody(request.body, { create: true });
-      await requireFarmManagement(farmAccessClient, actor, body.farmId, body.cultivationAreaId);
       const result = await pool.query(
         `INSERT INTO ${devicesTable}
-          (device_uid, name, farm_id, cultivation_area_id, status, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-         RETURNING id, device_uid, name, farm_id, cultivation_area_id, status, last_seen_at, created_at, updated_at`,
+          (device_uid, name, farm_id, cultivation_area_id, status, provisioned_by, claimed_by, claimed_at,
+           created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+         RETURNING id, device_uid, name, farm_id, cultivation_area_id, status, last_seen_at, created_at, updated_at,
+           device_type, provisioning_status, firmware_version, claimed_at`,
         [
           body.deviceUid,
           body.name,
           body.farmId,
           body.cultivationAreaId,
-          body.status || "ACTIVE"
+          body.status || "ACTIVE",
+          actor.userId
         ]
       );
       response.status(201).json({ device: toDeviceResponse(result.rows[0], healthConfig) });
@@ -160,7 +206,19 @@ function registerReadApi(app, dependencies) {
       const actor = requireActor(request);
       const row = await findDevice(pool, devicesTable, telemetryTable, request.params.identifier);
       await requireDeviceAccess(farmAccessClient, actor, row);
-      response.json({ device: toDeviceResponse(row, healthConfig) });
+      const [latestByMetric, openAlerts] = await Promise.all([
+        latestValuesByMetric(pool, telemetryTable, row.device_uid),
+        pool.query(
+          `SELECT a.*, NULL::text AS device_name FROM ${alertsTable} a
+           WHERE a.device_uid = $1 AND a.status IN ('ALERTING', 'ACKNOWLEDGED')
+           ORDER BY a.last_observed_at DESC LIMIT 20`,
+          [row.device_uid]
+        )
+      ]);
+      response.json({
+        device: { ...toDeviceResponse(row, healthConfig), latestByMetric },
+        openAlerts: openAlerts.rows.map(toAlertResponse)
+      });
     } catch (error) {
       writeApiError(response, error);
     }
@@ -190,7 +248,8 @@ function registerReadApi(app, dependencies) {
              updated_at = CURRENT_TIMESTAMP
          WHERE id = $1
            AND status <> 'DELETED'
-         RETURNING id, device_uid, name, farm_id, cultivation_area_id, status, last_seen_at, created_at, updated_at`,
+         RETURNING id, device_uid, name, farm_id, cultivation_area_id, status, last_seen_at, created_at, updated_at,
+           device_type, provisioning_status, firmware_version, claimed_at`,
         [
           current.id,
           Object.prototype.hasOwnProperty.call(patch, "name") ? patch.name : null,
@@ -221,7 +280,8 @@ function registerReadApi(app, dependencies) {
              updated_at = CURRENT_TIMESTAMP
          WHERE id = $1
            AND status <> 'DELETED'
-         RETURNING id, device_uid, name, farm_id, cultivation_area_id, status, last_seen_at, created_at, updated_at`,
+         RETURNING id, device_uid, name, farm_id, cultivation_area_id, status, last_seen_at, created_at, updated_at,
+           device_type, provisioning_status, firmware_version, claimed_at`,
         [current.id]
       );
       if (result.rowCount === 0) {
@@ -238,9 +298,13 @@ function registerReadApi(app, dependencies) {
       const actor = requireActor(request);
       const device = await findDevice(pool, devicesTable, telemetryTable, request.params.identifier);
       await requireDeviceAccess(farmAccessClient, actor, device);
-      const latest = await latestTelemetry(pool, telemetryTable, device.device_uid);
+      const [latest, latestByMetric] = await Promise.all([
+        latestTelemetry(pool, telemetryTable, device.device_uid),
+        latestValuesByMetric(pool, telemetryTable, device.device_uid)
+      ]);
       response.json({
         device: toDeviceSummary(device, healthConfig),
+        latestByMetric,
         telemetry: latest ? toTelemetryResponse(latest) : null
       });
     } catch (error) {
@@ -255,7 +319,7 @@ function registerReadApi(app, dependencies) {
       await requireDeviceAccess(farmAccessClient, actor, device);
       const range = parseHistoryRange(request.query);
       const result = await pool.query(
-        `SELECT id, device_id, temperature, humidity, light, soil_moisture, "timestamp", received_at
+        `SELECT id, device_id, temperature, humidity, light, soil_moisture, "timestamp", received_at, source, soil_raw, soil_status, dht_status
          FROM ${telemetryTable}
          WHERE LOWER(device_id) = LOWER($1)
            AND "timestamp" >= $2
@@ -273,6 +337,128 @@ function registerReadApi(app, dependencies) {
       writeApiError(response, error);
     }
   });
+
+  app.get("/api/iot/devices/:identifier/telemetry/buckets", async (request, response) => {
+    try {
+      const actor = requireActor(request);
+      const device = await findDevice(pool, devicesTable, telemetryTable, request.params.identifier);
+      await requireDeviceAccess(farmAccessClient, actor, device);
+      response.json(await bucketedHistory(pool, telemetryTable, device, request.query, healthConfig));
+    } catch (error) {
+      writeApiError(response, error);
+    }
+  });
+
+  // Legacy device_id-scoped variant for the raw-sensor fallback; the scope middleware above
+  // (prefix /api/v1/sensors/history) has already authorized device_id before this runs.
+  app.get("/api/v1/sensors/history/buckets", async (request, response) => {
+    try {
+      const actor = requireActor(request);
+      const device = await findDevice(pool, devicesTable, telemetryTable, String(request.query.device_id || ""));
+      await requireDeviceAccess(farmAccessClient, actor, device);
+      response.json(await bucketedHistory(pool, telemetryTable, device, request.query, healthConfig));
+    } catch (error) {
+      writeApiError(response, error);
+    }
+  });
+}
+
+/**
+ * Time-bucketed averages, one row per (bucket, source). Measured (DEVICE) and synthetic
+ * (SYNTHETIC_BACKFILL) values are never averaged together, so callers can label each.
+ */
+async function bucketedHistory(pool, telemetryTable, device, query, healthConfig) {
+  const range = parseBucketRange(query);
+  const result = await pool.query(
+    `SELECT
+       date_bin(make_interval(secs => $4), "timestamp", $5::timestamptz) AS bucket_start,
+       source,
+       COUNT(*)::int AS sample_count,
+       AVG(temperature) AS temperature_avg,
+       MIN(temperature) AS temperature_min,
+       MAX(temperature) AS temperature_max,
+       AVG(humidity) AS humidity_avg,
+       MIN(humidity) AS humidity_min,
+       MAX(humidity) AS humidity_max,
+       AVG(soil_moisture) AS soil_moisture_avg,
+       MIN(soil_moisture) AS soil_moisture_min,
+       MAX(soil_moisture) AS soil_moisture_max,
+       AVG(light) AS light_avg,
+       COUNT(*) FILTER (WHERE soil_moisture < 60)::int AS dry_count,
+       COUNT(*) FILTER (WHERE soil_moisture >= 60 AND soil_moisture <= 85)::int AS optimal_count,
+       COUNT(*) FILTER (WHERE soil_moisture > 85)::int AS wet_count
+     FROM ${telemetryTable}
+     WHERE LOWER(device_id) = LOWER($1)
+       AND "timestamp" >= $2
+       AND "timestamp" <= $3
+     GROUP BY 1, 2
+     ORDER BY 1 ASC, 2 ASC`,
+    [device.device_uid, range.from, range.to, range.bucketSeconds, BUCKET_ORIGIN]
+  );
+  return {
+    device: toDeviceSummary(device, healthConfig),
+    range,
+    buckets: result.rows.map((row) => toBucketResponse(row, range.bucketSeconds))
+  };
+}
+
+function parseBucketRange(query) {
+  const now = new Date();
+  const to = parseDate(query.to, now, "to");
+  const from = parseDate(query.from, new Date(to.getTime() - 24 * 60 * 60 * 1000), "from");
+  if (from.getTime() > to.getTime()) {
+    throw apiError(400, "from must be before or equal to to");
+  }
+  const maxBuckets = query.maxBuckets === undefined ? DEFAULT_MAX_BUCKETS : Number(query.maxBuckets);
+  if (!Number.isInteger(maxBuckets) || maxBuckets < 1 || maxBuckets > MAX_BUCKETS) {
+    throw apiError(400, `maxBuckets must be between 1 and ${MAX_BUCKETS}`);
+  }
+  return {
+    bucketSeconds: chooseBucketSeconds(to.getTime() - from.getTime(), maxBuckets),
+    from: from.toISOString(),
+    maxBuckets,
+    resolution: "bucketed",
+    to: to.toISOString()
+  };
+}
+
+function chooseBucketSeconds(spanMs, maxBuckets) {
+  const spanSeconds = Math.max(spanMs / 1000, 1);
+  // +1 because an unaligned range can straddle one extra bucket boundary.
+  const fits = BUCKET_STEPS_SECONDS.find((step) => Math.ceil(spanSeconds / step) + 1 <= maxBuckets);
+  if (fits) return fits;
+  const day = 86400;
+  return Math.ceil(spanSeconds / Math.max(maxBuckets - 1, 1) / day) * day;
+}
+
+function toBucketResponse(row, bucketSeconds) {
+  const start = toIsoOrNull(row.bucket_start);
+  return {
+    bucketEnd: start ? new Date(Date.parse(start) + bucketSeconds * 1000).toISOString() : null,
+    bucketStart: start,
+    count: Number(row.sample_count),
+    humidity: roundOrNull(row.humidity_avg),
+    humidityMax: roundOrNull(row.humidity_max),
+    humidityMin: roundOrNull(row.humidity_min),
+    light: roundOrNull(row.light_avg),
+    soilMoisture: roundOrNull(row.soil_moisture_avg),
+    soilMoistureMax: roundOrNull(row.soil_moisture_max),
+    soilMoistureMin: roundOrNull(row.soil_moisture_min),
+    soilStatusCounts: {
+      DRY_WARNING: Number(row.dry_count || 0),
+      OPTIMAL: Number(row.optimal_count || 0),
+      WET_WARNING: Number(row.wet_count || 0)
+    },
+    source: row.source ?? "DEVICE",
+    temperature: roundOrNull(row.temperature_avg),
+    temperatureMax: roundOrNull(row.temperature_max),
+    temperatureMin: roundOrNull(row.temperature_min)
+  };
+}
+
+function roundOrNull(value) {
+  if (value === null || value === undefined) return null;
+  return Math.round(Number(value) * 100) / 100;
 }
 
 async function ensureReadSchema(pool, devicesTable) {
@@ -302,6 +488,8 @@ async function ensureReadSchema(pool, devicesTable) {
   );
 }
 
+const ALERT_RECIPIENTS_TIMEOUT_MS = 10_000;
+
 function createFarmAccessClient({ farmServiceUrl, internalToken }) {
   const baseUrl = farmServiceUrl.replace(/\/$/, "");
   return {
@@ -322,10 +510,17 @@ function createFarmAccessClient({ farmServiceUrl, internalToken }) {
           cultivationAreaId,
           farmId,
           permission: "READ_IOT"
-        })
+        }),
+        // Bounded so one delivery attempt stays well inside the retry lease.
+        signal: AbortSignal.timeout(ALERT_RECIPIENTS_TIMEOUT_MS)
       });
-      if (!response.ok) {
+      // 404: the farm/zone no longer exists, so nobody can receive it. Any other failure is transient and
+      // must surface as an error (delivery FAILED, retried) instead of an empty list (SKIPPED for good).
+      if (response.status === 404) {
         return [];
+      }
+      if (!response.ok) {
+        throw new Error(`farm-service alert-recipients responded ${response.status}`);
       }
       const body = await response.json();
       return Array.isArray(body.recipientUserIds) ? body.recipientUserIds : [];
@@ -377,18 +572,25 @@ async function findDevice(pool, devicesTable, telemetryTable, identifier, option
       d.last_seen_at,
       d.created_at,
       d.updated_at,
+      d.device_type,
+      d.provisioning_status,
+      d.firmware_version,
+      d.claimed_at,
       latest.id AS latest_id,
       latest.temperature,
       latest.humidity,
       latest.light,
       latest.soil_moisture,
+      latest.soil_raw,
+      latest.soil_status,
+      latest.dht_status,
       latest."timestamp" AS latest_timestamp,
       latest.received_at AS latest_received_at
     FROM ${devicesTable} d
     LEFT JOIN LATERAL (
-      SELECT id, temperature, humidity, light, soil_moisture, "timestamp", received_at
+      SELECT id, temperature, humidity, light, soil_moisture, "timestamp", received_at, soil_raw, soil_status, dht_status
       FROM ${telemetryTable}
-      WHERE LOWER(device_id) = LOWER(d.device_uid)
+      WHERE LOWER(device_id) = LOWER(d.device_uid) AND source = 'DEVICE'
       ORDER BY "timestamp" DESC, received_at DESC
       LIMIT 1
     ) latest ON TRUE
@@ -405,9 +607,9 @@ async function findDevice(pool, devicesTable, telemetryTable, identifier, option
 
 async function latestTelemetry(pool, telemetryTable, deviceUid) {
   const result = await pool.query(
-    `SELECT id, device_id, temperature, humidity, light, soil_moisture, "timestamp", received_at
+    `SELECT id, device_id, temperature, humidity, light, soil_moisture, "timestamp", received_at, soil_raw, soil_status, dht_status
      FROM ${telemetryTable}
-     WHERE LOWER(device_id) = LOWER($1)
+     WHERE LOWER(device_id) = LOWER($1) AND source = 'DEVICE'
      ORDER BY "timestamp" DESC, received_at DESC
      LIMIT 1`,
     [deviceUid]
@@ -415,7 +617,47 @@ async function latestTelemetry(pool, telemetryTable, deviceUid) {
   return result.rows[0] || null;
 }
 
+/** Most recent measured value of each metric (a reading may carry only some metrics). */
+async function latestValuesByMetric(pool, telemetryTable, deviceUid) {
+  const pick = (column) => `(SELECT json_build_object('value', ${column}, 'measuredAt', "timestamp")
+      FROM ${telemetryTable}
+      WHERE LOWER(device_id) = LOWER($1) AND source = 'DEVICE' AND ${column} IS NOT NULL
+      ORDER BY "timestamp" DESC, received_at DESC LIMIT 1)`;
+  const result = await pool.query(
+    `SELECT ${pick("temperature")} AS temperature, ${pick("humidity")} AS humidity,
+            ${pick("soil_moisture")} AS soil_moisture, ${pick("light")} AS light,
+            (SELECT json_build_object('status', soil_status, 'raw', soil_raw, 'measuredAt', "timestamp")
+               FROM ${telemetryTable}
+               WHERE LOWER(device_id) = LOWER($1) AND source = 'DEVICE' AND soil_status IS NOT NULL
+               ORDER BY "timestamp" DESC, received_at DESC LIMIT 1) AS soil_sensor`,
+    [deviceUid]
+  );
+  const row = result.rows[0] || {};
+  const metric = (value, unit) => value && value.value !== null && value.value !== undefined
+    ? { value: Number(value.value), unit, measuredAt: toIsoOrNull(value.measuredAt) }
+    : null;
+  const soilSensor = row.soil_sensor
+    ? { status: row.soil_sensor.status, raw: numberOrNull(row.soil_sensor.raw), measuredAt: toIsoOrNull(row.soil_sensor.measuredAt) }
+    : null;
+  let soilMoisture = metric(row.soil_moisture, "%");
+  // The probe's latest verdict is newer than the last valid percentage: that percentage is no longer current.
+  if (soilMoisture && soilSensor && soilSensor.status !== "OK" &&
+      new Date(soilSensor.measuredAt).getTime() > new Date(soilMoisture.measuredAt).getTime()) {
+    soilMoisture = null;
+  }
+  return {
+    temperature: metric(row.temperature, "°C"),
+    humidity: metric(row.humidity, "%"),
+    soilMoisture,
+    soilSensor,
+    light: metric(row.light, "raw")
+  };
+}
+
 async function requireDeviceAccess(farmAccessClient, actor, device) {
+  if (!device.farm_id) {
+    throw apiError(404, "Device was not found");
+  }
   const allowed = await farmAccessClient.canReadIot(
     actor,
     device.farm_id,
@@ -427,6 +669,9 @@ async function requireDeviceAccess(farmAccessClient, actor, device) {
 }
 
 async function requireFarmManagement(farmAccessClient, actor, farmId, cultivationAreaId) {
+  if (!farmId) {
+    throw apiError(403, "Access denied for IoT device management");
+  }
   const allowed = await farmAccessClient.canManageIot(actor, farmId, cultivationAreaId);
   if (!allowed) {
     throw apiError(403, "Access denied for IoT device management");
@@ -583,6 +828,9 @@ function toDeviceResponse(row, healthConfig) {
           light: row.light,
           received_at: row.latest_received_at,
           soil_moisture: row.soil_moisture,
+          soil_raw: row.soil_raw,
+          soil_status: row.soil_status,
+          dht_status: row.dht_status,
           temperature: row.temperature,
           timestamp: row.latest_timestamp
         })
@@ -601,11 +849,15 @@ function toDeviceSummary(row, healthConfig) {
     cultivationAreaId: row.cultivation_area_id,
     connectivityStatus: connectivity.status,
     connectivity,
+    claimedAt: toIsoOrNull(row.claimed_at),
+    deviceType: row.device_type || "SENSOR",
     deviceUid: row.device_uid,
     farmId: row.farm_id,
+    firmwareVersion: row.firmware_version || null,
     id: row.id,
     lastSeenAt: toIsoOrNull(row.last_seen_at),
     name: row.name || row.device_uid,
+    provisioningStatus: row.provisioning_status || "CLAIMED",
     status: row.status,
     telemetryState: row.latest_id ? "HAS_TELEMETRY" : "NEVER_REPORTED"
   };
@@ -655,6 +907,7 @@ function toAlertResponse(row) {
     measuredValue: numberOrNull(row.measured_value),
     message: row.message,
     recoveredAt: toIsoOrNull(row.recovered_at),
+    severity: row.severity || null,
     startedAt: toIsoOrNull(row.started_at),
     status: row.status,
     thresholdValue: numberOrNull(row.threshold_value)
@@ -670,8 +923,15 @@ function toTelemetryResponse(row) {
     light: numberOrNull(row.light),
     measuredAt: toIsoOrNull(row.timestamp),
     receivedAt: toIsoOrNull(row.received_at),
+    // DEVICE = measured by the sensor; SYNTHETIC_BACKFILL = labelled simulated history.
+    source: row.source ?? "DEVICE",
     soilMoisture,
     soil_moisture: soilMoisture,
+    // Firmware >= 1.4.0: raw ADC value + its own verdict. soilMoisture is null unless soilStatus is OK
+    // (or NULL for older firmware), so an unconnected/uncalibrated probe is never shown as a percentage.
+    soilRaw: numberOrNull(row.soil_raw),
+    soilStatus: row.soil_status ?? null,
+    dhtStatus: row.dht_status ?? null,
     status: telemetryStatusFromSoil(soilMoisture),
     temperature: numberOrNull(row.temperature),
     units: {
@@ -724,12 +984,15 @@ function writeApiError(response, error) {
 }
 
 module.exports = {
+  chooseBucketSeconds,
   createFarmAccessClient,
+  parseBucketRange,
   ensureReadSchema,
   parseHistoryRange,
   registerReadApi,
   requireActor,
   normalizeDeviceUid,
+  latestValuesByMetric,
   toDeviceResponse,
   toTelemetryResponse
 };

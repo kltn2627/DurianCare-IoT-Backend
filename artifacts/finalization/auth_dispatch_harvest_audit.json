@@ -1,0 +1,73 @@
+{
+  "counts": {
+    "seasons": 5,
+    "harvestBatches": 2,
+    "exportReleases": 0,
+    "validReleasedLotsRecorded": 0
+  },
+  "recordedHarvestByUnit": {
+    "KG": 1850
+  },
+  "recordedHarvestByMonth": {
+    "2025-10": {
+      "KG": 1850
+    }
+  },
+  "confirmedOperationalHarvest": null,
+  "completedHarvestSeasons": null,
+  "qualifiedQuantity": null,
+  "rejectedQuantity": null,
+  "packedQuantity": null,
+  "actualShippedQuantity": null,
+  "qualityPassRate": null,
+  "batches": [
+    {
+      "id": "demo-harvest-batch-2026-001",
+      "seasonId": "demo-season-2026-vu1",
+      "farmId": "farm-khoa-luan-2026",
+      "plotId": "demo-zone-a-vung-trong-demo",
+      "status": "PENDING_INSPECTION",
+      "quantity": "1200.00",
+      "unit": "KG",
+      "includedInRecordedHarvest": false,
+      "source": "SEED_IDENTIFIER_REQUIRES_SOURCE_REVIEW",
+      "issues": [
+        "MISSING_SEASON",
+        "UNKNOWN_HARVEST_STATUS",
+        "HARVEST_BEFORE_SAFE_DATE"
+      ]
+    },
+    {
+      "id": "harvest-2025-khu-dong",
+      "seasonId": "season-2025-khu-dong",
+      "farmId": "farm-khoa-luan-2026",
+      "plotId": "zone-c-khu-dong",
+      "status": "HARVESTED",
+      "quantity": "1850",
+      "unit": "KG",
+      "includedInRecordedHarvest": true,
+      "source": "PERSISTED_ORIGIN_UNVERIFIED",
+      "issues": []
+    }
+  ],
+  "issues": [
+    {
+      "resourceId": "demo-harvest-batch-2026-001",
+      "code": "MISSING_SEASON"
+    },
+    {
+      "resourceId": "demo-harvest-batch-2026-001",
+      "code": "UNKNOWN_HARVEST_STATUS"
+    },
+    {
+      "resourceId": "demo-harvest-batch-2026-001",
+      "code": "HARVEST_BEFORE_SAFE_DATE"
+    }
+  ],
+  "limitations": [
+    "Persisted data alone does not establish operational provenance.",
+    "Season endDate is a calendar boundary, not harvest-completion evidence.",
+    "APPROVED/RELEASED dossier states do not establish physical shipment or shipped weight.",
+    "No cross-unit conversion, IoT association, yield estimate, or pesticide assumption is applied."
+  ]
+}

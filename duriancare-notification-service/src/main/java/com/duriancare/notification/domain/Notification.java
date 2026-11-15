@@ -41,6 +41,10 @@ public class Notification {
     @Indexed(unique = true, sparse = true)
     private String sourceEventId;
 
+    private String eventType;
+
+    private Instant occurredAt;
+
     public String getId() {
         return id;
     }
@@ -127,5 +131,21 @@ public class Notification {
 
     public void setSourceEventId(String sourceEventId) {
         this.sourceEventId = sourceEventId;
+    }
+
+    public String getEventType() {
+        return eventType;
+    }
+
+    public void setEventType(String eventType) {
+        this.eventType = eventType;
+    }
+
+    public Instant getOccurredAt() {
+        return occurredAt;
+    }
+
+    public void setOccurredAt(Instant occurredAt) {
+        this.occurredAt = occurredAt;
     }
 }

@@ -1,5 +1,6 @@
 const assert = require("node:assert/strict");
 const { describe, it } = require("node:test");
+const { alertSql } = require("../test-support/alert-sql-emulator.cjs");
 
 const {
   connectivityForDevice,
@@ -137,7 +138,7 @@ describe("IoT alert evaluation", () => {
 
   it("recovers DEVICE_OFFLINE when valid telemetry resumes", async () => {
     const pool = createAlertPool();
-    pool.alerts.push(alert({ type: "DEVICE_OFFLINE" }));
+    pool.alerts.push(alert({ type: "DEVICE_OFFLINE", notification_status: "SENT" }));
     const notifications = [];
     const result = await evaluateTelemetryAlerts({
       alertsTable: "iot_alerts",
@@ -201,40 +202,8 @@ function createAlertPool({ devices = [] } = {}) {
       if (sql.includes("FROM iot_devices")) {
         return { rows: this.devices };
       }
-      if (sql.includes("UPDATE iot_alerts") && sql.includes("status = 'RECOVERED'")) {
-        const alert = this.alerts.find((item) => item.device_uid === params[0] && item.type === params[1] && item.status === "ALERTING");
-        if (!alert) return { rowCount: 0, rows: [] };
-        alert.status = "RECOVERED";
-        alert.recovered_at = params[2];
-        return { rowCount: 1, rows: [alert] };
-      }
-      if (sql.includes("UPDATE iot_alerts")) {
-        const alert = this.alerts.find((item) => item.device_uid === params[0] && item.type === params[1] && item.status === "ALERTING");
-        if (!alert) return { rowCount: 0, rows: [] };
-        alert.measured_value = params[2];
-        alert.threshold_value = params[3];
-        alert.message = params[4];
-        alert.last_observed_at = params[5];
-        return { rowCount: 1, rows: [alert] };
-      }
-      if (sql.includes("INSERT INTO iot_alerts")) {
-        const alert = {
-          cultivation_area_id: params[3],
-          device_registry_id: params[0],
-          device_uid: params[1],
-          farm_id: params[2],
-          id: `alert-${this.alerts.length + 1}`,
-          measured_value: params[5],
-          message: params[7],
-          notification_event_id: params[9],
-          started_at: params[8],
-          status: "ALERTING",
-          threshold_value: params[6],
-          type: params[4]
-        };
-        this.alerts.push(alert);
-        return { rowCount: 1, rows: [alert] };
-      }
+      const handled = alertSql(this.alerts, sql, params);
+      if (handled) return handled;
       return { rowCount: 0, rows: [] };
     }
   };

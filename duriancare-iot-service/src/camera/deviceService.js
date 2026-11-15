@@ -3,7 +3,17 @@
 const DEVICE_COLS = `
   id, device_id, mac_address, ip_address, port, protocol, online, last_seen,
   firmware_version, ssid, tree_id, zone_id, farm_id, capabilities,
-  created_at, updated_at`;
+  camera_ready, last_error, created_at, updated_at`;
+
+/**
+ * Health reported by the firmware itself (additive, idempotent; runs at startup).
+ *   camera_ready — last self-test frame grab succeeded (NULL: firmware too old to report it)
+ *   last_error   — CAMERA_INIT_FAILED | CAMERA_STREAM_FAILED | NULL
+ */
+async function ensureCameraHealthSchema(pool, schema) {
+  await pool.query(`ALTER TABLE "${schema}".camera_devices ADD COLUMN IF NOT EXISTS camera_ready BOOLEAN`);
+  await pool.query(`ALTER TABLE "${schema}".camera_devices ADD COLUMN IF NOT EXISTS last_error VARCHAR(64)`);
+}
 
 /**
  * Register or update a camera device.
@@ -58,7 +68,10 @@ async function upsertCamera(pool, schema, {
  * Heartbeat: update last_seen, ip_address, port, and mark online.
  * Does NOT change tree/zone/farm assignments.
  */
-async function heartbeat(pool, schema, { deviceId, ipAddress, port = 80, protocol = null, expectedFarmId = null, announcedAt = null }) {
+async function heartbeat(pool, schema, {
+  deviceId, ipAddress, port = 80, protocol = null, expectedFarmId = null, announcedAt = null,
+  cameraReady = null, lastError = null, firmwareVersion = null, macAddress = null,
+}) {
   const now = new Date(announcedAt ?? Date.now()).toISOString();
   const { rows } = await pool.query(
     `UPDATE "${schema}".camera_devices
@@ -68,11 +81,16 @@ async function heartbeat(pool, schema, { deviceId, ipAddress, port = 80, protoco
          last_seen  = $4,
          updated_at = $4
          , protocol = COALESCE($5, protocol)
+         , camera_ready = $8::boolean
+         , last_error = $9::varchar
+         , firmware_version = COALESCE($10::varchar, firmware_version)
+         , mac_address = COALESCE(mac_address, $11::varchar)
      WHERE device_id = $1
        AND ($6::text IS NULL OR farm_id = $6)
        AND ($7::boolean = false OR last_seen IS NULL OR last_seen < $4::timestamptz)
      RETURNING ${DEVICE_COLS}`,
-    [deviceId, ipAddress, port, now, protocol, expectedFarmId, announcedAt !== null],
+    [deviceId, ipAddress, port, now, protocol, expectedFarmId, announcedAt !== null,
+      cameraReady, lastError, firmwareVersion, macAddress],
   );
   if (rows.length === 0) return null;
   return rows[0];
@@ -192,6 +210,7 @@ async function updateCameraUrl(pool, schema, deviceId, { ipAddress, port = 80, p
 }
 
 module.exports = {
+  ensureCameraHealthSchema,
   upsertCamera,
   heartbeat,
   getCamera,

@@ -1,0 +1,22 @@
+{
+  "datasetRoot": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DataSet\\Durian_Severity_Training",
+  "annotationFile": "C:\\Users\\minhd\\OneDrive\\Desktop\\KhoaLuanTotNghiep_26-27\\DataSet\\Durian_Severity_Training\\metadata\\annotations.csv",
+  "imageCount": 5,
+  "invalidImageCount": 0,
+  "duplicateGroupCount": 0,
+  "annotationCount": 5,
+  "approvedAnnotationCount": 0,
+  "unapprovedAnnotationCount": 5,
+  "missingAnnotationImageCount": 0,
+  "annotationErrorCount": 0,
+  "formatCounts": {
+    "JPEG": 5
+  },
+  "topDimensionCounts": {
+    "1920x2560": 3,
+    "3024x4032": 2
+  },
+  "duplicateGroups": [],
+  "invalidImages": [],
+  "annotationErrors": []
+}

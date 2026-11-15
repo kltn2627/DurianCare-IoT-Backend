@@ -108,6 +108,27 @@ class NotificationEventListenerTest {
     }
 
     @Test
+    void handlesSoilMoistureThresholdEventsAsDeviceNotifications() {
+        for (String type : new String[] {"SOIL_MOISTURE_LOW", "SOIL_MOISTURE_HIGH"}) {
+            listener.handle("""
+                    {
+                      "eventId": "%s",
+                      "eventType": "%s",
+                      "receiverId": "owner-1",
+                      "title": "Cảnh báo nghiêm trọng",
+                      "message": "Trạm A: Đất quá khô (40%%, ngưỡng 55%%).",
+                      "metadata": {"farmId": "farm-1", "deviceUid": "esp32-1", "severity": "CRITICAL"}
+                    }
+                    """.formatted(java.util.UUID.randomUUID(), type));
+        }
+        ArgumentCaptor<CreateNotificationRequest> captor =
+                ArgumentCaptor.forClass(CreateNotificationRequest.class);
+        verify(notificationService, org.mockito.Mockito.times(2)).createNotification(captor.capture());
+        org.assertj.core.api.Assertions.assertThat(captor.getAllValues())
+                .allSatisfy(request -> org.assertj.core.api.Assertions.assertThat(request.type()).isEqualTo(NotificationType.DEVICE));
+    }
+
+    @Test
     void handlesIotOfflineEventAsDeviceNotification() {
         listener.handle("""
                 {
@@ -145,6 +166,50 @@ class NotificationEventListenerTest {
         verify(notificationService).createNotification(captor.capture());
         CreateNotificationRequest request = captor.getValue();
         org.assertj.core.api.Assertions.assertThat(request.type()).isEqualTo(NotificationType.DEVICE);
+    }
+
+    @Test
+    void redeliveredIotEventsKeepTheirEventIdAsSourceEventIdForDeduplication() {
+        String offline = """
+                {
+                  "eventId": "233c8cfa-b6a3-4f06-8d0e-e1c87ed3fbb5",
+                  "eventType": "DEVICE_OFFLINE",
+                  "receiverId": "owner-1",
+                  "title": "Cảnh báo",
+                  "message": "QA trạm mất kết nối hơn 10 phút.",
+                  "notificationType": "DEVICE",
+                  "metadata": {"alertId": "alert-1", "alertType": "DEVICE_OFFLINE", "deviceUid": "qa-1"}
+                }
+                """;
+        String recovered = """
+                {
+                  "eventId": "57d572e7-ff10-43f3-9ef0-0ad639d8fad1",
+                  "eventType": "IOT_ALERT_RECOVERED",
+                  "receiverId": "owner-1",
+                  "title": "Đã trở lại bình thường",
+                  "message": "QA trạm: thiết bị mất kết nối đã trở lại bình thường.",
+                  "notificationType": "DEVICE",
+                  "metadata": {"alertId": "alert-1", "alertType": "DEVICE_OFFLINE", "deviceUid": "qa-1"}
+                }
+                """;
+        listener.handle(offline);
+        listener.handle(offline);
+        listener.handle(recovered);
+
+        ArgumentCaptor<CreateNotificationRequest> captor =
+                ArgumentCaptor.forClass(CreateNotificationRequest.class);
+        verify(notificationService, org.mockito.Mockito.times(3)).createNotification(captor.capture());
+        org.assertj.core.api.Assertions.assertThat(captor.getAllValues())
+                .extracting(CreateNotificationRequest::sourceEventId)
+                .containsExactly(
+                        "233c8cfa-b6a3-4f06-8d0e-e1c87ed3fbb5",
+                        "233c8cfa-b6a3-4f06-8d0e-e1c87ed3fbb5",
+                        "57d572e7-ff10-43f3-9ef0-0ad639d8fad1");
+        org.assertj.core.api.Assertions.assertThat(captor.getAllValues())
+                .allSatisfy(request -> {
+                    org.assertj.core.api.Assertions.assertThat(request.type()).isEqualTo(NotificationType.DEVICE);
+                    org.assertj.core.api.Assertions.assertThat(request.metadata()).containsEntry("alertId", "alert-1");
+                });
     }
 
     @Test

@@ -15,12 +15,30 @@ function cameraOrigin(value) {
   return { ipAddress: url.hostname, port: Number(url.port || (url.protocol === "https:" ? 443 : 80)), protocol: url.protocol.slice(0, -1) };
 }
 
+const CAMERA_ERRORS = new Set(["CAMERA_INIT_FAILED", "CAMERA_STREAM_FAILED"]);
+
+/** Optional self-reported health; absent fields (older firmware) stay null. Returns null when malformed. */
+function deviceHealth(body) {
+  const { cameraReady = null, lastError = null, firmwareVersion = null, macAddress = null } = body;
+  if (cameraReady !== null && typeof cameraReady !== "boolean") return null;
+  if (lastError !== null && !CAMERA_ERRORS.has(lastError)) return null;
+  if (firmwareVersion !== null && (typeof firmwareVersion !== "string" || !/^[A-Za-z0-9._+-]{1,32}$/.test(firmwareVersion))) return null;
+  if (macAddress !== null && (typeof macAddress !== "string" || !/^([0-9A-F]{2}:){5}[0-9A-F]{2}$/i.test(macAddress))) return null;
+  return { cameraReady, lastError: cameraReady === true ? null : lastError, firmwareVersion,
+    macAddress: macAddress ? macAddress.toUpperCase() : null };
+}
+
 function cameraView(row, now = Date.now()) {
   const seen = row.last_seen ? new Date(row.last_seen).getTime() : NaN;
   const timeout = Number(process.env.CAMERA_OFFLINE_TIMEOUT_MIN || 5) * 60000;
+  const fresh = row.online && now - seen >= -30000 && now - seen < timeout;
+  // DEGRADED: the device is reachable (fresh heartbeat) but its own self-test frame grab failed.
+  // camera_ready NULL = firmware too old to report it; treated as before (ONLINE).
   const status = !Number.isFinite(seen) ? "UNKNOWN"
-    : row.online && now - seen >= -30000 && now - seen < timeout ? "ONLINE" : "OFFLINE";
+    : !fresh ? "OFFLINE" : row.camera_ready === false ? "DEGRADED" : "ONLINE";
   return { ...row, online: status === "ONLINE", cameraId: row.device_id, status,
+    cameraReady: row.camera_ready ?? null, lastError: fresh ? row.last_error ?? null : "HEARTBEAT_TIMEOUT",
+    firmwareVersion: row.firmware_version ?? null,
     lastSeenAt: row.last_seen, updatedAt: row.updated_at, addressSource: "REGISTRY",
     snapshotUrl: `/api/v1/camera/snapshot?device_id=${encodeURIComponent(row.device_id)}`,
     streamUrl: null, streamAvailable: false, previewAvailable: status === "ONLINE",
@@ -123,8 +141,10 @@ function createRegistrationRouter({ pool, schema }) {
       if (!["http", "https"].includes(protocol) || !Number.isInteger(port) || port < 1 || port > 65535 ||
           typeof body.ipAddress !== "string") return res.status(400).json({ error: "Explicit address, HTTP scheme and valid port required" });
       const origin = cameraOrigin(`${protocol}://${body.ipAddress}:${port}`);
+      const health = deviceHealth(body);
+      if (!health) return res.status(400).json({ error: "Invalid camera health fields" });
       const device = await heartbeat(pool, schema, { deviceId: body.cameraId, ...origin,
-        expectedFarmId: binding.farmId, announcedAt: body.announcedAt });
+        expectedFarmId: binding.farmId, announcedAt: body.announcedAt, ...health });
       if (!device) {
         const latest = await getCamera(pool, schema, body.cameraId);
         if (!latest || latest.farm_id !== binding.farmId ||
@@ -142,4 +162,4 @@ function createRegistrationRouter({ pool, schema }) {
   return router;
 }
 
-module.exports = { cameraOrigin, cameraView, cameraAccess, createRegistrationRouter };
+module.exports = { cameraOrigin, cameraView, deviceHealth, cameraAccess, createRegistrationRouter };

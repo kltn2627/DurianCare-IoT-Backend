@@ -30,6 +30,8 @@ public class NotificationEventListener {
             "HUMIDITY_LOW",
             "LIGHT_HIGH",
             "LIGHT_LOW",
+            "SOIL_MOISTURE_HIGH",
+            "SOIL_MOISTURE_LOW",
             "IOT_ALERT_RECOVERED",
             "SYSTEM_ALERT",
             "AGRONOMIST_INVITATION_CREATED",
@@ -81,7 +83,9 @@ public class NotificationEventListener {
                 event.metadata() == null ? Map.of() : event.metadata(),
                 StringUtils.hasText(event.sourceEventId())
                         ? event.sourceEventId().trim()
-                        : event.eventId() == null ? null : event.eventId().toString()));
+                        : event.eventId() == null ? null : event.eventId().toString(),
+                normalizeEventType(event.eventType()),
+                event.occurredAt()));
     }
 
     private NotificationEventPayload deserialize(String payload) {
@@ -121,6 +125,8 @@ public class NotificationEventListener {
                     "HUMIDITY_LOW",
                     "LIGHT_HIGH",
                     "LIGHT_LOW",
+                    "SOIL_MOISTURE_HIGH",
+                    "SOIL_MOISTURE_LOW",
                     "IOT_ALERT_RECOVERED" -> NotificationType.DEVICE;
             case "SYSTEM_ALERT" -> NotificationType.SYSTEM;
             case "AGRONOMIST_INVITATION_CREATED",

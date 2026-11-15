@@ -24,6 +24,8 @@ public class NotificationMapper {
         notification.setUpdatedAt(Instant.now());
         notification.setMetadata(request.metadata());
         notification.setSourceEventId(request.sourceEventId());
+        notification.setEventType(request.eventType());
+        notification.setOccurredAt(request.occurredAt());
         return notification;
     }
 

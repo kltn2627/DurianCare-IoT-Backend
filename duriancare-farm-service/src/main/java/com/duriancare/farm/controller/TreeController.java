@@ -1,5 +1,7 @@
 package com.duriancare.farm.controller;
 
+import com.duriancare.farm.dto.BulkUpdateTreeHealthStatusRequest;
+import com.duriancare.farm.dto.BulkUpdateTreeHealthStatusResponse;
 import com.duriancare.farm.dto.AcceptCareRecommendationRequest;
 import com.duriancare.farm.dto.CareRecommendationRequest;
 import com.duriancare.farm.dto.CreateTreeCarePlanRequest;
@@ -185,6 +187,17 @@ public class TreeController {
             @RequestHeader("X-Auth-Role") String role) {
         return treeService.transitionHealthStatus(
                 actorResolver.resolve(userId, email, role), treeId, req.healthStatus());
+    }
+
+    /** Bulk version of PATCH /api/trees/{treeId}/health-status; returns a per-tree result. */
+    @PatchMapping("/api/trees/health-status/bulk")
+    public BulkUpdateTreeHealthStatusResponse bulkUpdateHealthStatus(
+            @Valid @RequestBody BulkUpdateTreeHealthStatusRequest req,
+            @RequestHeader("X-Auth-User-Id") String userId,
+            @RequestHeader(value = "X-Auth-Email", required = false) String email,
+            @RequestHeader("X-Auth-Role") String role) {
+        return treeService.bulkTransitionHealthStatus(
+                actorResolver.resolve(userId, email, role), req.treeIds(), req.healthStatus());
     }
 
     // ── Care Plans (/api/trees/{treeId}/care-plans and /api/care-plans/...) ──

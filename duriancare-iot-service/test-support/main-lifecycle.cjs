@@ -17,6 +17,11 @@ const app = { use() {}, get() {}, post() {}, listen(_port, callback) {
 const express = () => app; express.json = express.static = () => middleware;
 class Pool extends EventEmitter {
   async query(sql) {
+    if (sql.includes("provisioning_status, firmware_version, device_type")) {
+      return { rows: [{ id: "dev-1", device_uid: "esp32-01", name: null, farm_id: "farm-1", cultivation_area_id: "area-1",
+        status: "ACTIVE", provisioning_status: process.env.FIXTURE_UNCLAIMED ? "PROVISIONED" : "CLAIMED",
+        firmware_version: null, device_type: "SENSOR" }], rowCount: 1 };
+    }
     if (process.env.FIXTURE_DELAYED_TELEMETRY && sql.includes("INSERT INTO")) {
       trace("mqtt-work-start");
       if(process.env.FIXTURE_STUCK_SHUTDOWN) await new Promise(() => {});
@@ -46,7 +51,7 @@ Module._load = function(id, parent, main) {
     "./camera/cameraRoutes": { createCameraRouter: () => middleware },
     "./camera/cameraScheduler": { loadAll: async () => {}, stopAll: async () => trace("camera-stop") },
     "./camera/cameraService": { drainCaptures: async () => trace("capture-drain") },
-    "./camera/deviceService": { markOfflineStaleCameras: async () => 0 },
+    "./camera/deviceService": { ensureCameraHealthSchema: async () => undefined, markOfflineStaleCameras: async () => 0 },
     "./export/assessmentRoutes": { createAssessmentRouter: () => middleware },
     "./public/publicRoutes": { createPublicRouter: () => middleware },
     "./alert-engine": { ensureAlertSchema: async () => {} },

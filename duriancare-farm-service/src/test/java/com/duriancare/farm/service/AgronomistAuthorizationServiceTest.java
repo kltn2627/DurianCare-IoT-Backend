@@ -441,7 +441,8 @@ class AgronomistAuthorizationServiceTest {
                 null,
                 null,
                 Instant.now(),
-                Instant.now());
+                Instant.now(),
+                null);
     }
 
     private AgronomistSummaryResponse agronomist() {

@@ -44,7 +44,10 @@ class NotificationServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        service = new NotificationServiceImpl(repository, new NotificationMapper());
+        service = new NotificationServiceImpl(
+                repository,
+                new NotificationMapper(),
+                org.mockito.Mockito.mock(com.duriancare.notification.service.push.PushDeliveryService.class));
     }
 
     @Test
@@ -90,6 +93,31 @@ class NotificationServiceImplTest {
 
         assertThat(response.id()).isEqualTo("noti-1");
         verify(repository, never()).save(any(Notification.class));
+    }
+
+    @Test
+    void createNotificationReturnsTheStoredCopyWhenAConcurrentDeliveryWonTheRace() {
+        Notification stored = notification("noti-7", "user-1", "Alert", "Body", NotificationType.DEVICE, false);
+        stored.setSourceEventId("evt-7");
+        when(repository.existsBySourceEventId("evt-7")).thenReturn(false);
+        when(repository.save(any(Notification.class)))
+                .thenThrow(new org.springframework.dao.DuplicateKeyException("E11000 duplicate key sourceEventId"));
+        when(repository.findBySourceEventId("evt-7")).thenReturn(Optional.of(stored));
+
+        var response = service.createNotification(new CreateNotificationRequest(
+                "user-1", "Alert", "Body", NotificationType.DEVICE, Map.of(), "evt-7"));
+
+        assertThat(response.id()).isEqualTo("noti-7");
+    }
+
+    @Test
+    void duplicateKeyWithoutSourceEventIdIsNotSwallowed() {
+        when(repository.save(any(Notification.class)))
+                .thenThrow(new org.springframework.dao.DuplicateKeyException("other unique index"));
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.createNotification(new CreateNotificationRequest(
+                        "user-1", "Alert", "Body", NotificationType.DEVICE, Map.of(), null)))
+                .isInstanceOf(org.springframework.dao.DuplicateKeyException.class);
     }
 
     @Test

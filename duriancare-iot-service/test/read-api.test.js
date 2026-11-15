@@ -3,6 +3,8 @@ const { describe, it } = require("node:test");
 const express = require("express");
 
 const {
+  chooseBucketSeconds,
+  parseBucketRange,
   parseHistoryRange,
   registerReadApi,
   requireActor,
@@ -173,24 +175,26 @@ describe("IoT read API authorization", () => {
 });
 
 describe("IoT device management authorization", () => {
-  it("registers a device only when the actor can configure the target farm", async () => {
+  it("binds a device directly only for administrators; a farmer must use a claim code even on own farm", async () => {
     const app = createTestApp({
       allowedFarmIds: new Set(["farm-1"]),
       manageableFarmIds: new Set(["farm-1"]),
       rowsByQuery: {}
     });
-    const response = await request(app, "/api/iot/devices", {
-      body: {
-        cultivationAreaId: "area-1",
-        deviceUid: "esp32:claim-1",
-        farmId: "farm-1",
-        name: "North Block ESP32"
-      },
-      method: "POST"
-    });
-    assert.equal(response.status, 201);
-    assert.equal(response.body.device.deviceUid, "esp32:claim-1");
-    assert.equal(response.body.device.farmId, "farm-1");
+    const body = {
+      cultivationAreaId: "area-1",
+      deviceUid: "esp32:claim-1",
+      farmId: "farm-1",
+      name: "North Block ESP32"
+    };
+    const farmer = await request(app, "/api/iot/devices", { body, method: "POST" });
+    assert.equal(farmer.status, 403);
+    assert.match(farmer.body.message, /claim code/);
+    assert.equal(app.locals.sqlLog.some((sql) => sql.includes("INSERT INTO")), false);
+    const admin = await request(app, "/api/iot/devices", { body, method: "POST", role: "ADMIN" });
+    assert.equal(admin.status, 201);
+    assert.equal(admin.body.device.deviceUid, "esp32:claim-1");
+    assert.equal(admin.body.device.farmId, "farm-1");
   });
 
   it("rejects registration into a farm the actor cannot configure", async () => {
@@ -215,7 +219,8 @@ describe("IoT device management authorization", () => {
     });
     const response = await request(app, "/api/iot/devices", {
       body: { deviceUid: "esp32-1", farmId: "farm-1" },
-      method: "POST"
+      method: "POST",
+      role: "ADMIN"
     });
     assert.equal(response.status, 409);
   });
@@ -380,6 +385,86 @@ describe("IoT alert API authorization", () => {
   });
 });
 
+describe("IoT downsampled history", () => {
+  it("chooses the smallest bucket that keeps the range within maxBuckets", () => {
+    const day = 86400 * 1000;
+    assert.equal(chooseBucketSeconds(day, 240), 600);
+    assert.equal(chooseBucketSeconds(31 * day, 240), 21600);
+    // Season 2026-06-01 .. 2026-10-22 renders as daily buckets.
+    assert.equal(chooseBucketSeconds(143 * day, 240), 86400);
+    assert.equal(chooseBucketSeconds(3 * 365 * day, 240), 604800);
+    assert.ok(chooseBucketSeconds(30 * 365 * day, 240) % 86400 === 0);
+  });
+
+  it("validates bucket ranges", () => {
+    assert.throws(() => parseBucketRange({ from: "2026-02-01", to: "2026-01-01" }), /from must be before/);
+    assert.throws(() => parseBucketRange({ maxBuckets: "0" }), /maxBuckets must be/);
+    assert.throws(() => parseBucketRange({ from: "nope" }), /valid ISO-8601/);
+    const range = parseBucketRange({ from: "2026-06-01T00:00:00Z", to: "2026-10-22T00:00:00Z" });
+    assert.equal(range.resolution, "bucketed");
+    assert.equal(range.bucketSeconds, 86400);
+  });
+
+  it("returns per-source buckets and never merges measured with synthetic values", async () => {
+    const app = createTestApp({
+      allowedFarmIds: new Set(["farm-1"]),
+      rowsByQuery: {
+        buckets: [
+          bucketRow({ source: "DEVICE", temperature_avg: "30.123", sample_count: 8640 }),
+          bucketRow({ source: "SYNTHETIC_BACKFILL", temperature_avg: "27", sample_count: 144, soil_moisture_avg: null, dry_count: 0, optimal_count: 0, wet_count: 0 })
+        ],
+        find: [deviceRow({ device_uid: "esp32-01" })]
+      }
+    });
+    const response = await request(app, "/api/iot/devices/dev-row-1/telemetry/buckets?from=2026-06-01T00:00:00Z&to=2026-10-22T00:00:00Z");
+    assert.equal(response.status, 200);
+    assert.equal(response.body.range.bucketSeconds, 86400);
+    assert.deepEqual(response.body.buckets.map((b) => [b.source, b.count, b.temperature]), [
+      ["DEVICE", 8640, 30.12],
+      ["SYNTHETIC_BACKFILL", 144, 27]
+    ]);
+    assert.equal(response.body.buckets[0].bucketEnd, "2026-08-13T17:00:00.000Z");
+    assert.deepEqual(response.body.buckets[0].soilStatusCounts, { DRY_WARNING: 1, OPTIMAL: 2, WET_WARNING: 3 });
+    assert.equal(response.body.buckets[1].soilMoisture, null);
+    const sql = app.locals.sqlLog.find((text) => text.includes("date_bin"));
+    assert.match(sql, /GROUP BY 1, 2/);
+    assert.match(sql, /LOWER\(device_id\) = LOWER\(\$1\)/);
+    assert.deepEqual(app.locals.bucketParams.slice(0, 4), ["esp32-01", "2026-06-01T00:00:00.000Z", "2026-10-22T00:00:00.000Z", 86400]);
+  });
+
+  it("applies identity and farm access to both bucket routes", async () => {
+    for (const path of ["/api/iot/devices/dev-row-2/telemetry/buckets", "/api/v1/sensors/history/buckets?device_id=esp32-1"]) {
+      const app = createTestApp({ allowedFarmIds: new Set(["farm-1"]), rowsByQuery: { find: [deviceRow({ farm_id: "farm-2" })] } });
+      assert.equal((await request(app, path, { auth: false })).status, 401);
+      assert.equal((await request(app, path)).status, 403);
+      assert.equal(app.locals.sqlLog.some((text) => text.includes("date_bin")), false);
+    }
+    const app = createTestApp({ allowedFarmIds: new Set(["farm-1"]), rowsByQuery: { buckets: [bucketRow()], find: [deviceRow()] } });
+    const ok = await request(app, "/api/v1/sensors/history/buckets?device_id=ESP32-1&from=2026-10-01T00:00:00Z&to=2026-10-02T00:00:00Z");
+    assert.equal(ok.status, 200);
+    assert.equal(ok.body.buckets.length, 1);
+    assert.equal((await request(app, "/api/v1/sensors/history/buckets")).status, 400);
+  });
+});
+
+function bucketRow(overrides = {}) {
+  return {
+    bucket_start: new Date("2026-08-12T17:00:00.000Z"),
+    dry_count: 1,
+    humidity_avg: "80",
+    light_avg: null,
+    optimal_count: 2,
+    sample_count: 6,
+    soil_moisture_avg: "70",
+    source: "DEVICE",
+    temperature_avg: "30",
+    temperature_max: "33",
+    temperature_min: "27",
+    wet_count: 3,
+    ...overrides
+  };
+}
+
 function createTestApp({ allowedFarmIds, duplicateInsert = false, manageableFarmIds, manageableScopes, rowsByQuery }) {
   const app = express();
   app.use(express.json({ limit: "32kb" }));
@@ -387,6 +472,10 @@ function createTestApp({ allowedFarmIds, duplicateInsert = false, manageableFarm
   const pool = {
     async query(sql, params = []) {
       app.locals.sqlLog.push(sql);
+      if (sql.includes("date_bin")) {
+        app.locals.bucketParams = params;
+        return { rows: rowsByQuery.buckets || [] };
+      }
       if (sql.includes("ORDER BY COALESCE")) {
         return { rows: rowsByQuery.list || [] };
       }
@@ -529,7 +618,7 @@ async function request(app, path, options = {}) {
       "Content-Type": "application/json"
     };
     if (options.auth !== false) {
-      headers["X-Auth-Role"] = "FARMER";
+      headers["X-Auth-Role"] = options.role || "FARMER";
       headers["X-Auth-User-Id"] = "user-1";
     }
     const response = await fetch(`http://127.0.0.1:${port}${path}`, {

@@ -144,6 +144,8 @@ application-secret.properties
 *-secret.yaml
 *-secret.properties
 secrets/
+*firebase-adminsdk*.json
+firebase-service-account*.json
 .secrets
 
 ### Database ###

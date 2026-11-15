@@ -1,0 +1,6 @@
+{
+  "mongoEqual": true,
+  "postgresTables": 42,
+  "postgresEqual": true,
+  "historicalEqualityProven": false
+}

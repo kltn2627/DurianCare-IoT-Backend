@@ -331,7 +331,7 @@ class CultivationPhase2ServiceTest {
     @Test
     void blockedReleaseCannotSubmit() {
         exportRelease(ExportReleaseStatus.BLOCKED);
-        assertThatThrownBy(() -> service.submitExportRelease(FARMER, "release-1", "spoofed"))
+        assertThatThrownBy(() -> service.submitExportRelease(FARMER, "release-1", FARMER.userId()))
                 .isInstanceOf(IllegalStateException.class).hasMessageContaining("DRAFT");
         verify(exportReleaseRepository, never()).save(any(ExportRelease.class));
     }
@@ -339,7 +339,7 @@ class CultivationPhase2ServiceTest {
     @Test
     void draftReleaseCannotApprove() {
         exportRelease(ExportReleaseStatus.DRAFT);
-        assertThatThrownBy(() -> service.approveExportRelease(EXPERT, "release-1", "spoofed"))
+        assertThatThrownBy(() -> service.approveExportRelease(EXPERT, "release-1", EXPERT.userId()))
                 .isInstanceOf(IllegalStateException.class).hasMessageContaining("UNDER_REVIEW");
     }
 
@@ -347,7 +347,7 @@ class CultivationPhase2ServiceTest {
     void approvalReassessesAndRejectsLatestLabFailure() {
         exportRelease(ExportReleaseStatus.UNDER_REVIEW);
         failedLab();
-        assertThatThrownBy(() -> service.approveExportRelease(EXPERT, "release-1", "spoofed"))
+        assertThatThrownBy(() -> service.approveExportRelease(EXPERT, "release-1", EXPERT.userId()))
                 .isInstanceOf(IllegalStateException.class).hasMessageContaining("LAB_RESULT_FAILED");
         verify(exportReleaseRepository, never()).save(any(ExportRelease.class));
     }
@@ -356,7 +356,7 @@ class CultivationPhase2ServiceTest {
     void releaseReassessesAndRejectsNewLabFailure() {
         exportRelease(ExportReleaseStatus.APPROVED);
         failedLab();
-        assertThatThrownBy(() -> service.releaseExportRelease(EXPERT, "release-1", "spoofed"))
+        assertThatThrownBy(() -> service.releaseExportRelease(EXPERT, "release-1", EXPERT.userId()))
                 .isInstanceOf(IllegalStateException.class).hasMessageContaining("LAB_RESULT_FAILED");
         verify(exportReleaseRepository, never()).save(any(ExportRelease.class));
     }
@@ -370,7 +370,7 @@ class CultivationPhase2ServiceTest {
         when(inputUsageRepository.findByActivityExecutionId("execution-1"))
                 .thenReturn(List.of(usage(LocalDate.parse("2026-08-26"))));
         standards(standard(true, true, null));
-        assertThatThrownBy(() -> service.releaseExportRelease(EXPERT, "release-1", "spoofed"))
+        assertThatThrownBy(() -> service.releaseExportRelease(EXPERT, "release-1", EXPERT.userId()))
                 .isInstanceOf(IllegalStateException.class).hasMessageContaining("PRE_HARVEST_INTERVAL_NOT_MET");
     }
 
@@ -399,7 +399,7 @@ class CultivationPhase2ServiceTest {
     void releaseWithCurrentValidDataRebuildsSnapshotAndUsesAuthenticatedReviewer() {
         exportRelease(ExportReleaseStatus.APPROVED);
         passingLab();
-        ExportRelease released = service.releaseExportRelease(EXPERT, "release-1", "spoofed");
+        ExportRelease released = service.releaseExportRelease(EXPERT, "release-1", EXPERT.userId());
         assertThat(released.status()).isEqualTo(ExportReleaseStatus.RELEASED);
         assertThat(released.reviewedBy()).isEqualTo(EXPERT.userId());
         assertThat(released.traceabilitySnapshot()).containsKeys("labSamples", "labResidueResults", "resolvedLabEvidence");
@@ -438,7 +438,7 @@ class CultivationPhase2ServiceTest {
                 .thenReturn(List.of(result(null, BigDecimal.ZERO)));
 
         ExportRelease release = service.createExportRelease(FARMER,
-                new CultivationCalendarDtos.CreateExportReleaseRequest("REL-LEGACY", "batch-1", "VN", "spoofed"));
+                new CultivationCalendarDtos.CreateExportReleaseRequest("REL-LEGACY", "batch-1", "VN", FARMER.userId()));
 
         assertThat(release.status()).isEqualTo(ExportReleaseStatus.BLOCKED);
         @SuppressWarnings("unchecked")
@@ -465,7 +465,7 @@ class CultivationPhase2ServiceTest {
         var release = exportRelease(ExportReleaseStatus.RELEASED);
         when(exportReleaseRepository.findById("release-1"))
                 .thenReturn(Optional.of(release), Optional.of(release));
-        ExportRelease recalled = service.recallExportRelease(EXPERT, "release-1", "spoofed", "Lab alert");
+        ExportRelease recalled = service.recallExportRelease(EXPERT, "release-1", EXPERT.userId(), "Lab alert");
         ArgumentCaptor<AuditLog> audit = ArgumentCaptor.forClass(AuditLog.class);
         verify(auditLogRepository).save(audit.capture());
         when(auditLogRepository.findByResourceTypeAndResourceId("ExportRelease", "release-1"))

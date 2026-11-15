@@ -1,4 +1,11 @@
 const { randomUUID } = require("node:crypto");
+const {
+  attemptDelivery,
+  ensureAlertDeliverySchema,
+  initialOpenDelivery,
+  policyFrom,
+  retryAlertNotifications
+} = require("./alertNotifications");
 
 const CONNECTIVITY_BASIS = "INFERRED_FROM_LAST_TELEMETRY";
 const ALERT_STATUS = {
@@ -100,14 +107,42 @@ async function ensureAlertSchema(pool, alertsTable) {
      ON ${alertsTable} (device_uid, type)
      WHERE status = 'ALERTING'`
   );
+  await ensureAlertDeliverySchema(pool, alertsTable);
 }
 
+const ALERT_LABELS = {
+  TEMPERATURE_HIGH: "Nhiệt độ cao", TEMPERATURE_LOW: "Nhiệt độ thấp",
+  HUMIDITY_HIGH: "Độ ẩm không khí cao", HUMIDITY_LOW: "Độ ẩm không khí thấp",
+  SOIL_MOISTURE_HIGH: "Đất quá ẩm", SOIL_MOISTURE_LOW: "Đất quá khô",
+  LIGHT_HIGH: "Ánh sáng mạnh", LIGHT_LOW: "Ánh sáng yếu",
+  DEVICE_OFFLINE: "Thiết bị mất kết nối",
+};
+const SEVERITY_TITLES = { CRITICAL: "Cảnh báo nghiêm trọng", WARNING: "Cảnh báo", INFO: "Thông báo" };
+
+/** Service-default checks (env thresholds), used when no per-farm/zone/device rule applies. */
+function defaultChecks(thresholds) {
+  return THRESHOLD_RULES.map((rule) => ({
+    ...rule, threshold: thresholds[rule.thresholdKey], hysteresis: 0, severity: "WARNING", notify: true, ruleId: null
+  }));
+}
+
+/**
+ * `checks` (from deviceLifecycle.effectiveChecks) take precedence over raw `thresholds`.
+ * `disabledTypes` are alert types switched off by a rule: their open alerts are closed silently.
+ * An ACKNOWLEDGED alert is still the open episode: it is touched while the breach lasts and
+ * recovers like an ALERTING one, so acknowledging never spawns a duplicate alert/notification.
+ * Recovery needs the value back inside the threshold by the rule's hysteresis.
+ */
 async function evaluateTelemetryAlerts({
   alertsTable,
+  checks,
   device,
+  disabledTypes = [],
   farmAccessClient,
   logger = console,
+  notificationPolicy,
   notificationPublisher,
+  now = new Date(),
   pool,
   telemetry,
   thresholds
@@ -115,35 +150,46 @@ async function evaluateTelemetryAlerts({
   if (!device || device.status !== "ACTIVE") {
     return { created: [], recovered: [] };
   }
+  const policy = policyFrom(notificationPolicy);
+  const deliver = (alert, phase) => attemptDelivery({
+    alert, device, phase, farmAccessClient, notificationPublisher, pool, alertsTable, policy, logger,
+    labels: ALERT_LABELS, titles: SEVERITY_TITLES, now
+  });
+  const activeChecks = Array.isArray(checks) ? checks : defaultChecks(thresholds || {});
   const created = [];
   const recovered = [];
   const offlineAlert = await recoverAlert({
     alertsTable,
-    deviceUid: device.device_uid,
+    device,
+    now,
+    policy,
     pool,
     recoveredAt: telemetry.receivedAt,
     type: "DEVICE_OFFLINE"
   });
   if (offlineAlert) {
     recovered.push(offlineAlert);
-    await publishAlertNotification({
-      alert: offlineAlert,
-      device,
-      farmAccessClient,
-      logger,
-      notificationPublisher,
-      recovered: true
-    });
+    if (offlineAlert.recovery_notification_status === "PENDING") await deliver(offlineAlert, "RECOVERED");
   }
-  for (const rule of THRESHOLD_RULES) {
+  for (const type of disabledTypes) {
+    const closed = await recoverAlert({
+      alertsTable, device, now, policy, pool, recoveredAt: telemetry.receivedAt, type, skipReason: "RULE_DISABLED"
+    });
+    if (closed) recovered.push(closed);
+  }
+  for (const rule of activeChecks) {
     const value = telemetry[rule.field];
-    const threshold = thresholds[rule.thresholdKey];
+    const threshold = rule.threshold;
     if (!Number.isFinite(value) || !Number.isFinite(threshold)) continue;
     const violated = rule.kind === "HIGH" ? value > threshold : value < threshold;
+    const hysteresis = Number(rule.hysteresis) || 0;
+    const backToNormal = rule.kind === "HIGH" ? value <= threshold - hysteresis : value >= threshold + hysteresis;
     if (violated) {
       const alert = await openOrTouchAlert({
         alertsTable,
         device,
+        now,
+        policy,
         pool,
         rule,
         telemetry,
@@ -152,33 +198,22 @@ async function evaluateTelemetryAlerts({
       });
       if (alert.created) {
         created.push(alert.row);
-        await publishAlertNotification({
-          alert: alert.row,
-          device,
-          farmAccessClient,
-          logger,
-          notificationPublisher,
-          recovered: false
-        });
+        if (alert.row.notification_status === "PENDING") await deliver(alert.row, "OPEN");
       }
-    } else {
+    } else if (backToNormal) {
       const alert = await recoverAlert({
         alertsTable,
-        deviceUid: device.device_uid,
+        device,
+        now,
+        policy,
         pool,
         recoveredAt: telemetry.receivedAt,
+        skipReason: rule.notify === false ? "NOTIFY_DISABLED" : null,
         type: rule.type
       });
       if (alert) {
         recovered.push(alert);
-        await publishAlertNotification({
-          alert,
-          device,
-          farmAccessClient,
-          logger,
-          notificationPublisher,
-          recovered: true
-        });
+        if (alert.recovery_notification_status === "PENDING") await deliver(alert, "RECOVERED");
       }
     }
   }
@@ -190,13 +225,15 @@ async function evaluateOfflineDevices({
   farmAccessClient,
   healthConfig,
   logger = console,
+  notificationPolicy,
   notificationPublisher,
   pool,
   devicesTable,
   now = new Date()
 }) {
+  const policy = policyFrom(notificationPolicy);
   const result = await pool.query(
-    `SELECT id, device_uid, name, farm_id, cultivation_area_id, status, last_seen_at
+    `SELECT id, device_uid, name, farm_id, cultivation_area_id, status, last_seen_at, is_test
      FROM ${devicesTable}
      WHERE status IN ('ACTIVE', 'INACTIVE', 'MAINTENANCE')
        AND (
@@ -210,10 +247,16 @@ async function evaluateOfflineDevices({
   for (const device of result.rows) {
     evaluated += 1;
     const connectivity = connectivityForDevice(device, healthConfig, now);
+    const deliver = (alert, phase) => attemptDelivery({
+      alert, device, phase, farmAccessClient, notificationPublisher, pool, alertsTable, policy, logger,
+      labels: ALERT_LABELS, titles: SEVERITY_TITLES, now
+    });
     if (device.status === "ACTIVE" && connectivity.status === "OFFLINE") {
       const alert = await openOrTouchAlert({
         alertsTable,
         device,
+        now,
+        policy,
         pool,
         rule: { field: "last_seen_at", type: "DEVICE_OFFLINE" },
         telemetry: { receivedAt: now.toISOString() },
@@ -222,33 +265,21 @@ async function evaluateOfflineDevices({
       });
       if (alert.created) {
         created.push(alert.row);
-        await publishAlertNotification({
-          alert: alert.row,
-          device,
-          farmAccessClient,
-          logger,
-          notificationPublisher,
-          recovered: false
-        });
+        if (alert.row.notification_status === "PENDING") await deliver(alert.row, "OPEN");
       }
     } else {
       const alert = await recoverAlert({
         alertsTable,
-        deviceUid: device.device_uid,
+        device,
+        now,
+        policy,
         pool,
         recoveredAt: now.toISOString(),
         type: "DEVICE_OFFLINE"
       });
       if (alert) {
         recovered.push(alert);
-        await publishAlertNotification({
-          alert,
-          device,
-          farmAccessClient,
-          logger,
-          notificationPublisher,
-          recovered: true
-        });
+        if (alert.recovery_notification_status === "PENDING") await deliver(alert, "RECOVERED");
       }
     }
   }
@@ -256,7 +287,7 @@ async function evaluateOfflineDevices({
   return { created, evaluated, recovered };
 }
 
-async function openOrTouchAlert({ alertsTable, device, pool, rule, telemetry, threshold, value }) {
+async function openOrTouchAlert({ alertsTable, device, now = new Date(), policy, pool, rule, telemetry, threshold, value }) {
   const message = alertMessage(rule.type, device, value, threshold);
   const existing = await pool.query(
     `UPDATE ${alertsTable}
@@ -267,7 +298,7 @@ async function openOrTouchAlert({ alertsTable, device, pool, rule, telemetry, th
          updated_at = CURRENT_TIMESTAMP
      WHERE device_uid = $1
        AND type = $2
-       AND status = 'ALERTING'
+       AND status IN ('ALERTING', 'ACKNOWLEDGED')
      RETURNING *`,
     [device.device_uid, rule.type, value, threshold, message, telemetry.receivedAt]
   );
@@ -275,12 +306,15 @@ async function openOrTouchAlert({ alertsTable, device, pool, rule, telemetry, th
     return { created: false, row: existing.rows[0] };
   }
   const eventId = randomUUID();
+  const delivery = initialOpenDelivery({ device, notify: rule.notify, policy: policyFrom(policy), now });
   const inserted = await pool.query(
     `INSERT INTO ${alertsTable}
       (device_registry_id, device_uid, farm_id, cultivation_area_id, type, status,
        measured_value, threshold_value, message, started_at, last_observed_at,
-       notification_event_id, created_at, updated_at)
-     VALUES ($1, $2, $3, $4, $5, 'ALERTING', $6, $7, $8, $9, $9, $10, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+       notification_event_id, severity, rule_id, created_at, updated_at,
+       notification_status, notification_next_attempt_at, notification_detail)
+     VALUES ($1, $2, $3, $4, $5, 'ALERTING', $6, $7, $8, $9, $9, $10, $11, $12, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP,
+       $13, $14, $15)
      RETURNING *`,
     [
       device.id,
@@ -292,71 +326,68 @@ async function openOrTouchAlert({ alertsTable, device, pool, rule, telemetry, th
       threshold,
       message,
       telemetry.receivedAt,
-      eventId
+      eventId,
+      rule.severity || (rule.type === "DEVICE_OFFLINE" ? "WARNING" : null),
+      rule.ruleId || null,
+      delivery.status,
+      delivery.nextAt,
+      delivery.detail
     ]
   );
   return { created: true, row: inserted.rows[0] };
 }
 
-async function recoverAlert({ alertsTable, deviceUid, pool, recoveredAt, type }) {
+/**
+ * Closes the open episode. In the same statement it decides the recovery notification:
+ * PENDING only when the opening notification was delivered (SENT) or predates delivery tracking (NULL);
+ * otherwise SKIPPED, so nobody gets "back to normal" for an alert they never saw. An opening
+ * notification still waiting for delivery is cancelled (SKIPPED) since it is stale now.
+ */
+async function recoverAlert({ alertsTable, device, now = new Date(), policy, pool, recoveredAt, skipReason = null, type }) {
+  const effectivePolicy = policyFrom(policy);
+  const reason = skipReason || (device && device.is_test === true && !effectivePolicy.testReceiverId ? "TEST_DEVICE" : null);
+  const lease = new Date(now.getTime() + effectivePolicy.leaseMs);
   const result = await pool.query(
     `UPDATE ${alertsTable}
      SET status = 'RECOVERED',
          recovered_at = $3,
          last_observed_at = $3,
-         updated_at = CURRENT_TIMESTAMP
+         updated_at = CURRENT_TIMESTAMP,
+         -- "Back to normal" only follows an opening notification known to be delivered. Untracked (NULL,
+         -- created before delivery tracking) openings may never have reached anyone, so they are not followed up.
+         recovery_notification_status = CASE
+           WHEN $4::text IS NOT NULL THEN 'SKIPPED'
+           WHEN notification_status = 'SENT' THEN 'PENDING'
+           ELSE 'SKIPPED' END,
+         recovery_notification_detail = CASE
+           WHEN $4::text IS NOT NULL THEN $4::text
+           WHEN notification_status = 'SENT' THEN NULL
+           WHEN notification_status IS NULL THEN 'OPEN_UNTRACKED'
+           ELSE 'OPEN_NOT_DELIVERED' END,
+         recovery_notification_next_attempt_at = CASE
+           WHEN $4::text IS NULL AND notification_status = 'SENT' THEN $5::timestamptz
+           ELSE NULL END,
+         notification_status = CASE WHEN notification_status IN ('PENDING', 'FAILED') THEN 'SKIPPED' ELSE notification_status END,
+         notification_detail = CASE WHEN notification_status IN ('PENDING', 'FAILED') THEN 'RECOVERED_BEFORE_DELIVERY'
+           ELSE notification_detail END,
+         notification_next_attempt_at = CASE WHEN notification_status IN ('PENDING', 'FAILED') THEN NULL
+           ELSE notification_next_attempt_at END
      WHERE device_uid = $1
        AND type = $2
-       AND status = 'ALERTING'
+       AND status IN ('ALERTING', 'ACKNOWLEDGED')
      RETURNING *`,
-    [deviceUid, type, recoveredAt]
+    [device.device_uid, type, recoveredAt, reason, lease]
   );
   return result.rows[0] || null;
 }
 
-async function publishAlertNotification({ alert, device, farmAccessClient, logger = console, notificationPublisher, recovered }) {
-  if (!notificationPublisher || !farmAccessClient || typeof farmAccessClient.alertRecipients !== "function") {
-    return;
-  }
-  try {
-    const recipients = await farmAccessClient.alertRecipients(device.farm_id, device.cultivation_area_id);
-    await Promise.all(
-      recipients.map((receiverId) =>
-        notificationPublisher.publish({
-          eventId: recovered ? randomUUID() : alert.notification_event_id,
-          eventType: recovered ? "IOT_ALERT_RECOVERED" : alert.type,
-          message: recovered ? `${device.name || device.device_uid} đã trở lại bình thường.` : alert.message,
-          notificationType: "DEVICE",
-          receiverId,
-          title: recovered ? "IoT alert đã phục hồi" : "Cảnh báo IoT",
-          metadata: {
-            alertId: alert.id,
-            alertType: alert.type,
-            deviceId: device.id,
-            deviceUid: device.device_uid,
-            farmId: device.farm_id,
-            cultivationAreaId: device.cultivation_area_id,
-            status: alert.status
-          },
-          occurredAt: new Date().toISOString()
-        })
-      )
-    );
-  } catch (error) {
-    logger.error("iot.alert.notificationPublishFailed", {
-      alertId: alert.id,
-      alertType: alert.type,
-      deviceUid: device.device_uid,
-      message: error.message
-    });
-  }
-}
-
 function alertMessage(type, device, value, threshold) {
+  const name = device.name || device.device_uid;
   if (type === "DEVICE_OFFLINE") {
-    return `${device.name || device.device_uid} mất kết nối quá ngưỡng ${threshold} giây.`;
+    return `${name} mất kết nối hơn ${Math.round(threshold / 60)} phút.`;
   }
-  return `${device.name || device.device_uid}: ${type} (${value} / ngưỡng ${threshold}).`;
+  const unit = /^(HUMIDITY|SOIL_MOISTURE)/.test(type) ? "%" : /^TEMPERATURE/.test(type) ? "°C" : "";
+  return `${name}: ${ALERT_LABELS[type] || type} (${value}${unit}, ngưỡng ${threshold}${unit}).`;
 }
 
 function toIsoOrNull(value) {
@@ -365,11 +396,19 @@ function toIsoOrNull(value) {
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
+/** Retry scan for alert notifications (runs with the offline watchdog tick). */
+function retryNotifications(args) {
+  return retryAlertNotifications({ ...args, labels: ALERT_LABELS, titles: SEVERITY_TITLES });
+}
+
 module.exports = {
+  ALERT_LABELS,
   ALERT_STATUS,
+  defaultChecks,
   CONNECTIVITY_BASIS,
   connectivityForDevice,
   ensureAlertSchema,
   evaluateOfflineDevices,
-  evaluateTelemetryAlerts
+  evaluateTelemetryAlerts,
+  retryNotifications
 };

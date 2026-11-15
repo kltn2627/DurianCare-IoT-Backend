@@ -408,8 +408,8 @@ public class CultivationCalendarService {
         ExportRelease release = getExportRelease(actor, id);
         HarvestBatch batch = getHarvestBatch(actor, release.harvestBatchId());
         requireExportReleaseEligibleBatch(batch);
+        // Farm access is enough: the owner releases their own lot; compliance is re-checked below.
         accessGuard.requireUpdate(actor, "ExportRelease", id, batch.farmId(), batch.plotId());
-        requireTechnicalReviewer(actor);
         return releaseExportRelease(id, actor.userId());
     }
 

@@ -18,8 +18,10 @@ async function runOfflineWatchdog({
   farmAccessClient,
   healthConfig,
   logger = console,
+  notificationPolicy,
   notificationPublisher,
   pool,
+  retryNotifications,
   now
 }) {
   const locked = await tryAdvisoryLock(pool);
@@ -34,6 +36,7 @@ async function runOfflineWatchdog({
       devicesTable,
       farmAccessClient,
       healthConfig,
+      notificationPolicy,
       notificationPublisher,
       pool,
       now
@@ -42,7 +45,19 @@ async function runOfflineWatchdog({
       created: result.created.length,
       recovered: result.recovered.length
     });
-    return { ...result, skipped: false };
+    // Same tick, same lock: retry alert notifications whose publish failed or never completed.
+    let retry = null;
+    if (typeof retryNotifications === "function") {
+      try {
+        retry = await retryNotifications({
+          alertsTable, devicesTable, farmAccessClient, logger, notificationPublisher, policy: notificationPolicy, pool,
+          now: now || new Date()
+        });
+      } catch (error) {
+        logger.error("iot.alert.notificationRetryFailed", { message: error.message });
+      }
+    }
+    return { ...result, retry, skipped: false };
   } finally {
     await releaseAdvisoryLock(pool);
   }
@@ -55,8 +70,10 @@ function startOfflineWatchdogScheduler({
   farmAccessClient,
   healthConfig,
   logger = console,
+  notificationPolicy,
   notificationPublisher,
-  pool
+  pool,
+  retryNotifications
 }) {
   const intervalMs = Math.round(healthConfig.offlineWatchdogIntervalSeconds * 1000);
   const work = require("./workDrain").createWorkDrain();
@@ -71,8 +88,10 @@ function startOfflineWatchdogScheduler({
       farmAccessClient,
       healthConfig,
       logger,
+      notificationPolicy,
       notificationPublisher,
-      pool
+      pool,
+      retryNotifications
     }).catch((error) => {
       logger.error("iot.offlineWatchdog.failed", { message: error.message });
     }));

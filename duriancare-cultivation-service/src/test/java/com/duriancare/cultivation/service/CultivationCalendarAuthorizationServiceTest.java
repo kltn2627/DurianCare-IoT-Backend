@@ -102,6 +102,8 @@ class CultivationCalendarAuthorizationServiceTest {
     }
 
     private static final CultivationActor OWNER = new CultivationActor("owner-1", "owner@example.com", "FARMER");
+    // Approval needs a technical reviewer; the owner still releases on their own.
+    private static final CultivationActor REVIEWER = new CultivationActor("owner-1", "owner@example.com", "EXPERT");
 
     @Test
     void matchingAuthenticatedActorCanCreateReadSubmitApproveReleaseAndRecallFixture() {
@@ -126,7 +128,7 @@ class CultivationCalendarAuthorizationServiceTest {
         assertThat(service.getExportRelease(OWNER, created.id()).id()).isEqualTo(created.id());
         assertThat(service.submitExportRelease(OWNER, created.id(), OWNER.userId()).status())
                 .isEqualTo(ExportReleaseStatus.UNDER_REVIEW);
-        assertThat(service.approveExportRelease(OWNER, created.id(), OWNER.userId()).status())
+        assertThat(service.approveExportRelease(REVIEWER, created.id(), OWNER.userId()).status())
                 .isEqualTo(ExportReleaseStatus.APPROVED);
         var released = service.releaseExportRelease(OWNER, created.id(), OWNER.userId());
         assertThat(released.status()).isEqualTo(ExportReleaseStatus.RELEASED);
@@ -595,6 +597,7 @@ class CultivationCalendarAuthorizationServiceTest {
     void complianceAssessmentRejectsHarvestBatchFromDifferentSeason() {
         when(harvestBatchRepository.findById("batch-1"))
                 .thenReturn(Optional.of(batch("batch-1", "season-2", "farm-1", "zone-1", HarvestBatchStatus.HARVESTED)));
+        when(seasonRepository.findById("season-2")).thenReturn(Optional.of(season("farm-1", "zone-1")));
 
         assertThatThrownBy(() -> service.assessCompliance(
                 "season-1",
@@ -628,7 +631,7 @@ class CultivationCalendarAuthorizationServiceTest {
 
         assertThatThrownBy(() -> service.submitExportRelease(OWNER, "release-1", OWNER.userId()))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Only draft");
+                .hasMessageContaining("DRAFT");
 
         verify(exportReleaseRepository, never()).save(any(ExportRelease.class));
     }
@@ -640,9 +643,9 @@ class CultivationCalendarAuthorizationServiceTest {
         when(harvestBatchRepository.findById("batch-1"))
                 .thenReturn(Optional.of(batch("batch-1", "season-1", "farm-1", "zone-1", HarvestBatchStatus.HARVESTED)));
 
-        assertThatThrownBy(() -> service.approveExportRelease(OWNER, "release-1", OWNER.userId()))
+        assertThatThrownBy(() -> service.approveExportRelease(REVIEWER, "release-1", OWNER.userId()))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("under review");
+                .hasMessageContaining("UNDER_REVIEW");
 
         verify(exportReleaseRepository, never()).save(any(ExportRelease.class));
     }

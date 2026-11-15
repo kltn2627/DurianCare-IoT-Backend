@@ -1,0 +1,522 @@
+{
+  "beforeTime": "2026-10-15T05:37:38.329Z",
+  "afterTime": "2026-10-15T05:38:51.215Z",
+  "tableCount": 42,
+  "changed": [
+    {
+      "schema": "duriancare_iot",
+      "table": "iot_devices",
+      "count": 1,
+      "md5": "636650903df1aed2bf02ea79e91ca9e9"
+    }
+  ],
+  "expectedChange": "One operator-approved real esp32-01 registry record, no telemetry seed",
+  "before": [
+    {
+      "schema": "duriancare_auth",
+      "table": "community_comments",
+      "count": 0,
+      "md5": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "duriancare_auth",
+      "table": "community_post_media",
+      "count": 0,
+      "md5": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "duriancare_auth",
+      "table": "community_posts",
+      "count": 0,
+      "md5": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "duriancare_auth",
+      "table": "community_reactions",
+      "count": 0,
+      "md5": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "duriancare_auth",
+      "table": "engineer_application_documents",
+      "count": 0,
+      "md5": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "duriancare_auth",
+      "table": "engineer_applications",
+      "count": 0,
+      "md5": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "duriancare_auth",
+      "table": "flyway_schema_history",
+      "count": 11,
+      "md5": "eaefa0135543621c83e5a2c70a1aafb8"
+    },
+    {
+      "schema": "duriancare_auth",
+      "table": "knowledge_articles",
+      "count": 5,
+      "md5": "05e2264709651040eeee2e45f23d4643"
+    },
+    {
+      "schema": "duriancare_auth",
+      "table": "otp_verifications",
+      "count": 14,
+      "md5": "dc2b54a625f6bec2bfb2d5840c490d46"
+    },
+    {
+      "schema": "duriancare_auth",
+      "table": "user_connections",
+      "count": 0,
+      "md5": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "duriancare_auth",
+      "table": "user_preferences",
+      "count": 14,
+      "md5": "308d914c4210f988d30a244c46b94b60"
+    },
+    {
+      "schema": "duriancare_auth",
+      "table": "user_profiles",
+      "count": 15,
+      "md5": "b59a0b067ff064b7070878f94bbd7754"
+    },
+    {
+      "schema": "duriancare_auth",
+      "table": "users",
+      "count": 16,
+      "md5": "41995c5e660e3fbe35ad8eb25aa9d89e"
+    },
+    {
+      "schema": "duriancare_iot",
+      "table": "batch_chemical_applications",
+      "count": 0,
+      "md5": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "duriancare_iot",
+      "table": "camera_captures",
+      "count": 7,
+      "md5": "af7584cb001426fe0b9433f15b8a4e0a"
+    },
+    {
+      "schema": "duriancare_iot",
+      "table": "camera_devices",
+      "count": 1,
+      "md5": "68a3d1822576d9cf4f78fb5f144a29b4"
+    },
+    {
+      "schema": "duriancare_iot",
+      "table": "camera_schedules",
+      "count": 3,
+      "md5": "ee38a458bc312c25d6d6ceebee6081bd"
+    },
+    {
+      "schema": "duriancare_iot",
+      "table": "chemical_registry",
+      "count": 10,
+      "md5": "b9d04d15640f05d0e5abd8202b3ed2ae"
+    },
+    {
+      "schema": "duriancare_iot",
+      "table": "export_assessments",
+      "count": 11,
+      "md5": "874ca1e32a7ec3acb0359247b257a9fb"
+    },
+    {
+      "schema": "duriancare_iot",
+      "table": "farming_batches",
+      "count": 0,
+      "md5": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "duriancare_iot",
+      "table": "iot_alerts",
+      "count": 0,
+      "md5": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "duriancare_iot",
+      "table": "iot_devices",
+      "count": 0,
+      "md5": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "duriancare_iot",
+      "table": "market_mrl_standards",
+      "count": 50,
+      "md5": "ddac529cad17f005d0c89bfef020a1a1"
+    },
+    {
+      "schema": "duriancare_iot",
+      "table": "telemetry",
+      "count": 4578,
+      "md5": "4e0e7ef6f2a3ab98735e7987a9e3c5c1"
+    },
+    {
+      "schema": "public",
+      "table": "ai_prediction_history",
+      "count": 14,
+      "md5": "3086e1289c857093a460ffeddedccf07"
+    },
+    {
+      "schema": "public",
+      "table": "ai_schema_migrations",
+      "count": 6,
+      "md5": "898d0b89babcbc1f2a4e3b200ce855fb"
+    },
+    {
+      "schema": "public",
+      "table": "disease_catalog",
+      "count": 4,
+      "md5": "b06218210ca35b389ad7917e6092ee83"
+    },
+    {
+      "schema": "public",
+      "table": "disease_records",
+      "count": 0,
+      "md5": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "public",
+      "table": "kb_active_ingredients",
+      "count": 7,
+      "md5": "4fccc0c46856f5a3269e2a062ed1eae2"
+    },
+    {
+      "schema": "public",
+      "table": "kb_biological_treatments",
+      "count": 31,
+      "md5": "20a81d3888ffc90834bcdc23d120618a"
+    },
+    {
+      "schema": "public",
+      "table": "kb_chemical_treatments",
+      "count": 8,
+      "md5": "a678e82cd93c69959c3a20899a121d10"
+    },
+    {
+      "schema": "public",
+      "table": "kb_disease_causes",
+      "count": 10,
+      "md5": "c4b5f46dd1347177c4db7ab682f46687"
+    },
+    {
+      "schema": "public",
+      "table": "kb_disease_symptoms",
+      "count": 27,
+      "md5": "1f4e2f81884d1274cfd38fc5515b8945"
+    },
+    {
+      "schema": "public",
+      "table": "kb_diseases",
+      "count": 5,
+      "md5": "39c8f6b89b3400e21e91cdf5a2ac36a9"
+    },
+    {
+      "schema": "public",
+      "table": "kb_export_markets",
+      "count": 4,
+      "md5": "ac29cb845c6d769f9bf1821a9953444c"
+    },
+    {
+      "schema": "public",
+      "table": "kb_export_requirements",
+      "count": 26,
+      "md5": "87bdd3ca3761793974aa1ee9b6aa4629"
+    },
+    {
+      "schema": "public",
+      "table": "kb_harvest_intervals",
+      "count": 6,
+      "md5": "37dcc2fb7b133524a2e2a776337affeb"
+    },
+    {
+      "schema": "public",
+      "table": "kb_maximum_residue_limits",
+      "count": 0,
+      "md5": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "public",
+      "table": "kb_organic_treatments",
+      "count": 25,
+      "md5": "70c811ab6a2bd46d11c11de35002f2f2"
+    },
+    {
+      "schema": "public",
+      "table": "kb_recommended_chemical_active_ingredients",
+      "count": 7,
+      "md5": "2a0da187cfffc475545148dcfc59927a"
+    },
+    {
+      "schema": "public",
+      "table": "kb_recommended_chemicals",
+      "count": 7,
+      "md5": "e916de72438ec8813377030927462178"
+    },
+    {
+      "schema": "public",
+      "table": "kb_reference_sources",
+      "count": 25,
+      "md5": "553ca5b26b23ea9cd41b2970b5bd3acb"
+    }
+  ],
+  "after": [
+    {
+      "schema": "duriancare_auth",
+      "table": "community_comments",
+      "count": 0,
+      "md5": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "duriancare_auth",
+      "table": "community_post_media",
+      "count": 0,
+      "md5": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "duriancare_auth",
+      "table": "community_posts",
+      "count": 0,
+      "md5": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "duriancare_auth",
+      "table": "community_reactions",
+      "count": 0,
+      "md5": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "duriancare_auth",
+      "table": "engineer_application_documents",
+      "count": 0,
+      "md5": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "duriancare_auth",
+      "table": "engineer_applications",
+      "count": 0,
+      "md5": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "duriancare_auth",
+      "table": "flyway_schema_history",
+      "count": 11,
+      "md5": "eaefa0135543621c83e5a2c70a1aafb8"
+    },
+    {
+      "schema": "duriancare_auth",
+      "table": "knowledge_articles",
+      "count": 5,
+      "md5": "05e2264709651040eeee2e45f23d4643"
+    },
+    {
+      "schema": "duriancare_auth",
+      "table": "otp_verifications",
+      "count": 14,
+      "md5": "dc2b54a625f6bec2bfb2d5840c490d46"
+    },
+    {
+      "schema": "duriancare_auth",
+      "table": "user_connections",
+      "count": 0,
+      "md5": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "duriancare_auth",
+      "table": "user_preferences",
+      "count": 14,
+      "md5": "308d914c4210f988d30a244c46b94b60"
+    },
+    {
+      "schema": "duriancare_auth",
+      "table": "user_profiles",
+      "count": 15,
+      "md5": "b59a0b067ff064b7070878f94bbd7754"
+    },
+    {
+      "schema": "duriancare_auth",
+      "table": "users",
+      "count": 16,
+      "md5": "41995c5e660e3fbe35ad8eb25aa9d89e"
+    },
+    {
+      "schema": "duriancare_iot",
+      "table": "batch_chemical_applications",
+      "count": 0,
+      "md5": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "duriancare_iot",
+      "table": "camera_captures",
+      "count": 7,
+      "md5": "af7584cb001426fe0b9433f15b8a4e0a"
+    },
+    {
+      "schema": "duriancare_iot",
+      "table": "camera_devices",
+      "count": 1,
+      "md5": "68a3d1822576d9cf4f78fb5f144a29b4"
+    },
+    {
+      "schema": "duriancare_iot",
+      "table": "camera_schedules",
+      "count": 3,
+      "md5": "ee38a458bc312c25d6d6ceebee6081bd"
+    },
+    {
+      "schema": "duriancare_iot",
+      "table": "chemical_registry",
+      "count": 10,
+      "md5": "b9d04d15640f05d0e5abd8202b3ed2ae"
+    },
+    {
+      "schema": "duriancare_iot",
+      "table": "export_assessments",
+      "count": 11,
+      "md5": "874ca1e32a7ec3acb0359247b257a9fb"
+    },
+    {
+      "schema": "duriancare_iot",
+      "table": "farming_batches",
+      "count": 0,
+      "md5": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "duriancare_iot",
+      "table": "iot_alerts",
+      "count": 0,
+      "md5": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "duriancare_iot",
+      "table": "iot_devices",
+      "count": 1,
+      "md5": "636650903df1aed2bf02ea79e91ca9e9"
+    },
+    {
+      "schema": "duriancare_iot",
+      "table": "market_mrl_standards",
+      "count": 50,
+      "md5": "ddac529cad17f005d0c89bfef020a1a1"
+    },
+    {
+      "schema": "duriancare_iot",
+      "table": "telemetry",
+      "count": 4578,
+      "md5": "4e0e7ef6f2a3ab98735e7987a9e3c5c1"
+    },
+    {
+      "schema": "public",
+      "table": "ai_prediction_history",
+      "count": 14,
+      "md5": "3086e1289c857093a460ffeddedccf07"
+    },
+    {
+      "schema": "public",
+      "table": "ai_schema_migrations",
+      "count": 6,
+      "md5": "898d0b89babcbc1f2a4e3b200ce855fb"
+    },
+    {
+      "schema": "public",
+      "table": "disease_catalog",
+      "count": 4,
+      "md5": "b06218210ca35b389ad7917e6092ee83"
+    },
+    {
+      "schema": "public",
+      "table": "disease_records",
+      "count": 0,
+      "md5": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "public",
+      "table": "kb_active_ingredients",
+      "count": 7,
+      "md5": "4fccc0c46856f5a3269e2a062ed1eae2"
+    },
+    {
+      "schema": "public",
+      "table": "kb_biological_treatments",
+      "count": 31,
+      "md5": "20a81d3888ffc90834bcdc23d120618a"
+    },
+    {
+      "schema": "public",
+      "table": "kb_chemical_treatments",
+      "count": 8,
+      "md5": "a678e82cd93c69959c3a20899a121d10"
+    },
+    {
+      "schema": "public",
+      "table": "kb_disease_causes",
+      "count": 10,
+      "md5": "c4b5f46dd1347177c4db7ab682f46687"
+    },
+    {
+      "schema": "public",
+      "table": "kb_disease_symptoms",
+      "count": 27,
+      "md5": "1f4e2f81884d1274cfd38fc5515b8945"
+    },
+    {
+      "schema": "public",
+      "table": "kb_diseases",
+      "count": 5,
+      "md5": "39c8f6b89b3400e21e91cdf5a2ac36a9"
+    },
+    {
+      "schema": "public",
+      "table": "kb_export_markets",
+      "count": 4,
+      "md5": "ac29cb845c6d769f9bf1821a9953444c"
+    },
+    {
+      "schema": "public",
+      "table": "kb_export_requirements",
+      "count": 26,
+      "md5": "87bdd3ca3761793974aa1ee9b6aa4629"
+    },
+    {
+      "schema": "public",
+      "table": "kb_harvest_intervals",
+      "count": 6,
+      "md5": "37dcc2fb7b133524a2e2a776337affeb"
+    },
+    {
+      "schema": "public",
+      "table": "kb_maximum_residue_limits",
+      "count": 0,
+      "md5": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "public",
+      "table": "kb_organic_treatments",
+      "count": 25,
+      "md5": "70c811ab6a2bd46d11c11de35002f2f2"
+    },
+    {
+      "schema": "public",
+      "table": "kb_recommended_chemical_active_ingredients",
+      "count": 7,
+      "md5": "2a0da187cfffc475545148dcfc59927a"
+    },
+    {
+      "schema": "public",
+      "table": "kb_recommended_chemicals",
+      "count": 7,
+      "md5": "e916de72438ec8813377030927462178"
+    },
+    {
+      "schema": "public",
+      "table": "kb_reference_sources",
+      "count": 25,
+      "md5": "553ca5b26b23ea9cd41b2970b5bd3acb"
+    }
+  ]
+}

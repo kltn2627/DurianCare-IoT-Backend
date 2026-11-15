@@ -57,6 +57,19 @@ duriancare:
       from-name: ${MAIL_FROM_NAME}
     auth-events-topic: ${AUTH_EVENTS_TOPIC:duriancare.auth.events}
     events-topic: ${KAFKA_ALERT_TOPIC:${NOTIFICATION_EVENTS_TOPIC:duriancare.notification.events}}
+    fcm:
+      enabled: ${FCM_ENABLED:false}
+      credentials-file: ${FIREBASE_CREDENTIALS_FILE:}
+      credentials-base64: ${FIREBASE_CREDENTIALS_BASE64:}
+      project-id: ${FIREBASE_PROJECT_ID:}
+      android-channel-id: ${FCM_ANDROID_CHANNEL_ID:duriancare-alerts}
+      ttl: ${FCM_TTL:PT6H}
+      max-age: ${FCM_MAX_AGE:PT6H}
+      max-attempts: ${FCM_MAX_ATTEMPTS:5}
+      retry-base-delay: ${FCM_RETRY_BASE_DELAY:PT30S}
+      retry-max-delay: ${FCM_RETRY_MAX_DELAY:PT15M}
+      retry-scan-interval: ${FCM_RETRY_SCAN_INTERVAL:PT30S}
+      claim-ttl: ${FCM_CLAIM_TTL:PT5M}
 
 management:
   endpoints:
