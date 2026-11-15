@@ -1,0 +1,14 @@
+{
+  "mongoEqual": true,
+  "mongoScope": [
+    "duriancare_farm",
+    "duriancare_cultivation"
+  ],
+  "postgresTables": 42,
+  "postgresEqual": true,
+  "mongoBefore": "2026-10-15T02:22:18.9464274+07:00",
+  "mongoAfter": "2026-10-15T02:26:53.9288987+07:00",
+  "sqlBefore": "2026-10-15T02:22:20.8087203+07:00",
+  "sqlAfter": "2026-10-15T02:26:57.3577026+07:00",
+  "historicalEqualityProven": false
+}

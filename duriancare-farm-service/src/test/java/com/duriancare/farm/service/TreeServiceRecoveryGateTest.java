@@ -3,6 +3,7 @@ package com.duriancare.farm.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -27,6 +28,8 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -34,11 +37,9 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 
 /**
- * Verifies the backend recovery gate in TreeService.transitionHealthStatus().
- *
- * Gate rule: PATCH /health-status with RECOVERED is only allowed when evaluateRecovery
- * returns RECOVERED or IMPROVED. Any other outcome (WORSENED, STABLE, UNCERTAIN) throws
- * FarmConflictException → HTTP 409.
+ * TreeService tree lifecycle and manual health-status rules. Since 2026-10-22 the owning farmer may
+ * set any TreeHealthStatus on an ACTIVE tree; recovery evaluation is advisory and no longer a gate.
+ * Removed trees still cannot change health status.
  */
 @ExtendWith(MockitoExtension.class)
 class TreeServiceRecoveryGateTest {
@@ -216,148 +217,102 @@ class TreeServiceRecoveryGateTest {
         verify(treeRepository, never()).save(any(DurianTree.class));
     }
 
-    // ── Bypass-attack test ────────────────────────────────────────────────────
+    // ── Manual health status (business rule 2026-10-22) ──────────────────────
+    // The owning farmer may set any TreeHealthStatus on an ACTIVE tree. AI diagnosis and the
+    // recovery evaluation are advisory only and never block a manual change.
 
-    /**
-     * DC-T026 scenario: TREATING tree with current diagnosis PHOMOPSIS_LEAF_SPOT and
-     * previous diagnosis HEALTHY_LEAF.  evaluateRecovery returns WORSENED (different codes).
-     * Direct PATCH RECOVERED must be rejected with HTTP 409.
-     */
+    /** DC-T026 scenario: the latest diagnoses look WORSENED, yet the farmer may still mark RECOVERED. */
     @Test
-    void worsenedEvaluationBlocksRecoveredTransition() {
-        TreeDiagnosisRecord current = diagRecord(TREE_ID, "PHOMOPSIS_LEAF_SPOT", 0.9974,
-                Instant.parse("2026-10-01T10:00:00Z"));
-        TreeDiagnosisRecord previous = diagRecord(TREE_ID, "HEALTHY_LEAF", 0.87,
-                Instant.parse("2026-09-20T10:00:00Z"));
-
+    void recoveredNeedsNoImprovedDiagnosisEvenWhenHistoryLooksWorse() {
         stubTreeAndFarm();
-        when(diagnosisRepository.findByTreeIdOrderByDiagnosedAtDesc(any(), any(Pageable.class)))
-                .thenReturn(new PageImpl<>(List.of(current, previous)));
+        stubDetailReads();
+        lenient().when(diagnosisRepository.findByTreeIdOrderByDiagnosedAtDesc(any(), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(
+                        diagRecord(TREE_ID, "PHOMOPSIS_LEAF_SPOT", 0.9974, Instant.parse("2026-10-01T10:00:00Z")),
+                        diagRecord(TREE_ID, "HEALTHY_LEAF", 0.87, Instant.parse("2026-09-20T10:00:00Z")))));
 
-        assertThatThrownBy(() -> service.transitionHealthStatus(ACTOR, TREE_ID, TreeHealthStatus.RECOVERED))
-                .isInstanceOf(FarmConflictException.class)
-                .hasMessageContaining("RECOVERY_NOT_ALLOWED")
-                .hasMessageContaining("WORSENED");
+        service.transitionHealthStatus(ACTOR, TREE_ID, TreeHealthStatus.RECOVERED);
 
-        // DB must not be updated
-        verify(treeRepository, never()).save(any(DurianTree.class));
-    }
-
-    /**
-     * UNCERTAIN scenario: only one diagnosis record exists, cannot compare two.
-     * PATCH RECOVERED must be rejected.
-     */
-    @Test
-    void uncertainEvaluationBlocksRecoveredTransition() {
-        TreeDiagnosisRecord onlyRecord = diagRecord(TREE_ID, "PHOMOPSIS_LEAF_SPOT", 0.85,
-                Instant.parse("2026-10-01T10:00:00Z"));
-
-        stubTreeAndFarm();
-        when(diagnosisRepository.findByTreeIdOrderByDiagnosedAtDesc(any(), any(Pageable.class)))
-                .thenReturn(new PageImpl<>(List.of(onlyRecord)));
-
-        assertThatThrownBy(() -> service.transitionHealthStatus(ACTOR, TREE_ID, TreeHealthStatus.RECOVERED))
-                .isInstanceOf(FarmConflictException.class)
-                .hasMessageContaining("RECOVERY_NOT_ALLOWED")
-                .hasMessageContaining("UNCERTAIN");
-
-        verify(treeRepository, never()).save(any(DurianTree.class));
-    }
-
-    // ── Valid-recovery test ───────────────────────────────────────────────────
-
-    /**
-     * DC-T010 scenario: TREATING tree with current diagnosis HEALTHY_LEAF.
-     * evaluateRecovery returns RECOVERED. PATCH RECOVERED must succeed (200).
-     */
-    @Test
-    void recoveredEvaluationAllowsRecoveredTransition() {
-        TreeDiagnosisRecord current = diagRecord(TREE_ID, "HEALTHY_LEAF", 0.93,
-                Instant.parse("2026-10-02T10:00:00Z"));
-        TreeDiagnosisRecord previous = diagRecord(TREE_ID, "LEAF_BLIGHT", 0.873,
-                Instant.parse("2026-09-15T10:00:00Z"));
-
-        stubTreeAndFarm();
-        when(diagnosisRepository.findByTreeIdOrderByDiagnosedAtDesc(any(), any(Pageable.class)))
-                .thenReturn(new PageImpl<>(List.of(current, previous)));
-        when(treeRepository.save(any(DurianTree.class))).thenReturn(TREATING_TREE);
-        when(diagnosisRepository.findTopByTreeIdOrderByDiagnosedAtDesc(TREE_ID))
-                .thenReturn(Optional.empty());
-        when(diagnosisRepository.countByTreeId(TREE_ID)).thenReturn(2L);
-
-        TreeDetailResponse result = service.transitionHealthStatus(ACTOR, TREE_ID, TreeHealthStatus.RECOVERED);
-
-        assertThat(result).isNotNull();
-        verify(treeRepository).save(any(DurianTree.class));
-    }
-
-    /**
-     * IMPROVED scenario: same disease code, confidence dropped > 15%.
-     * evaluateRecovery returns IMPROVED. PATCH RECOVERED must succeed.
-     */
-    @Test
-    void improvedEvaluationAllowsRecoveredTransition() {
-        TreeDiagnosisRecord current = diagRecord(TREE_ID, "LEAF_BLIGHT", 0.60,
-                Instant.parse("2026-10-02T10:00:00Z"), TreeHealthStatus.SUSPECTED);
-        TreeDiagnosisRecord previous = diagRecord(TREE_ID, "LEAF_BLIGHT", 0.85,
-                Instant.parse("2026-09-15T10:00:00Z"), TreeHealthStatus.DISEASED);
-
-        stubTreeAndFarm();
-        when(diagnosisRepository.findByTreeIdOrderByDiagnosedAtDesc(any(), any(Pageable.class)))
-                .thenReturn(new PageImpl<>(List.of(current, previous)));
-        when(treeRepository.save(any(DurianTree.class))).thenReturn(TREATING_TREE);
-        when(diagnosisRepository.findTopByTreeIdOrderByDiagnosedAtDesc(TREE_ID))
-                .thenReturn(Optional.empty());
-        when(diagnosisRepository.countByTreeId(TREE_ID)).thenReturn(2L);
-
-        TreeDetailResponse result = service.transitionHealthStatus(ACTOR, TREE_ID, TreeHealthStatus.RECOVERED);
-
-        assertThat(result).isNotNull();
-        verify(treeRepository).save(any(DurianTree.class));
-    }
-
-    /**
-     * STABLE scenario: same disease code, confidence delta ≤ 15%.
-     * evaluateRecovery returns STABLE. PATCH RECOVERED must be rejected.
-     */
-    @Test
-    void stableEvaluationBlocksRecoveredTransition() {
-        TreeDiagnosisRecord current = diagRecord(TREE_ID, "LEAF_BLIGHT", 0.75,
-                Instant.parse("2026-10-02T10:00:00Z"));
-        TreeDiagnosisRecord previous = diagRecord(TREE_ID, "LEAF_BLIGHT", 0.80,
-                Instant.parse("2026-09-15T10:00:00Z"));
-
-        stubTreeAndFarm();
-        when(diagnosisRepository.findByTreeIdOrderByDiagnosedAtDesc(any(), any(Pageable.class)))
-                .thenReturn(new PageImpl<>(List.of(current, previous)));
-
-        assertThatThrownBy(() -> service.transitionHealthStatus(ACTOR, TREE_ID, TreeHealthStatus.RECOVERED))
-                .isInstanceOf(FarmConflictException.class)
-                .hasMessageContaining("RECOVERY_NOT_ALLOWED")
-                .hasMessageContaining("STABLE");
-
-        verify(treeRepository, never()).save(any(DurianTree.class));
-    }
-
-    /**
-     * TREATING transition must remain unrestricted — no evaluateRecovery check.
-     */
-    @Test
-    void treatingTransitionRequiresNoEvaluation() {
-        stubTreeAndFarm();
-        when(treeRepository.save(any(DurianTree.class))).thenReturn(TREATING_TREE);
-        when(diagnosisRepository.findTopByTreeIdOrderByDiagnosedAtDesc(TREE_ID))
-                .thenReturn(Optional.empty());
-        when(diagnosisRepository.countByTreeId(TREE_ID)).thenReturn(0L);
-
-        TreeDetailResponse result = service.transitionHealthStatus(ACTOR, TREE_ID, TreeHealthStatus.TREATING);
-
-        assertThat(result).isNotNull();
-        // diagnosisRepository.findByTreeIdOrderByDiagnosedAtDesc was NOT called (no gate)
+        assertThat(savedTree().healthStatus()).isEqualTo(TreeHealthStatus.RECOVERED);
         verify(diagnosisRepository, never()).findByTreeIdOrderByDiagnosedAtDesc(any(), any(Pageable.class));
     }
 
+    @Test
+    void recoveredNeedsNoDiagnosisHistoryAtAll() {
+        stubTreeAndFarm();
+        stubDetailReads();
+
+        service.transitionHealthStatus(ACTOR, TREE_ID, TreeHealthStatus.RECOVERED);
+
+        assertThat(savedTree().healthStatus()).isEqualTo(TreeHealthStatus.RECOVERED);
+    }
+
+    /** Every source → every target on an active owned tree; only healthStatus/updatedAt change. */
+    @ParameterizedTest
+    @EnumSource(TreeHealthStatus.class)
+    void farmerCanSetEveryHealthStatusFromEveryOtherStatus(TreeHealthStatus target) {
+        when(farmRepository.findById(FARM_ID)).thenReturn(Optional.of(FARM));
+        stubDetailReads();
+        for (TreeHealthStatus source : TreeHealthStatus.values()) {
+            DurianTree tree = activeTree(source);
+            when(treeRepository.findById(TREE_ID)).thenReturn(Optional.of(tree));
+            org.mockito.Mockito.clearInvocations(treeRepository);
+
+            service.transitionHealthStatus(ACTOR, TREE_ID, target);
+
+            DurianTree saved = savedTree();
+            assertThat(saved.healthStatus()).as(source + " -> " + target).isEqualTo(target);
+            assertThat(saved.status()).isEqualTo(TreeStatus.ACTIVE);
+            assertThat(saved.treeCode()).isEqualTo(tree.treeCode());
+            assertThat(saved.farmZoneId()).isEqualTo(tree.farmZoneId());
+            assertThat(saved.positionX()).isEqualTo(tree.positionX());
+            assertThat(saved.positionY()).isEqualTo(tree.positionY());
+            assertThat(saved.notes()).isEqualTo(tree.notes());
+            assertThat(saved.createdAt()).isEqualTo(tree.createdAt());
+        }
+        // A manual change never fabricates diagnosis history.
+        verify(diagnosisRepository, never()).save(any(TreeDiagnosisRecord.class));
+    }
+
+    @Test
+    void anotherFarmersTreeCannotBeChanged() {
+        stubTreeAndFarm();
+        RequestActor other = new RequestActor("someone-else", null, "FARMER");
+
+        assertThatThrownBy(() -> service.transitionHealthStatus(other, TREE_ID, TreeHealthStatus.HEALTHY))
+                .isInstanceOf(FarmAccessDeniedException.class);
+        verify(treeRepository, never()).save(any(DurianTree.class));
+    }
+
+    @Test
+    void missingTreeIsNotFoundAndMissingStatusIsInvalid() {
+        when(treeRepository.findById("missing")).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> service.transitionHealthStatus(ACTOR, "missing", TreeHealthStatus.DISEASED))
+                .isInstanceOf(FarmNotFoundException.class);
+        assertThatThrownBy(() -> service.transitionHealthStatus(ACTOR, TREE_ID, null))
+                .isInstanceOf(FarmInvalidRequestException.class);
+        verify(treeRepository, never()).save(any(DurianTree.class));
+    }
+
     // ── helpers ──────────────────────────────────────────────────────────────
+
+    private void stubDetailReads() {
+        lenient().when(treeRepository.save(any(DurianTree.class))).thenAnswer(i -> i.getArgument(0));
+        lenient().when(diagnosisRepository.findTopByTreeIdOrderByDiagnosedAtDesc(TREE_ID)).thenReturn(Optional.empty());
+        lenient().when(diagnosisRepository.countByTreeId(TREE_ID)).thenReturn(0L);
+    }
+
+    private DurianTree savedTree() {
+        ArgumentCaptor<DurianTree> captor = ArgumentCaptor.forClass(DurianTree.class);
+        verify(treeRepository).save(captor.capture());
+        return captor.getValue();
+    }
+
+    private static DurianTree activeTree(TreeHealthStatus health) {
+        return new DurianTree(TREE_ID, FARM_ID, "zone-1", null, "DC-T026", "nick", "Ri6", null,
+                null, null, 0.3, 0.5, health, TreeStatus.ACTIVE, "note",
+                Instant.parse("2026-09-01T00:00:00Z"), Instant.parse("2026-09-01T00:00:00Z"));
+    }
 
     private void stubTreeAndFarm() {
         when(treeRepository.findById(TREE_ID)).thenReturn(Optional.of(TREATING_TREE));

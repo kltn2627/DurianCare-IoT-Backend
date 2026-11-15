@@ -172,7 +172,7 @@ Notification flow:
 ```text
 IoT telemetry/offline evaluator
   -> PostgreSQL iot_alerts
-  -> Kafka duriancare.notification.events
+  -> Kafka ${KAFKA_ALERT_TOPIC} (compose: iot.alert.email; default duriancare.notification.events)
   -> duriancare-notification-service inbox
 ```
 

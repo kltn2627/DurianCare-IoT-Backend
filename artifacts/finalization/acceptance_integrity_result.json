@@ -1,0 +1,11 @@
+{
+  "algorithm": "canonical-ejson-v1",
+  "mongoScope": [
+    "duriancare_farm",
+    "duriancare_cultivation"
+  ],
+  "mongoEqual": true,
+  "postgresTableCount": 42,
+  "postgresEqual": true,
+  "historicalEqualityProven": false
+}

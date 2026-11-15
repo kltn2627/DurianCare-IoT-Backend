@@ -1,0 +1,19 @@
+{
+  "mongoDatabases": [
+    "duriancare_farm",
+    "duriancare_cultivation"
+  ],
+  "mongoEqual": true,
+  "postgresSchemas": [
+    "public",
+    "duriancare_auth",
+    "duriancare_iot"
+  ],
+  "postgresTables": 42,
+  "postgresEqual": true,
+  "mongoBefore": "2026-10-15T02:10:34.2767636+07:00",
+  "mongoAfter": "2026-10-15T02:19:24.4529334+07:00",
+  "sqlBefore": "2026-10-15T02:10:35.3978341+07:00",
+  "sqlAfter": "2026-10-15T02:19:25.9159188+07:00",
+  "historicalEqualityProven": false
+}

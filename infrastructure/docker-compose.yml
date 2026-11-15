@@ -156,6 +156,12 @@ services:
       - "8761:8761"
     environment:
       SERVER_PORT: 8761
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8761/actuator/health >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
     networks:
       - duriancare-network
 
@@ -174,7 +180,13 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
     depends_on:
       discovery-server:
-        condition: service_started
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8888/actuator/health >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
     networks:
       - duriancare-network
 
@@ -199,6 +211,9 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       AUTH_EVENTS_TOPIC: ${AUTH_EVENTS_TOPIC:-duriancare.auth.events}
+      # In-app notification events (connection / knowledge publishers) go to the topic notification-service consumes.
+      KAFKA_ALERT_TOPIC: ${KAFKA_ALERT_TOPIC:-duriancare.notification.events}
+      NOTIFICATION_EVENTS_TOPIC: ${KAFKA_ALERT_TOPIC:-duriancare.notification.events}
       AUTH_OTP_TTL: ${AUTH_OTP_TTL:-5m}
       AUTH_OTP_MAX_ATTEMPTS: ${AUTH_OTP_MAX_ATTEMPTS:-5}
       AUTH_OTP_RESEND_COOLDOWN: ${AUTH_OTP_RESEND_COOLDOWN:-60s}
@@ -223,7 +238,7 @@ services:
       DEFAULT_ADMIN_PHONE_NUMBER: ${DEFAULT_ADMIN_PHONE_NUMBER:-0900000000}
     depends_on:
       config-server:
-        condition: service_started
+        condition: service_healthy
       postgres:
         condition: service_healthy
       redis:
@@ -247,18 +262,24 @@ services:
       EUREKA_DEFAULT_ZONE: http://discovery-server:8761/eureka/
       MONGODB_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/${MONGODB_FARM_DATABASE:-duriancare_farm}?authSource=admin
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      KAFKA_ALERT_TOPIC: ${KAFKA_ALERT_TOPIC}
+      KAFKA_ALERT_TOPIC: ${KAFKA_ALERT_TOPIC:-duriancare.notification.events}
       AUTH_SERVICE_URL: http://duriancare-auth-service:8081
       AI_SERVICE_URL: http://duriancare-ai-service:8000
     depends_on:
       config-server:
-        condition: service_started
+        condition: service_healthy
       mongodb:
         condition: service_healthy
       kafka:
         condition: service_healthy
       duriancare-auth-service:
         condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8082/actuator/health >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 150s
     networks:
       - duriancare-network
 
@@ -280,7 +301,7 @@ services:
       FARM_SERVICE_URL: http://duriancare-farm-service:8082
     depends_on:
       config-server:
-        condition: service_started
+        condition: service_healthy
       mongodb:
         condition: service_healthy
       kafka:
@@ -316,6 +337,8 @@ services:
       POSTGRES_SCHEMA: ${POSTGRES_SCHEMA:-duriancare_iot}
       KAFKA_BROKERS: kafka:29092
       KAFKA_TELEMETRY_TOPIC: iot.telemetry.received
+      # Same topic notification-service consumes (KAFKA_ALERT_TOPIC); otherwise IoT alerts never reach users.
+      NOTIFICATION_EVENTS_TOPIC: ${KAFKA_ALERT_TOPIC:-duriancare.notification.events}
       ESP32_CAMERA_URL: ${ESP32_CAMERA_URL:-}
       CAMERA_LEGACY_ENABLED: ${CAMERA_LEGACY_ENABLED:-false}
       CAMERA_DEVICE_BINDINGS: ${CAMERA_DEVICE_BINDINGS:-}
@@ -334,6 +357,12 @@ services:
         condition: service_healthy
       duriancare-farm-service:
         condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:3001/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
     networks:
       - duriancare-network
 
@@ -425,7 +454,7 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
     depends_on:
       config-server:
-        condition: service_started
+        condition: service_healthy
       mongodb:
         condition: service_healthy
       kafka:
@@ -459,19 +488,34 @@ services:
       OTP_TTL: ${OTP_TTL}
       OTP_LENGTH: ${OTP_LENGTH}
       OTP_MAX_ATTEMPTS: ${OTP_MAX_ATTEMPTS}
-      KAFKA_ALERT_TOPIC: ${KAFKA_ALERT_TOPIC}
+      # Single source of truth for the notification events topic; every producer above uses the same expression.
+      KAFKA_ALERT_TOPIC: ${KAFKA_ALERT_TOPIC:-duriancare.notification.events}
       AUTH_EVENTS_TOPIC: ${AUTH_EVENTS_TOPIC:-duriancare.auth.events}
       KAFKA_CONSUMER_GROUP: ${KAFKA_CONSUMER_GROUP:-duriancare-notification-service}
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      # Push stays off until a Firebase service account is provided; see docs/FCM_SETUP_GUIDE.md.
+      FCM_ENABLED: ${FCM_ENABLED:-false}
+      FIREBASE_CREDENTIALS_FILE: ${FIREBASE_CREDENTIALS_FILE:-}
+      FIREBASE_CREDENTIALS_BASE64: ${FIREBASE_CREDENTIALS_BASE64:-}
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-}
+    volumes:
+      # A directory, not the file itself: Docker would create a missing file source as a folder.
+      - ./secrets:/run/secrets/duriancare:ro
     depends_on:
       config-server:
-        condition: service_started
+        condition: service_healthy
       mongodb:
         condition: service_healthy
       redis:
         condition: service_healthy
       kafka:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8085/actuator/health >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 150s
     networks:
       - duriancare-network
 
@@ -493,7 +537,7 @@ services:
       SEARCH_INDEX_TOPIC: search.document.upsert
     depends_on:
       config-server:
-        condition: service_started
+        condition: service_healthy
       elasticsearch:
         condition: service_healthy
       kafka:
@@ -534,17 +578,17 @@ services:
       CHAT_SERVICE_URL: http://duriancare-chat-service:3002
     depends_on:
       config-server:
-        condition: service_started
+        condition: service_healthy
       redis:
         condition: service_healthy
       duriancare-auth-service:
         condition: service_started
       duriancare-farm-service:
-        condition: service_started
+        condition: service_healthy
       duriancare-cultivation-service:
         condition: service_started
       duriancare-iot-service:
-        condition: service_started
+        condition: service_healthy
       duriancare-ai-service:
         condition: service_started
       duriancare-chat-service:
@@ -552,9 +596,15 @@ services:
       duriancare-traceability-service:
         condition: service_started
       duriancare-notification-service:
-        condition: service_started
+        condition: service_healthy
       duriancare-search-service:
         condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 150s
     networks:
       - duriancare-network
 

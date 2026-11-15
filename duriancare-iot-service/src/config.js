@@ -62,7 +62,17 @@ module.exports = {
   internalToken: process.env.INTERNAL_SERVICE_TOKEN || "local-internal-token",
   kafkaBrokers: (process.env.KAFKA_BROKERS || "localhost:9092").split(","),
   kafkaTopic: process.env.KAFKA_TELEMETRY_TOPIC || "iot.telemetry.received",
-  notificationTopic: process.env.NOTIFICATION_EVENTS_TOPIC || "duriancare.notification.events",
+  // Same precedence as notification-service's consumer (KAFKA_ALERT_TOPIC, then NOTIFICATION_EVENTS_TOPIC).
+  notificationTopic: process.env.KAFKA_ALERT_TOPIC || process.env.NOTIFICATION_EVENTS_TOPIC || "duriancare.notification.events",
+  // Alert notification delivery: bounded retry with exponential backoff (see src/alertNotifications.js).
+  notificationPolicy: {
+    maxAttempts: positiveNumber("IOT_NOTIFICATION_MAX_ATTEMPTS", 8),
+    baseDelayMs: positiveNumber("IOT_NOTIFICATION_RETRY_BASE_SECONDS", 30) * 1000,
+    maxDelayMs: positiveNumber("IOT_NOTIFICATION_RETRY_MAX_SECONDS", 1800) * 1000,
+    leaseMs: positiveNumber("IOT_NOTIFICATION_LEASE_SECONDS", 120) * 1000,
+    // Optional test account for is_test devices; empty = their alerts are stored but notify nobody.
+    testReceiverId: (process.env.IOT_TEST_NOTIFICATION_RECEIVER_ID || "").trim(),
+  },
   esp32CameraUrl: getCameraConfig().esp32CameraUrl,
   esp32CapturePath:  (process.env.ESP32_CAPTURE_PATH  || "/capture").replace(/^([^/])/, "/$1"),
   serverBaseUrl:  (process.env.SERVER_BASE_URL  || "http://localhost:8080").replace(/\/$/, ""),
@@ -80,6 +90,8 @@ module.exports = {
   // Threshold alerts for HTTP POST /api/v1/sensors/data readings (MQTT readings are always evaluated).
   // Off by default: enabling it starts real notifications for HTTP-only sensors such as esp32-01.
   httpTelemetryAlertsEnabled: process.env.IOT_HTTP_TELEMETRY_ALERTS_ENABLED === "true",
+  // Lifetime of a device claim code issued at provisioning (single use, stored hashed).
+  claimCodeTtlHours: positiveNumber("IOT_CLAIM_CODE_TTL_HOURS", 72),
   iotThresholds: {
     temperatureHigh: Number(process.env.IOT_TEMPERATURE_HIGH || 38),
     temperatureLow: Number(process.env.IOT_TEMPERATURE_LOW || 15),

@@ -1,0 +1,264 @@
+{
+  "scope": "Authorized local Farm-only deployment; Mongo document fingerprints, not PostgreSQL/telemetry or index metadata",
+  "beforeTime": "2026-10-15T07:22:06.969Z",
+  "afterTime": "2026-10-15T07:23:33.353Z",
+  "before": {
+    "algorithm": "canonical-ejson-v1",
+    "databases": {
+      "duriancare_farm": {
+        "agronomist_invitations": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "durian_trees": {
+          "count": 137,
+          "sha256": "8e5747f9c8f330d94750726a5f64f85827ce4ba7bf094c7e60c8f5eec352011a"
+        },
+        "farm_authorization_audit_logs": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "farm_authorizations": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "farms": {
+          "count": 11,
+          "sha256": "b8828173092f05ecb89116e5227133812d17d943d0fc8d4ccd7ed6b73e41bf3c"
+        },
+        "species": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "tree_care_plans": {
+          "count": 13,
+          "sha256": "c230bab155c2bb2bacef5fd112ff8a1a883bf349a2f1fef6d34ecc40d89669f8"
+        },
+        "tree_care_recommendations": {
+          "count": 6,
+          "sha256": "be38f45665b53d13c8c90b2b5cfcd76b6ae847353c8bfd24fc341c4d29624962"
+        },
+        "tree_care_tasks": {
+          "count": 35,
+          "sha256": "b3901db98ec09e476ae66a93fa08c0654ab25514b5fdb55e40c4af574c3c14c9"
+        },
+        "tree_diagnosis_records": {
+          "count": 146,
+          "sha256": "434c7f453191f253f3667241063ca5dca27130bfa5cca29864e7bf5613650b59"
+        }
+      },
+      "duriancare_cultivation": {
+        "activity_executions": {
+          "count": 4,
+          "sha256": "bfcd9733a577217fe20adefb02b316f0980acb92b9e86413eeb18790f1be2d73"
+        },
+        "activity_input_usages": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "agricultural_inputs": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "compliance_assessments": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "cultivation_activities": {
+          "count": 20,
+          "sha256": "b2d64a0c452f18d885ae6d2c065cf16e0c8430ea6ec9acbb3d1d98a5d44dac11"
+        },
+        "cultivation_audit_logs": {
+          "count": 4,
+          "sha256": "8b67c91b25a85d376c2fc89d7ce8558fc49b0a8731b5be9ab02a3c9bc2381e6f"
+        },
+        "cultivation_plan_templates": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "cultivation_plans": {
+          "count": 4,
+          "sha256": "47b6069b2cf7f414ce6fec7ed10835575bd23109224c5d1b9ef9863f0305965e"
+        },
+        "cultivation_schedules": {
+          "count": 13,
+          "sha256": "b632fe8deadc0ae748d7a6b3e9188fd35d91972abf45949e984397138a2f5746"
+        },
+        "cultivation_seasons": {
+          "count": 5,
+          "sha256": "b54b18b5744a17d913b86111c62f7c6d151627956883adca721a239d8274a74a"
+        },
+        "export_releases": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "harvest_batches": {
+          "count": 2,
+          "sha256": "a79e94f1e8aa200661916dbd05cc8792ff462073f9dd51504f9a1085e1b289a1"
+        },
+        "lab_residue_results": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "lab_samples": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "residue_standards": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        }
+      }
+    }
+  },
+  "after": {
+    "algorithm": "canonical-ejson-v1",
+    "databases": {
+      "duriancare_farm": {
+        "agronomist_invitations": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "durian_trees": {
+          "count": 137,
+          "sha256": "8e5747f9c8f330d94750726a5f64f85827ce4ba7bf094c7e60c8f5eec352011a"
+        },
+        "farm_authorization_audit_logs": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "farm_authorizations": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "farms": {
+          "count": 11,
+          "sha256": "b8828173092f05ecb89116e5227133812d17d943d0fc8d4ccd7ed6b73e41bf3c"
+        },
+        "species": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "tree_care_plans": {
+          "count": 13,
+          "sha256": "c230bab155c2bb2bacef5fd112ff8a1a883bf349a2f1fef6d34ecc40d89669f8"
+        },
+        "tree_care_recommendations": {
+          "count": 6,
+          "sha256": "be38f45665b53d13c8c90b2b5cfcd76b6ae847353c8bfd24fc341c4d29624962"
+        },
+        "tree_care_tasks": {
+          "count": 35,
+          "sha256": "b3901db98ec09e476ae66a93fa08c0654ab25514b5fdb55e40c4af574c3c14c9"
+        },
+        "tree_diagnosis_records": {
+          "count": 146,
+          "sha256": "434c7f453191f253f3667241063ca5dca27130bfa5cca29864e7bf5613650b59"
+        }
+      },
+      "duriancare_cultivation": {
+        "activity_executions": {
+          "count": 4,
+          "sha256": "bfcd9733a577217fe20adefb02b316f0980acb92b9e86413eeb18790f1be2d73"
+        },
+        "activity_input_usages": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "agricultural_inputs": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "compliance_assessments": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "cultivation_activities": {
+          "count": 20,
+          "sha256": "b2d64a0c452f18d885ae6d2c065cf16e0c8430ea6ec9acbb3d1d98a5d44dac11"
+        },
+        "cultivation_audit_logs": {
+          "count": 4,
+          "sha256": "8b67c91b25a85d376c2fc89d7ce8558fc49b0a8731b5be9ab02a3c9bc2381e6f"
+        },
+        "cultivation_plan_templates": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "cultivation_plans": {
+          "count": 4,
+          "sha256": "47b6069b2cf7f414ce6fec7ed10835575bd23109224c5d1b9ef9863f0305965e"
+        },
+        "cultivation_schedules": {
+          "count": 13,
+          "sha256": "b632fe8deadc0ae748d7a6b3e9188fd35d91972abf45949e984397138a2f5746"
+        },
+        "cultivation_seasons": {
+          "count": 5,
+          "sha256": "b54b18b5744a17d913b86111c62f7c6d151627956883adca721a239d8274a74a"
+        },
+        "export_releases": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "harvest_batches": {
+          "count": 2,
+          "sha256": "a79e94f1e8aa200661916dbd05cc8792ff462073f9dd51504f9a1085e1b289a1"
+        },
+        "lab_residue_results": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "lab_samples": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "residue_standards": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        }
+      }
+    }
+  },
+  "equal": true,
+  "containersBefore": [
+    "duriancare-notification-service|047760aa152e|duriancare/notification-service:local",
+    "duriancare-cultivation-service|efd4245db92c|duriancare/cultivation-service:local",
+    "duriancare-iot-service|a75fbbecb913|duriancare/iot-service:local",
+    "duriancare-auth-service|e8720c9496fe|duriancare/auth-service:local",
+    "duriancare-search-service|741e0c6e241a|duriancare/search-service:local",
+    "duriancare-gateway|94e9582ccda5|duriancare/gateway:local",
+    "duriancare-config-server|decb5788c8a8|duriancare/config-server:local",
+    "duriancare-chat-service|36c7fda8cf6a|duriancare/chat-service:local",
+    "duriancare-farm-service|feafb4ad89e4|duriancare/farm-service:local",
+    "duriancare-traceability-service|ec334efda2c4|duriancare/traceability-service:local",
+    "duriancare-ai-service|f7c42387e41b|duriancare/ai-service:local",
+    "duriancare-discovery-server|4d8c7e0854a1|duriancare/discovery-server:local",
+    "duriancare-postgres|22bf6d6dfcf7|postgres:16-alpine",
+    "duriancare-emqx|dd2941aaafd9|emqx/emqx:5.8.4",
+    "duriancare-mongodb|58518b3115c1|mongo:7.0",
+    "duriancare-elasticsearch|5d67dcaeabfc|docker.elastic.co/elasticsearch/elasticsearch:8.17.0",
+    "duriancare-kafka|8186512b53e4|confluentinc/cp-kafka:7.7.1",
+    "duriancare-redis|908d0f21cc6f|redis:7-alpine"
+  ],
+  "containersAfter": [
+    "duriancare-farm-service|9a8f89a3122d|duriancare/farm-service:local",
+    "duriancare-notification-service|047760aa152e|duriancare/notification-service:local",
+    "duriancare-cultivation-service|efd4245db92c|duriancare/cultivation-service:local",
+    "duriancare-iot-service|a75fbbecb913|duriancare/iot-service:local",
+    "duriancare-auth-service|e8720c9496fe|duriancare/auth-service:local",
+    "duriancare-search-service|741e0c6e241a|duriancare/search-service:local",
+    "duriancare-gateway|94e9582ccda5|duriancare/gateway:local",
+    "duriancare-config-server|decb5788c8a8|duriancare/config-server:local",
+    "duriancare-chat-service|36c7fda8cf6a|duriancare/chat-service:local",
+    "duriancare-traceability-service|ec334efda2c4|duriancare/traceability-service:local",
+    "duriancare-ai-service|f7c42387e41b|duriancare/ai-service:local",
+    "duriancare-discovery-server|4d8c7e0854a1|duriancare/discovery-server:local",
+    "duriancare-postgres|22bf6d6dfcf7|postgres:16-alpine",
+    "duriancare-emqx|dd2941aaafd9|emqx/emqx:5.8.4",
+    "duriancare-mongodb|58518b3115c1|mongo:7.0",
+    "duriancare-elasticsearch|5d67dcaeabfc|docker.elastic.co/elasticsearch/elasticsearch:8.17.0",
+    "duriancare-kafka|8186512b53e4|confluentinc/cp-kafka:7.7.1",
+    "duriancare-redis|908d0f21cc6f|redis:7-alpine"
+  ]
+}

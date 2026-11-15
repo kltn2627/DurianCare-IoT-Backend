@@ -30,6 +30,8 @@ class FarmerExportWorkflowTest {
     MockMvc mvc;
     boolean eligible = true;
     final CultivationActor owner = new CultivationActor("owner", "", "FARMER");
+    // Approval stays with technical reviewers; release does not.
+    final CultivationActor reviewer = new CultivationActor("owner", "", "EXPERT");
     final Instant harvest = Instant.parse("2026-08-28T02:00:00Z");
     final String inspection = "{\"sourceRef\":\"fixture-inspection\",\"inspectedAt\":\"2026-08-28T03:00:00Z\",\"phiChecked\":true,\"pestCheckPassed\":true,\"qualityPassed\":true,\"measuredBrix\":31.5}";
 
@@ -47,11 +49,19 @@ class FarmerExportWorkflowTest {
         when(releases.save(any())).thenAnswer(i->{ExportRelease r=i.getArgument(0);records.put(r.id(),r);return r;});
         when(engine.assess(any(), any())).thenAnswer(i->new ComplianceDecision(0,RiskLevel.LOW,List.of(),List.of(),!eligible,eligible,eligible));
         when(assessments.save(any())).thenAnswer(i->i.getArgument(0));
-        service = new CultivationCalendarService(mock(CultivationPlanRepository.class), activities,
+        // The service now resolves each batch's ancestry through its cultivation season.
+        var seasons = mock(CultivationSeasonRepository.class);
+        var season = mock(com.duriancare.cultivation.domain.CultivationSeason.class);
+        when(season.id()).thenReturn("season");
+        when(season.crop()).thenReturn("DURIAN");
+        when(season.farmId()).thenReturn("farm");
+        when(season.plotId()).thenReturn("zone");
+        when(seasons.findById("season")).thenReturn(Optional.of(season));
+        service = new CultivationCalendarService(mock(CultivationPlanRepository.class), seasons, activities,
                 mock(ActivityExecutionRepository.class),mock(ActivityInputUsageRepository.class),mock(AgriculturalInputRepository.class),
                 mock(AuditLogRepository.class),mock(ResidueStandardRepository.class),mock(LabSampleRepository.class),
                 mock(LabResidueResultRepository.class),batches,releases,assessments,mock(SafeHarvestDateCalculator.class),
-                engine,mock(LabResidueComparator.class),guard);
+                engine,mock(LabResidueComparator.class),guard,mock(LegacyIntegrityMarkerRepository.class));
         mvc=MockMvcBuilders.standaloneSetup(new CultivationCalendarController(service,catalog))
                 .setControllerAdvice(new CultivationApiExceptionHandler()).build();
     }
@@ -111,16 +121,16 @@ class FarmerExportWorkflowTest {
         var r=create();
         service.inspectExportRelease(owner,r.id(),new CultivationCalendarDtos.SelfInspectionRequest("fixture",harvest.plusSeconds(60),true,true,true,BigDecimal.valueOf(31)));
         eligible=false;
-        assertThatThrownBy(()->service.releaseExportRelease(owner,r.id(),"owner")).hasMessageContaining("Current compliance");
+        assertThatThrownBy(()->service.releaseExportRelease(owner,r.id(),"owner")).hasMessageContaining("current compliance");
         assertThat(records.get(r.id()).status()).isEqualTo(ExportReleaseStatus.INSPECTED_PASSED);
     }
 
     @Test void legacyApprovalAlsoRechecksComplianceBeforeReleaseAndRemainsRetryable() {
         var r=create();
         service.submitExportRelease(owner,r.id(),"owner");
-        service.approveExportRelease(owner,r.id(),"owner");
+        service.approveExportRelease(reviewer,r.id(),"owner");
         eligible=false;
-        assertThatThrownBy(()->service.releaseExportRelease(owner,r.id(),"owner")).hasMessageContaining("Current compliance");
+        assertThatThrownBy(()->service.releaseExportRelease(owner,r.id(),"owner")).hasMessageContaining("current compliance");
         assertThat(records.get(r.id()).status()).isEqualTo(ExportReleaseStatus.APPROVED);
         eligible=true;
         var released=service.releaseExportRelease(owner,r.id(),"owner");
@@ -134,7 +144,7 @@ class FarmerExportWorkflowTest {
     @Test void legacyApprovalCannotReleaseBeforePhiDate() {
         var r=create();
         service.submitExportRelease(owner,r.id(),"owner");
-        service.approveExportRelease(owner,r.id(),"owner");
+        service.approveExportRelease(reviewer,r.id(),"owner");
         var original=batches.findById("lot").orElseThrow();
         when(batches.findById("lot")).thenReturn(Optional.of(new HarvestBatch(original.id(),original.batchCode(),original.cultivationSeasonId(),
                 original.farmId(),original.plotId(),original.harvestedAt(),original.quantity(),original.quantityUnit(),original.expectedDestinationMarket(),

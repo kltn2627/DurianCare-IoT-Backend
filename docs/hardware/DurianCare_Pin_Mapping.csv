@@ -1,0 +1,17 @@
+﻿Dây,Thiết bị,Linh kiện nguồn,Chân nguồn,Linh kiện đích,Chân đích,Net,Loại kết nối,Trạng thái,Lưu ý
+W1,sensor,U1,3V3,J1,chung,+3V3,"Nguồn 3,3 V",REQUIRED,"Một chân 3V3 cấp cho hai cảm biến; cách chia (breadboard, dây chữ Y, mối hàn) CẦN XÁC NHẬN"
+W2,sensor,J1,chung,S1,VCC (+),+3V3,"Nguồn 3,3 V",REQUIRED,"DHT22 chạy 3,3–5,5 V; cấp 3V3 để DATA ở mức 3,3 V. Đang cấp 3V3 hay 5V: CẦN XÁC NHẬN"
+W3,sensor,J1,chung,S2,VCC,+3V3,"Nguồn 3,3 V",REQUIRED,"BẮT BUỘC 3V3: cấp 5V thì AO có thể > 3,3 V, hỏng GPIO34. Đang cấp gì: CẦN XÁC NHẬN"
+W4,sensor,U1,GND (phải),S1,GND (−),GND,Mass,REQUIRED,Dùng chân GND cạnh 3V3
+W5,sensor,U1,GND (trái),S2,GND,GND,Mass,REQUIRED,Dùng chân GND cạnh VIN
+W6,sensor,U1,D18 / GPIO18,S1,DATA (OUT),DHT_DATA,Tín hiệu số 1-wire,VERIFIED_FW,#define DHTPIN 18; có dữ liệu thật 22/10/2026
+W7,sensor,U1,D34 / GPIO34,S2,AO,SOIL_AO,Tín hiệu analog,VERIFIED_FW,"#define SOIL_PIN 34 (ADC1_CH6, chỉ vào). Giá trị đọc ≈ 0 → kiểm tra dây"
+W8,sensor,S2,Đầu dò +/−,P1,2 cực,PROBE,Cáp đầu dò (2 sợi),UNVERIFIED,Cáp đi kèm module; không phân cực. Loại đầu dò (YL-69?) CẦN XÁC NHẬN
+W9,sensor,PS1,USB 5 V,U1,micro-USB,+5V_USB,Cáp USB,UNVERIFIED,Nguồn sạc/PC cụ thể CẦN XÁC NHẬN
+C1,camera_flash,J2,5V,U2,5V,+5V,Nguồn 5 V,UNVERIFIED,"Chỉ khi adapter cấp đủ dòng; nếu reset liên tục, dùng nguồn 5 V riêng (chung GND)"
+C2,camera_flash,J2,GND,U2,GND (cạnh 5V),GND,Mass,REQUIRED,GND chung giữa adapter và ESP32-CAM là bắt buộc
+C3,camera_flash,J2,TXD,U2,U0R / GPIO3,UART_RX,UART (chéo TX→RX),REQUIRED,"Mức logic 3,3 V — đặt jumper adapter ở 3V3 nếu có"
+C4,camera_flash,J2,RXD,U2,U0T / GPIO1,UART_TX,UART (chéo RX←TX),REQUIRED,Nối chéo: RX adapter nhận từ U0T
+C5,camera_flash,U2,IO0 / GPIO0,U2,GND (cạnh IO0),BOOT,Jumper chế độ nạp,REQUIRED,CHỈ khi nạp. Tháo ra khi chạy (GPIO0 là XCLK của camera)
+C6,camera_run,PS2,+5V,U2,5V,+5V,Nguồn 5 V,UNVERIFIED,Khuyến nghị ≥ 1 A (Wi-Fi + camera + LED flash). Nguồn thực tế CẦN XÁC NHẬN
+C7,camera_run,PS2,GND,U2,GND (cạnh 5V),GND,Mass,REQUIRED,

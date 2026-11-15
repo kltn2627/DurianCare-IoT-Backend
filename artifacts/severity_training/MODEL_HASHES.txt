@@ -1,0 +1,6 @@
+No severity model artifact exists yet.
+Final status: BLOCKED BY HUMAN ANNOTATION.
+
+Frozen baseline model hashes, unchanged:
+leaf_detector_best.pt  ac2bd7f82f9fd1e054f496a90f21ce77eb9697b27a71a4ecdf6d7c47ac71408b
+mobilenetv2_classifier_high_acc.pth  fc3dc5c92e43a9dbb196029fa56f9722ed91613d11ae7ccdadda1093fd1e5afe

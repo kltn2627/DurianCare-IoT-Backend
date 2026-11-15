@@ -122,7 +122,7 @@ function createAssessmentRouter({ pool, schema }) {
         pool.query(
           `SELECT temperature, humidity AS air_humidity, soil_moisture
            FROM ${telemetryTable}
-           WHERE device_id = $1 AND "timestamp" >= $2
+           WHERE device_id = $1 AND "timestamp" >= $2 AND source = 'DEVICE'
            ORDER BY "timestamp" DESC LIMIT 500`,
           [device_id.trim(), thirtyDaysAgo]
         ),

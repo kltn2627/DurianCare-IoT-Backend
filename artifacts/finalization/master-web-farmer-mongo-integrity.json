@@ -1,0 +1,228 @@
+{
+  "scope": [
+    "duriancare_farm",
+    "duriancare_cultivation"
+  ],
+  "beforeTime": "2026-10-15T05:28:17.602Z",
+  "afterTime": "2026-10-15T05:30:32.211Z",
+  "equal": true,
+  "before": {
+    "algorithm": "canonical-ejson-v1",
+    "databases": {
+      "duriancare_farm": {
+        "agronomist_invitations": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "durian_trees": {
+          "count": 112,
+          "sha256": "322771218f0795c87f9b393ade25749bb662765d8daf08423129d68d71ee5f2b"
+        },
+        "farm_authorization_audit_logs": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "farm_authorizations": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "farms": {
+          "count": 11,
+          "sha256": "b8828173092f05ecb89116e5227133812d17d943d0fc8d4ccd7ed6b73e41bf3c"
+        },
+        "species": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "tree_care_plans": {
+          "count": 13,
+          "sha256": "c230bab155c2bb2bacef5fd112ff8a1a883bf349a2f1fef6d34ecc40d89669f8"
+        },
+        "tree_care_recommendations": {
+          "count": 6,
+          "sha256": "be38f45665b53d13c8c90b2b5cfcd76b6ae847353c8bfd24fc341c4d29624962"
+        },
+        "tree_care_tasks": {
+          "count": 35,
+          "sha256": "b3901db98ec09e476ae66a93fa08c0654ab25514b5fdb55e40c4af574c3c14c9"
+        },
+        "tree_diagnosis_records": {
+          "count": 146,
+          "sha256": "434c7f453191f253f3667241063ca5dca27130bfa5cca29864e7bf5613650b59"
+        }
+      },
+      "duriancare_cultivation": {
+        "activity_executions": {
+          "count": 4,
+          "sha256": "bfcd9733a577217fe20adefb02b316f0980acb92b9e86413eeb18790f1be2d73"
+        },
+        "activity_input_usages": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "agricultural_inputs": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "compliance_assessments": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "cultivation_activities": {
+          "count": 20,
+          "sha256": "b2d64a0c452f18d885ae6d2c065cf16e0c8430ea6ec9acbb3d1d98a5d44dac11"
+        },
+        "cultivation_audit_logs": {
+          "count": 4,
+          "sha256": "8b67c91b25a85d376c2fc89d7ce8558fc49b0a8731b5be9ab02a3c9bc2381e6f"
+        },
+        "cultivation_plan_templates": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "cultivation_plans": {
+          "count": 4,
+          "sha256": "47b6069b2cf7f414ce6fec7ed10835575bd23109224c5d1b9ef9863f0305965e"
+        },
+        "cultivation_schedules": {
+          "count": 13,
+          "sha256": "b632fe8deadc0ae748d7a6b3e9188fd35d91972abf45949e984397138a2f5746"
+        },
+        "cultivation_seasons": {
+          "count": 5,
+          "sha256": "b54b18b5744a17d913b86111c62f7c6d151627956883adca721a239d8274a74a"
+        },
+        "export_releases": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "harvest_batches": {
+          "count": 2,
+          "sha256": "a79e94f1e8aa200661916dbd05cc8792ff462073f9dd51504f9a1085e1b289a1"
+        },
+        "lab_residue_results": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "lab_samples": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "residue_standards": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        }
+      }
+    }
+  },
+  "after": {
+    "algorithm": "canonical-ejson-v1",
+    "databases": {
+      "duriancare_farm": {
+        "agronomist_invitations": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "durian_trees": {
+          "count": 112,
+          "sha256": "322771218f0795c87f9b393ade25749bb662765d8daf08423129d68d71ee5f2b"
+        },
+        "farm_authorization_audit_logs": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "farm_authorizations": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "farms": {
+          "count": 11,
+          "sha256": "b8828173092f05ecb89116e5227133812d17d943d0fc8d4ccd7ed6b73e41bf3c"
+        },
+        "species": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "tree_care_plans": {
+          "count": 13,
+          "sha256": "c230bab155c2bb2bacef5fd112ff8a1a883bf349a2f1fef6d34ecc40d89669f8"
+        },
+        "tree_care_recommendations": {
+          "count": 6,
+          "sha256": "be38f45665b53d13c8c90b2b5cfcd76b6ae847353c8bfd24fc341c4d29624962"
+        },
+        "tree_care_tasks": {
+          "count": 35,
+          "sha256": "b3901db98ec09e476ae66a93fa08c0654ab25514b5fdb55e40c4af574c3c14c9"
+        },
+        "tree_diagnosis_records": {
+          "count": 146,
+          "sha256": "434c7f453191f253f3667241063ca5dca27130bfa5cca29864e7bf5613650b59"
+        }
+      },
+      "duriancare_cultivation": {
+        "activity_executions": {
+          "count": 4,
+          "sha256": "bfcd9733a577217fe20adefb02b316f0980acb92b9e86413eeb18790f1be2d73"
+        },
+        "activity_input_usages": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "agricultural_inputs": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "compliance_assessments": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "cultivation_activities": {
+          "count": 20,
+          "sha256": "b2d64a0c452f18d885ae6d2c065cf16e0c8430ea6ec9acbb3d1d98a5d44dac11"
+        },
+        "cultivation_audit_logs": {
+          "count": 4,
+          "sha256": "8b67c91b25a85d376c2fc89d7ce8558fc49b0a8731b5be9ab02a3c9bc2381e6f"
+        },
+        "cultivation_plan_templates": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "cultivation_plans": {
+          "count": 4,
+          "sha256": "47b6069b2cf7f414ce6fec7ed10835575bd23109224c5d1b9ef9863f0305965e"
+        },
+        "cultivation_schedules": {
+          "count": 13,
+          "sha256": "b632fe8deadc0ae748d7a6b3e9188fd35d91972abf45949e984397138a2f5746"
+        },
+        "cultivation_seasons": {
+          "count": 5,
+          "sha256": "b54b18b5744a17d913b86111c62f7c6d151627956883adca721a239d8274a74a"
+        },
+        "export_releases": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "harvest_batches": {
+          "count": 2,
+          "sha256": "a79e94f1e8aa200661916dbd05cc8792ff462073f9dd51504f9a1085e1b289a1"
+        },
+        "lab_residue_results": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "lab_samples": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "residue_standards": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        }
+      }
+    }
+  },
+  "note": "This window starts after the authorized 8-notification mark-all and before notification-only deployment; notification and PostgreSQL are not covered."
+}

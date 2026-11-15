@@ -1,0 +1,34 @@
+[
+  {
+    "service": "duriancare-config-server",
+    "identical": 9,
+    "differing": []
+  },
+  {
+    "service": "duriancare-auth-service",
+    "identical": 141,
+    "differing": [
+      "com/duriancare/auth/knowledge/KnowledgeArticleService.class"
+    ]
+  },
+  {
+    "service": "duriancare-gateway",
+    "identical": 10,
+    "differing": []
+  },
+  {
+    "service": "duriancare-notification-service",
+    "identical": 45,
+    "differing": []
+  },
+  {
+    "service": "duriancare-search-service",
+    "identical": 15,
+    "differing": []
+  },
+  {
+    "service": "duriancare-cultivation-service",
+    "identical": 121,
+    "differing": []
+  }
+]

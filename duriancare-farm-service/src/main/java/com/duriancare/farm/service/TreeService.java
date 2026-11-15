@@ -3,10 +3,10 @@ package com.duriancare.farm.service;
 import com.duriancare.farm.domain.DurianTree;
 import com.duriancare.farm.domain.Farm;
 import com.duriancare.farm.domain.FarmZone;
-import com.duriancare.farm.domain.RecoveryOutcome;
 import com.duriancare.farm.domain.TreeDiagnosisRecord;
 import com.duriancare.farm.domain.TreeHealthStatus;
 import com.duriancare.farm.domain.TreeStatus;
+import com.duriancare.farm.dto.BulkUpdateTreeHealthStatusResponse;
 import com.duriancare.farm.dto.CreateTreeRequest;
 import com.duriancare.farm.dto.GenerateTreesRequest;
 import com.duriancare.farm.dto.GenerateTreesResult;
@@ -20,10 +20,10 @@ import com.duriancare.farm.repository.DurianTreeRepository;
 import com.duriancare.farm.repository.FarmRepository;
 import com.duriancare.farm.repository.TreeDiagnosisRecordRepository;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -174,16 +174,55 @@ public class TreeService {
 
     public TreeDetailResponse transitionHealthStatus(
             RequestActor actor, String treeId, TreeHealthStatus newStatus) {
-        if (newStatus != TreeHealthStatus.TREATING && newStatus != TreeHealthStatus.RECOVERED) {
-            throw new FarmInvalidRequestException(
-                    "Manual transitions only allowed to TREATING or RECOVERED. Got: " + newStatus);
+        // Business rule (2026-10-22): the owning farmer may set any TreeHealthStatus on an ACTIVE tree.
+        // AI diagnosis and recovery evaluation are advisory only; no diagnosis record is created here.
+        if (newStatus == null) {
+            throw new FarmInvalidRequestException("healthStatus is required");
         }
         requireActiveTreeForMutation(actor, treeId, "Tree health status cannot be changed after removal");
-        if (newStatus == TreeHealthStatus.RECOVERED) {
-            enforceRecoveryGate(treeId);
-        }
         updateTreeHealthStatus(treeId, newStatus);
         return getTreeDetail(actor, treeId);
+    }
+
+    /**
+     * Applies {@link #transitionHealthStatus} to each tree independently (ownership and ACTIVE
+     * status are checked per tree). Returns what was actually saved;
+     * a failed tree never blocks or rolls back the others.
+     */
+    public BulkUpdateTreeHealthStatusResponse bulkTransitionHealthStatus(
+            RequestActor actor, List<String> treeIds, TreeHealthStatus newStatus) {
+        if (newStatus == null) {
+            throw new FarmInvalidRequestException("healthStatus is required");
+        }
+        List<String> uniqueIds = new ArrayList<>(new LinkedHashSet<>(treeIds));
+        List<BulkUpdateTreeHealthStatusResponse.Result> results = new ArrayList<>();
+        for (String treeId : uniqueIds) {
+            results.add(transitionOne(actor, treeId, newStatus));
+        }
+        int updated = (int) results.stream().filter(BulkUpdateTreeHealthStatusResponse.Result::updated).count();
+        return new BulkUpdateTreeHealthStatusResponse(
+                newStatus.name(), uniqueIds.size(), updated, uniqueIds.size() - updated, results);
+    }
+
+    private BulkUpdateTreeHealthStatusResponse.Result transitionOne(
+            RequestActor actor, String treeId, TreeHealthStatus newStatus) {
+        try {
+            TreeDetailResponse detail = transitionHealthStatus(actor, treeId, newStatus);
+            return new BulkUpdateTreeHealthStatusResponse.Result(
+                    treeId, detail.treeCode(), true, detail.healthStatus(), null, null);
+        } catch (FarmNotFoundException ex) {
+            return failed(treeId, "NOT_FOUND", "Không tìm thấy cây.");
+        } catch (FarmAccessDeniedException ex) {
+            return failed(treeId, "FORBIDDEN", "Bạn không có quyền cập nhật cây này.");
+        } catch (FarmConflictException ex) {
+            return failed(treeId, "NOT_ACTIVE", "Cây không còn hoạt động nên không thể đổi trạng thái.");
+        } catch (FarmInvalidRequestException ex) {
+            return failed(treeId, "INVALID", ex.getMessage());
+        }
+    }
+
+    private static BulkUpdateTreeHealthStatusResponse.Result failed(String treeId, String code, String message) {
+        return new BulkUpdateTreeHealthStatusResponse.Result(treeId, null, false, null, code, message);
     }
 
     public void updateTreeHealthStatus(String treeId, TreeHealthStatus newStatus) {
@@ -227,28 +266,6 @@ public class TreeService {
                 safeTrees, attentionTrees, notAssessedTrees,
                 safetyRate != null ? Math.round(safetyRate * 100.0) / 100.0 : null,
                 label, Instant.now());
-    }
-
-    // ── recovery gate ─────────────────────────────────────────────────────────
-
-    private void enforceRecoveryGate(String treeId) {
-        PageRequest top2 = PageRequest.of(0, 2, Sort.by(Sort.Direction.DESC, "diagnosedAt"));
-        List<TreeDiagnosisRecord> recent = diagnosisRepository
-                .findByTreeIdOrderByDiagnosedAtDesc(treeId, top2)
-                .getContent();
-        RecoveryOutcome outcome;
-        if (recent.size() < 2) {
-            outcome = RecoveryOutcome.UNCERTAIN;
-        } else {
-            TreeDiagnosisRecord previous = recent.get(1);
-            TreeDiagnosisRecord current = recent.get(0);
-            outcome = TreeDiagnosisService.evaluateOutcome(previous, current);
-        }
-        if (outcome != RecoveryOutcome.RECOVERED && outcome != RecoveryOutcome.IMPROVED) {
-            throw new FarmConflictException(
-                    "RECOVERY_NOT_ALLOWED|" + outcome.name()
-                            + "|Cây chưa đủ điều kiện xác nhận hồi phục.");
-        }
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────

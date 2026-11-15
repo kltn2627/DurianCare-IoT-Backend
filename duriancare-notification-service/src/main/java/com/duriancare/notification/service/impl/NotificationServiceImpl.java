@@ -12,9 +12,11 @@ import com.duriancare.notification.repository.NotificationRepository;
 import com.duriancare.notification.service.NotificationAccessDeniedException;
 import com.duriancare.notification.service.NotificationNotFoundException;
 import com.duriancare.notification.service.NotificationService;
+import com.duriancare.notification.service.push.PushDeliveryService;
 import java.time.Instant;
 import java.util.Locale;
 import java.util.Optional;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -25,12 +27,15 @@ public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationRepository repository;
     private final NotificationMapper mapper;
+    private final PushDeliveryService pushDeliveryService;
 
     public NotificationServiceImpl(
             NotificationRepository repository,
-            NotificationMapper mapper) {
+            NotificationMapper mapper,
+            PushDeliveryService pushDeliveryService) {
         this.repository = repository;
         this.mapper = mapper;
+        this.pushDeliveryService = pushDeliveryService;
     }
 
     @Override
@@ -39,13 +44,25 @@ public class NotificationServiceImpl implements NotificationService {
         if (sourceEventId != null && repository.existsBySourceEventId(sourceEventId)) {
             Notification existing = repository.findBySourceEventId(sourceEventId)
                     .orElseThrow(() -> new IllegalStateException("Duplicate event disappeared"));
+            pushDeliveryService.enqueue(existing);
             return mapper.toResponse(existing);
         }
 
         Notification notification = mapper.toDocument(request);
         notification.setSourceEventId(sourceEventId);
-        Notification saved = repository.save(notification);
-        return mapper.toResponse(saved);
+        try {
+            Notification saved = repository.save(notification);
+            pushDeliveryService.enqueue(saved);
+            return mapper.toResponse(saved);
+        } catch (DuplicateKeyException race) {
+            // Same event delivered twice concurrently: the unique sourceEventId index kept one copy.
+            if (sourceEventId == null) {
+                throw race;
+            }
+            return repository.findBySourceEventId(sourceEventId)
+                    .map(mapper::toResponse)
+                    .orElseThrow(() -> race);
+        }
     }
 
     @Override

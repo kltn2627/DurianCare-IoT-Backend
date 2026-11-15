@@ -1,0 +1,40 @@
+{
+  "status": "DO_NOT_TRAIN",
+  "approvedImageCount": 0,
+  "totalAnnotationCount": 5,
+  "severityCounts": {},
+  "diseaseCounts": {},
+  "sourceCounts": {},
+  "imbalanceRatio": null,
+  "minimums": {
+    "approved": 120,
+    "perSeverity": 20,
+    "severityClasses": 2
+  },
+  "protocolFinalized": false,
+  "splitSummary": {
+    "train": 0,
+    "val": 0,
+    "test": 0,
+    "missing": 0
+  },
+  "reasonCodes": [
+    "PROTOCOL_NOT_FINALIZED",
+    "APPROVED_COUNT_TOO_LOW",
+    "CLASS_MINIMUM_TOO_LOW"
+  ],
+  "blockers": [
+    {
+      "code": "PROTOCOL_NOT_FINALIZED",
+      "detail": "ANNOTATION_GUIDE.md still marks NEEDS_EXPERT_SEVERITY_PROTOCOL"
+    },
+    {
+      "code": "APPROVED_COUNT_TOO_LOW",
+      "detail": "approved_count 0 < minimum 120"
+    },
+    {
+      "code": "CLASS_MINIMUM_TOO_LOW",
+      "detail": "severity_classes 0 < minimum 2"
+    }
+  ]
+}

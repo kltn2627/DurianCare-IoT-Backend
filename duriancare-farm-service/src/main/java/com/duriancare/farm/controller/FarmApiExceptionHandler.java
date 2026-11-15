@@ -11,11 +11,13 @@ import java.util.stream.Collectors;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
 public class FarmApiExceptionHandler {
@@ -46,14 +48,23 @@ public class FarmApiExceptionHandler {
     }
 
     @ExceptionHandler({FarmInvalidRequestException.class, MethodArgumentNotValidException.class,
-            MissingRequestHeaderException.class})
+            MissingRequestHeaderException.class, HttpMessageNotReadableException.class})
     ResponseEntity<Map<String, Object>> handleBadRequest(Exception exception) {
         String message = exception instanceof MethodArgumentNotValidException validationException
                 ? validationException.getBindingResult().getFieldErrors().stream()
                         .map(error -> error.getField() + ": " + error.getDefaultMessage())
                         .collect(Collectors.joining(", "))
-                : exception.getMessage();
+                : exception instanceof HttpMessageNotReadableException
+                        ? "Malformed request body"
+                        : exception.getMessage();
         return response(HttpStatus.BAD_REQUEST, message);
+    }
+
+    // An unmapped route (e.g. a client calling an endpoint this build does not have) is a 404,
+    // not a server failure; otherwise callers see a misleading "service error".
+    @ExceptionHandler(NoResourceFoundException.class)
+    ResponseEntity<Map<String, Object>> handleNoRoute(NoResourceFoundException exception) {
+        return response(HttpStatus.NOT_FOUND, "Endpoint not found");
     }
 
     @ExceptionHandler(Exception.class)
