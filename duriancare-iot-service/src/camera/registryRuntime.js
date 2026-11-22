@@ -5,6 +5,9 @@ const { createFarmAccessClient } = require("../read-api");
 const { getCamera, listCameras, heartbeat } = require("./deviceService");
 const { findCameraByKey } = require("../devices/deviceAuth");
 const commands = require("./commandService");
+const livePreview = require("./livePreview");
+
+const LIVE_POLL_MS = 2000;  // camera command-poll interval while live preview commands are being delivered
 
 function cameraOrigin(value) {
   let url;
@@ -337,7 +340,11 @@ function createRegistrationRouter({ pool, schema, serverBaseUrl, uploadsDir, aiS
       const list = await commands.takeCommands(pool, schema, row.device_id);
       res.setHeader("Cache-Control", "no-store");
       if (list.length === 0) return res.status(204).end();
-      return res.json({ commands: list.map(commands.commandForDevice), pollAfterMs: config.getCameraDeliveryConfig().pollMs });
+      // Someone is watching live: poll faster while preview commands flow. The next register/heartbeat
+      // reply (every 60 s) restores the normal interval once the viewer leaves.
+      const pollMs = config.getCameraDeliveryConfig().pollMs;
+      const pollAfterMs = list.some((c) => c.preview) ? Math.min(pollMs, LIVE_POLL_MS) : pollMs;
+      return res.json({ commands: list.map(commands.commandForDevice), pollAfterMs });
     } catch (error) {
       console.error("[camera] Command poll failed:", error.message);
       return res.status(503).json({ error: "Camera commands unavailable" });
@@ -394,6 +401,13 @@ function createRegistrationRouter({ pool, schema, serverBaseUrl, uploadsDir, aiS
           return res.status(400).json({ error: "Frame is not a complete JPEG", code: "INVALID_JPEG" });
         }
         const preview = Boolean(command?.preview);
+        if (preview) {
+          // Live view frame: memory only (no file, no captures row, no AI); see livePreview.js.
+          livePreview.setFrame(row.device_id, Buffer.from(req.body), new Date(capturedAt));
+          await pool.query(`UPDATE "${schema}".camera_devices SET last_frame_at = NOW() WHERE device_id = $1`, [row.device_id]);
+          await commands.discardPreviewCommand(pool, schema, row.device_id, command.id);
+          return res.status(201).json({ captureId: null, imageUrl: null, aiStatus: null, commandId: command.id, preview: true });
+        }
         const capture = await cameraService.storePushedFrame({ pool, schema, deviceId: row.device_id, buffer: req.body,
           captureType: reason === "SCHEDULED" ? "SCHEDULED" : "MANUAL", capturedAt: new Date(capturedAt).toISOString(),
           commandId: command?.id ?? null, serverBaseUrl: baseUrl, uploadsDir: uploads,

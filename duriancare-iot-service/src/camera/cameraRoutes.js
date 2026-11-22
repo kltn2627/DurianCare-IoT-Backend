@@ -14,6 +14,7 @@ const { getCameraConfig, getCameraDeliveryConfig } = require("../config");
 const { resolveCameraUrl, getCamera, listCameras, assignTree, updateCameraUrl } = require("./deviceService");
 const { cameraAccess, clientCameraView, cameraOrigin } = require("./registryRuntime");
 const commands = require("./commandService");
+const livePreview = require("./livePreview");
 
 /**
  * How frames reach the backend for this camera:
@@ -145,10 +146,22 @@ function createCameraRouter({ pool, schema, esp32CameraUrl, esp32CapturePath, se
       try {
         const latest = await latestCapture(pool, schema, req.cameraDevice.device_id);
         const file = latest && captureFilePath(uploadsDir, latest);
-        if (!file || !fs.existsSync(file)) {
+        const stored = file && fs.existsSync(file) ? new Date(latest.captured_at) : null;
+        // Live view: a fresh in-memory preview frame wins over an older stored capture.
+        const live = livePreview.getFrame(req.cameraDevice.device_id);
+        if (live && (!stored || live.capturedAt > stored)) {
+          res.setHeader("Content-Type", "image/jpeg");
+          res.setHeader("Cache-Control", "no-cache, no-store");
+          res.setHeader("X-Frame-Captured-At", live.capturedAt.toISOString());
+          res.setHeader("X-Frame-Age-Ms", String(Math.max(0, Date.now() - live.capturedAt.getTime())));
+          res.setHeader("X-Frame-Live", "1");
+          res.setHeader("Access-Control-Expose-Headers", "X-Frame-Captured-At, X-Frame-Age-Ms, X-Frame-Live");
+          return res.end(live.buffer);
+        }
+        if (!stored) {
           return res.status(404).json({ error: "No frame received from this camera yet", code: "NO_FRAME_YET" });
         }
-        const capturedAt = new Date(latest.captured_at);
+        const capturedAt = stored;
         res.setHeader("Content-Type", "image/jpeg");
         res.setHeader("Cache-Control", "no-cache, no-store");
         res.setHeader("X-Frame-Captured-At", capturedAt.toISOString());

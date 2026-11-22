@@ -83,8 +83,8 @@ async function enqueueCapture(pool, schema, { deviceId, reason, preview = false,
   if (rows[0]) return { command: rows[0], created: true };
   const again = await pool.query(
     `SELECT ${COMMAND_COLS} FROM "${schema}".camera_commands
-     WHERE device_id = $1 AND reason = $2 AND status IN ('PENDING', 'DELIVERED')
-     ORDER BY created_at DESC LIMIT 1`, [deviceId, reason]);
+     WHERE device_id = $1 AND reason = $2 AND preview = $3 AND status IN ('PENDING', 'DELIVERED')
+     ORDER BY created_at DESC LIMIT 1`, [deviceId, reason, Boolean(preview)]);
   return { command: again.rows[0] ?? null, created: false };
 }
 
@@ -122,6 +122,19 @@ async function completeCommand(pool, schema, commandId, captureId) {
   await pool.query(
     `UPDATE "${schema}".camera_commands SET status = 'COMPLETED', completed_at = NOW(), capture_id = $2
      WHERE id = $1 AND status IN ('PENDING', 'DELIVERED')`, [commandId, captureId]);
+}
+
+/**
+ * A live-view preview command is done once its frame arrived. Preview rows are not history, so the
+ * finished row is deleted, along with this camera's stale finished preview rows (expired/failed while
+ * nobody watched), keeping camera_commands from growing by one row every few seconds of live view.
+ */
+async function discardPreviewCommand(pool, schema, deviceId, commandId) {
+  await pool.query(
+    `DELETE FROM "${schema}".camera_commands
+     WHERE device_id = $2 AND preview = TRUE
+       AND (id = $1 OR (status IN ('COMPLETED', 'FAILED', 'EXPIRED') AND created_at < NOW() - INTERVAL '10 minutes'))`,
+    [commandId, deviceId]);
 }
 
 async function failCommand(pool, schema, deviceId, commandId, error) {
@@ -167,6 +180,7 @@ module.exports = {
   commandView,
   completeCommand,
   countOpenCommands,
+  discardPreviewCommand,
   enqueueCapture,
   ensureCameraPushSchema,
   failCommand,

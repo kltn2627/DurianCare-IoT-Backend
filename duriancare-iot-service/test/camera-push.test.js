@@ -72,6 +72,10 @@ function memoryPool() {
         const c = db.commands.find(x => x.id === args[0] && x.device_id === args[1] && ["PENDING", "DELIVERED"].includes(x.status));
         if (c) Object.assign(c, { status: "FAILED", error: args[2] }); return { rowCount: c ? 1 : 0, rows: [] };
       }
+      if (/^DELETE FROM "fx".camera_commands WHERE device_id = \$2 AND preview = TRUE/.test(s)) {
+        db.commands = db.commands.filter(c => !(c.device_id === args[1] && c.preview === true && c.id === args[0]));
+        return { rows: [] };
+      }
       if (/^INSERT INTO "fx".camera_captures/.test(s)) {
         const row = { id: crypto.randomUUID(), device_id: args[0], image_url: args[1], capture_type: args[2],
           captured_at: args[3], ai_status: args[4], delivery: args[5], command_id: args[6] };
@@ -187,4 +191,93 @@ test("push flow: capture-now -> command poll -> frame upload -> command complete
     Object.assign(process.env, saved);
     fs.rmSync(uploadsDir, { recursive: true, force: true });
   }
+});
+
+test("live view: preview frames stay in memory, never in history, and win over an older stored frame", async () => {
+  const saved = { ...process.env };
+  const key = crypto.randomBytes(32).toString("hex");
+  Object.assign(process.env, { CAMERA_DELIVERY_MODE: "PUSH", IOT_DEPLOYMENT_MODE: "CLOUD",
+    CAMERA_DEVICE_BINDINGS: JSON.stringify({ "cam-1": { key, farmId: "farm-1" } }) });
+  const uploadsDir = fs.mkdtempSync(path.join(os.tmpdir(), "duriancare-live-"));
+  const livePreview = require("../src/camera/livePreview");
+  livePreview.clear();
+  const pool = memoryPool();
+  pool.db.cameras.set("cam-1", { device_id: "cam-1", farm_id: "farm-1", zone_id: null, tree_id: null,
+    ip_address: "192.168.1.50", port: 80, protocol: "http", online: false, last_seen: null });
+  const { createRegistrationRouter } = require("../src/camera/registryRuntime");
+  const { createCameraRouter } = require("../src/camera/cameraRoutes");
+  const app = express();
+  app.use(express.json({ limit: "32kb" }));
+  app.use("/api/v1/public/cameras", createRegistrationRouter({ pool, schema: "fx", serverBaseUrl: "http://gw",
+    uploadsDir, aiServiceUrl: "http://ai.invalid" }));
+  app.use("/api/v1/camera", createCameraRouter({ pool, schema: "fx", serverBaseUrl: "http://gw", uploadsDir,
+    aiServiceUrl: "http://ai.invalid", farmAccessClient: { canReadIot: async () => true, canManageIot: async () => true } }));
+  const server = app.listen(0, "127.0.0.1");
+  await new Promise(resolve => server.once("listening", resolve));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const user = { "X-Auth-User-Id": "farmer-1", "X-Auth-Role": "FARMER", "Content-Type": "application/json" };
+  const cam = { "X-Camera-Key": key };
+  const upload = (query, body) => fetch(`${base}/api/v1/public/cameras/cam-1/frames?${query}`,
+    { method: "POST", headers: { ...cam, "Content-Type": "image/jpeg" }, body });
+  const snapshot = () => fetch(`${base}/api/v1/camera/snapshot?device_id=cam-1`, { headers: user });
+  try {
+    await fetch(`${base}/api/v1/public/cameras/heartbeat`, { method: "POST", headers: { ...cam, "Content-Type": "application/json" },
+      body: JSON.stringify({ cameraId: "cam-1", ipAddress: "192.168.1.50", port: 80, protocol: "http", announcedAt: Date.now(),
+        cameraReady: true, capabilities: ["push", "commands"] }) });
+
+    // An old stored photo (the dark frame the farmer saw) exists first.
+    const first = await (await fetch(`${base}/api/v1/camera/capture-now?device_id=cam-1`, { method: "POST", headers: user })).json();
+    await fetch(`${base}/api/v1/public/cameras/cam-1/commands`, { headers: cam });
+    const oldAt = Date.now() - 60_000;
+    assert.equal((await upload(`capturedAt=${oldAt}&reason=ON_DEMAND&commandId=${first.commandId}`, JPEG)).status, 201);
+    assert.equal(pool.db.captures.length, 1);
+
+    const live = await fetch(`${base}/api/v1/camera/capture-now?device_id=cam-1`, { method: "POST", headers: user,
+      body: JSON.stringify({ device_id: "cam-1", preview: true }) });
+    assert.equal(live.status, 202);
+    const { commandId } = await live.json();
+    const polled = await (await fetch(`${base}/api/v1/public/cameras/cam-1/commands`, { headers: cam })).json();
+    assert.equal(polled.commands[0].preview, true);
+    assert.equal(polled.pollAfterMs, 2000, "camera polls faster while someone watches live");
+
+    const LIVE = Buffer.concat([Buffer.from([0xFF, 0xD8, 0xFF, 0xE0]), crypto.randomBytes(48), Buffer.from([0xFF, 0xD9])]);
+    const res = await upload(`capturedAt=${Date.now()}&reason=ON_DEMAND&commandId=${commandId}`, LIVE);
+    assert.equal(res.status, 201);
+    const body = await res.json();
+    assert.equal(body.preview, true);
+    assert.equal(body.captureId, null);
+    assert.equal(pool.db.captures.length, 1, "preview frames are not history");
+    assert.equal(pool.db.commands.some(c => c.id === commandId), false, "finished preview command row is removed");
+    assert.equal(fs.readdirSync(path.join(uploadsDir, "cameras")).length, 1, "preview frames are not written to disk");
+
+    const shown = await snapshot();
+    assert.equal(shown.status, 200);
+    assert.equal(shown.headers.get("x-frame-live"), "1");
+    assert.deepEqual(Buffer.from(await shown.arrayBuffer()), LIVE);
+
+    // A newer real photo replaces the live frame.
+    const photo = await (await fetch(`${base}/api/v1/camera/capture-now?device_id=cam-1`, { method: "POST", headers: user })).json();
+    await fetch(`${base}/api/v1/public/cameras/cam-1/commands`, { headers: cam });
+    assert.equal((await upload(`capturedAt=${Date.now() + 1000}&reason=ON_DEMAND&commandId=${photo.commandId}`, JPEG)).status, 201);
+    const after = await snapshot();
+    assert.equal(after.headers.get("x-frame-live"), null);
+    assert.deepEqual(Buffer.from(await after.arrayBuffer()), JPEG);
+  } finally {
+    livePreview.clear();
+    await new Promise(resolve => server.close(resolve));
+    for (const k of Object.keys(process.env)) if (!(k in saved)) delete process.env[k];
+    Object.assign(process.env, saved);
+    fs.rmSync(uploadsDir, { recursive: true, force: true });
+  }
+});
+
+test("livePreview keeps the newest frame and drops stale ones", () => {
+  const livePreview = require("../src/camera/livePreview");
+  livePreview.clear();
+  const t = Date.now();
+  assert.equal(livePreview.setFrame("c", Buffer.from("a"), new Date(t)), true);
+  assert.equal(livePreview.setFrame("c", Buffer.from("old"), new Date(t - 1000)), false);
+  assert.equal(livePreview.getFrame("c", t).buffer.toString(), "a");
+  assert.equal(livePreview.getFrame("c", t + livePreview.MAX_AGE_MS + 1), null);
+  livePreview.clear();
 });
