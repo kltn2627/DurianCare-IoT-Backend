@@ -343,6 +343,13 @@ services:
       CAMERA_LEGACY_ENABLED: ${CAMERA_LEGACY_ENABLED:-false}
       CAMERA_DEVICE_BINDINGS: ${CAMERA_DEVICE_BINDINGS:-}
       CAMERA_OFFLINE_TIMEOUT_MIN: ${CAMERA_OFFLINE_TIMEOUT_MIN:-5}
+      # Cloud-ready settings (docs/IOT_CLOUD_READY.md). Defaults keep the LAN setup working.
+      IOT_DEPLOYMENT_MODE: ${IOT_DEPLOYMENT_MODE:-LOCAL}
+      IOT_DEVICE_AUTH_MODE: ${IOT_DEVICE_AUTH_MODE:-}
+      CAMERA_DELIVERY_MODE: ${CAMERA_DELIVERY_MODE:-PUSH}
+      CAMERA_PULL_FALLBACK: ${CAMERA_PULL_FALLBACK:-false}
+      CAMERA_FRAME_MAX_BYTES: ${CAMERA_FRAME_MAX_BYTES:-2097152}
+      IOT_PUBLIC_BASE_URL: ${IOT_PUBLIC_BASE_URL:-}
       ESP32_CAPTURE_PATH: ${ESP32_CAPTURE_PATH:-/capture}
       FARM_SERVICE_URL: http://duriancare-farm-service:8082
       # Camera capture AI diagnosis; without it config.js falls back to localhost:8000 (the IoT container itself).

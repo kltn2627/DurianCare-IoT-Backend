@@ -7,11 +7,27 @@ const https   = require("https");
 const cron    = require("node-cron");
 const express = require("express");
 
-const { cameraDownloadLimits, captureAndStore, listCaptures, listSchedules, replaceSchedules } = require("./cameraService");
+const { cameraDownloadLimits, captureAndStore, captureFilePath, latestCapture, listCaptures, listSchedules,
+  replaceSchedules } = require("./cameraService");
 const { reschedule } = require("./cameraScheduler");
-const { getCameraConfig } = require("../config");
+const { getCameraConfig, getCameraDeliveryConfig } = require("../config");
 const { resolveCameraUrl, getCamera, listCameras, assignTree, updateCameraUrl } = require("./deviceService");
-const { cameraAccess, cameraView, cameraOrigin } = require("./registryRuntime");
+const { cameraAccess, clientCameraView, cameraOrigin } = require("./registryRuntime");
+const commands = require("./commandService");
+
+/**
+ * How frames reach the backend for this camera:
+ *   PUSH             camera uploads frames / polls commands (firmware reports the "push" capability)
+ *   PULL             legacy: backend downloads GET <LAN origin>/capture (CAMERA_DELIVERY_MODE=PULL, or the
+ *                    LOCAL-only CAMERA_PULL_FALLBACK=true for firmware without "push")
+ *   PUSH_UNSUPPORTED push mode but the firmware is too old: nothing can deliver a frame
+ */
+function deliveryFor(device) {
+  const delivery = getCameraDeliveryConfig();
+  if (delivery.mode === "PULL") return "PULL";
+  if ((device?.capabilities ?? []).includes("push")) return "PUSH";
+  return delivery.pullFallback ? "PULL" : "PUSH_UNSUPPORTED";
+}
 
 async function resolveCaptureUrl(camUrl, capPath) {
   if (!camUrl) return null;
@@ -27,6 +43,33 @@ function createCameraRouter({ pool, schema, esp32CameraUrl, esp32CapturePath, se
   // ── POST /capture-now ──────────────────────────────────────────────────────
   router.post("/capture-now", async (req, res) => {
     const deviceId = ((req.query.device_id ?? req.body?.device_id) || "ESP32-CAM-001").trim();
+    const delivery = deliveryFor(req.cameraDevice);
+    if (delivery === "PUSH_UNSUPPORTED") {
+      return res.status(409).json({ error: "Camera firmware does not support frame upload; update the firmware",
+        code: "CAMERA_PUSH_UNSUPPORTED" });
+    }
+    if (delivery === "PUSH") {
+      // The backend never connects to the camera: queue a command; the camera polls it within ~5 s and uploads.
+      if (!["ONLINE", "DEGRADED"].includes(req.cameraDevice.status)) {
+        return res.status(503).json({ error: "Camera heartbeat is stale", code: "CAMERA_OFFLINE" });
+      }
+      if (req.cameraDevice.cameraReady === false) {
+        return res.status(503).json({ error: "Camera reports it cannot capture", code: "CAMERA_NOT_READY",
+          reason: req.cameraDevice.lastError });
+      }
+      try {
+        const cfg = getCameraDeliveryConfig();
+        const { command, created } = await commands.enqueueCapture(pool, schema, { deviceId: req.cameraDevice.device_id,
+          reason: "ON_DEMAND", preview: req.body?.preview === true, requestedBy: req.get("X-Auth-User-Id") ?? null,
+          ttlSeconds: cfg.onDemandTtlSeconds });
+        if (!command) return res.status(503).json({ error: "Camera command queue unavailable" });
+        return res.status(202).json({ ...commands.commandView(command), commandId: command.id, created,
+          pollUrl: `/api/v1/camera/commands/${command.id}?device_id=${encodeURIComponent(req.cameraDevice.device_id)}` });
+      } catch (err) {
+        console.error("[camera] Capture command failed:", err.message);
+        return res.status(503).json({ error: "Camera command queue unavailable" });
+      }
+    }
     const { esp32CameraUrl: fallbackUrl, esp32CapturePath: capPath } = getCameraConfig();
     const { url: camUrl, found } = await resolveCameraUrl(pool, schema, deviceId, fallbackUrl);
 
@@ -72,8 +115,51 @@ function createCameraRouter({ pool, schema, esp32CameraUrl, esp32CapturePath, se
     return res.end(buf);
   }
 
+  // ── GET /commands/:commandId?device_id= — progress of a "capture now" request ──
+  router.get("/commands/:commandId", async (req, res) => {
+    try {
+      const command = await commands.getCommand(pool, schema, req.params.commandId);
+      if (!command || command.device_id !== req.cameraDevice.device_id) {
+        return res.status(404).json({ error: "Command not found" });
+      }
+      let capture = null;
+      if (command.capture_id) {
+        const { rows } = await pool.query(
+          `SELECT id, device_id, image_url, capture_type, captured_at, ai_status, disease_detected, confidence_score,
+                  diagnosis_result, notes
+           FROM "${schema}".camera_captures WHERE id = $1`, [command.capture_id]);
+        capture = rows[0] ?? null;
+      }
+      res.setHeader("Cache-Control", "no-store");
+      return res.json(commands.commandView(command, capture));
+    } catch (err) {
+      console.error("[camera] Command read failed:", err.message);
+      return res.status(503).json({ error: "Camera command queue unavailable" });
+    }
+  });
+
   router.get("/snapshot", async (req, res) => {
     const deviceId = (req.query.device_id || "ESP32-CAM-001").trim();
+    if (deliveryFor(req.cameraDevice) !== "PULL") {
+      // PUSH: "live" view = the newest frame the camera uploaded (refreshed by the client); never the camera's IP.
+      try {
+        const latest = await latestCapture(pool, schema, req.cameraDevice.device_id);
+        const file = latest && captureFilePath(uploadsDir, latest);
+        if (!file || !fs.existsSync(file)) {
+          return res.status(404).json({ error: "No frame received from this camera yet", code: "NO_FRAME_YET" });
+        }
+        const capturedAt = new Date(latest.captured_at);
+        res.setHeader("Content-Type", "image/jpeg");
+        res.setHeader("Cache-Control", "no-cache, no-store");
+        res.setHeader("X-Frame-Captured-At", capturedAt.toISOString());
+        res.setHeader("X-Frame-Age-Ms", String(Math.max(0, Date.now() - capturedAt.getTime())));
+        res.setHeader("Access-Control-Expose-Headers", "X-Frame-Captured-At, X-Frame-Age-Ms");
+        return res.sendFile(file);
+      } catch (err) {
+        console.error("[camera] Latest frame failed:", err.message);
+        return res.status(503).json({ error: "Camera frame storage unavailable" });
+      }
+    }
     const { esp32CameraUrl: fallbackUrl, esp32CapturePath: capPath } = getCameraConfig();
     const { url: camUrl, online, found } = await resolveCameraUrl(pool, schema, deviceId, fallbackUrl);
     const snap = getSnapState(deviceId, camUrl);
@@ -229,7 +315,7 @@ function createCameraRouter({ pool, schema, esp32CameraUrl, esp32CapturePath, se
     try {
       const device = await getCamera(pool, schema, req.params.deviceId);
       if (!device) return res.status(404).json({ error: "Camera not found" });
-      return res.json({ device: cameraView(device) });
+      return res.json({ device: clientCameraView(device, req.cameraActor) });
     } catch (err) {
       console.error("[camera] Get device failed:", err.message);
       return res.status(500).json({ error: "Failed to get camera device" });

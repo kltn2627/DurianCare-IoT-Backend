@@ -12,7 +12,7 @@ describe("IoT health config", () => {
     const health = JSON.parse(result.stdout).iotHealth;
     assert.equal(health.expectedTelemetryIntervalSeconds, 60);
     assert.equal(health.staleAfterIntervals, 3);
-    assert.equal(health.offlineAfterIntervals, 10);
+    assert.equal(health.offlineAfterIntervals, 5);
     assert.equal(health.offlineWatchdogIntervalSeconds, 60);
   });
 

@@ -16,7 +16,8 @@ function getCameraConfig() {
 
 const DEFAULT_EXPECTED_TELEMETRY_INTERVAL_SECONDS = 60;
 const DEFAULT_STALE_AFTER_INTERVALS = 3;
-const DEFAULT_OFFLINE_AFTER_INTERVALS = 10;
+// 60 s x 5 = 5 minutes without data -> OFFLINE / DEVICE_OFFLINE (paper: "không gửi quá 5 phút").
+const DEFAULT_OFFLINE_AFTER_INTERVALS = 5;
 
 function positiveNumber(name, fallback) {
   const raw = process.env[name];
@@ -41,7 +42,53 @@ const offlineWatchdogIntervalSeconds = positiveNumber(
   expectedTelemetryIntervalSeconds
 );
 
+// LOCAL: backend on the farm LAN (beacon discovery, legacy devices without a token accepted).
+// CLOUD: backend on the internet behind HTTPS; every sensor must send its device token.
+function deploymentMode(env = process.env) {
+  const mode = String(env.IOT_DEPLOYMENT_MODE || "LOCAL").trim().toUpperCase();
+  if (!["LOCAL", "CLOUD"].includes(mode)) throw new Error("IOT_DEPLOYMENT_MODE must be LOCAL or CLOUD");
+  return mode;
+}
+
+function deviceAuthMode(env = process.env) {
+  const raw = String(env.IOT_DEVICE_AUTH_MODE || "").trim().toUpperCase();
+  if (!raw) return deploymentMode(env) === "CLOUD" ? "REQUIRED" : "OPTIONAL";
+  if (!["OPTIONAL", "REQUIRED"].includes(raw)) throw new Error("IOT_DEVICE_AUTH_MODE must be OPTIONAL or REQUIRED");
+  return raw;
+}
+
+// PUSH: the camera uploads frames and polls commands (works behind NAT / in the cloud).
+// PULL: legacy — the backend downloads GET <camera LAN origin>/capture. Only allowed in LOCAL mode.
+function cameraDeliveryConfig(env = process.env) {
+  const mode = String(env.CAMERA_DELIVERY_MODE || "PUSH").trim().toUpperCase();
+  if (!["PUSH", "PULL"].includes(mode)) throw new Error("CAMERA_DELIVERY_MODE must be PUSH or PULL");
+  const local = deploymentMode(env) === "LOCAL";
+  const integer = (name, fallback, min, max) => {
+    const raw = env[name];
+    const value = raw === undefined || raw === "" ? fallback : Number(raw);
+    if (!Number.isInteger(value) || value < min || value > max) throw new Error(`${name} must be an integer ${min}-${max}`);
+    return value;
+  };
+  return {
+    mode: mode === "PULL" && !local ? "PUSH" : mode,
+    // Legacy pull for a camera whose firmware does not report the "push" capability (LOCAL only).
+    pullFallback: local && env.CAMERA_PULL_FALLBACK === "true",
+    frameMaxBytes: integer("CAMERA_FRAME_MAX_BYTES", 2 * 1024 * 1024, 16 * 1024, 8 * 1024 * 1024),
+    onDemandTtlSeconds: integer("CAMERA_COMMAND_TTL_SECONDS", 120, 10, 3600),
+    scheduledTtlSeconds: integer("CAMERA_SCHEDULED_COMMAND_TTL_SECONDS", 600, 30, 86400),
+    pollMs: integer("CAMERA_COMMAND_POLL_MS", 5000, 1000, 60000),
+  };
+}
+
 module.exports = {
+  deploymentMode: deploymentMode(),
+  deviceAuthMode: deviceAuthMode(),
+  cameraDelivery: cameraDeliveryConfig(),
+  getDeploymentMode: deploymentMode,
+  getDeviceAuthMode: deviceAuthMode,
+  getCameraDeliveryConfig: cameraDeliveryConfig,
+  // Public base URL devices use (documentation / setup screen only), e.g. https://api.duriancare.io.vn/iot
+  publicBaseUrl: (process.env.IOT_PUBLIC_BASE_URL || "").trim().replace(/\/$/, ""),
   port: Number(process.env.PORT || 3001),
   mqttUrl: process.env.MQTT_URL || "mqtt://localhost:1883",
   mqttTopic: process.env.MQTT_TOPIC || "duriancare/devices/+/telemetry",

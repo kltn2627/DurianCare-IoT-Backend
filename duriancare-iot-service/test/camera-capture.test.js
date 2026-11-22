@@ -1,4 +1,6 @@
 "use strict";
+// These cases cover the legacy pull path (backend downloads GET <camera>/capture), kept for LOCAL mode.
+process.env.CAMERA_DELIVERY_MODE = "PULL";
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const http = require("node:http");

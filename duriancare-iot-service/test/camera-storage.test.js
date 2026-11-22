@@ -1,4 +1,6 @@
 "use strict";
+// These cases cover the legacy pull path (backend downloads GET <camera>/capture), kept for LOCAL mode.
+process.env.CAMERA_DELIVERY_MODE = "PULL";
 // Local persistent capture storage and authorized retrieval. Upstream "camera" is a local HTTP stub
 // serving marker JPEG bytes; this is NOT physical-camera evidence.
 const { test } = require("node:test");

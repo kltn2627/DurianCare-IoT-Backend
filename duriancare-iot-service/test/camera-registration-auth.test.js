@@ -11,8 +11,11 @@ test("registration distinguishes unavailable configuration from rejected credent
   let reads = 0;
   const app = express();
   app.use(express.json());
+  // Credential lookups of claim-code-activated cameras (iot_devices) are counted apart from registry reads.
+  let keyLookups = 0;
   app.use(createRegistrationRouter({schema: "fixture", pool: {query: async sql => {
     assert.match(sql, /^SELECT/);
+    if (/iot_devices/.test(sql)) { keyLookups++; return {rows: []}; }
     reads++;
     return {rows: []};
   }}}));
@@ -24,7 +27,10 @@ test("registration distinguishes unavailable configuration from rejected credent
   });
   const body = {cameraId: "fixture", announcedAt: Date.now(), ipAddress: "10.2.3.4"};
   try {
-    for (const value of ["", "{", "null", "[]", "{}", JSON.stringify({fixture: {key}})]) {
+    // Empty bindings are valid since claim-code activation exists: an unknown key is then simply 401.
+    process.env.CAMERA_DEVICE_BINDINGS = "";
+    assert.equal((await post(body, key)).status, 401);
+    for (const value of ["{", "null", "[]", "{}", JSON.stringify({fixture: {key}})]) {
       process.env.CAMERA_DEVICE_BINDINGS = value;
       const response = await post(body, key);
       assert.equal(response.status, 503);

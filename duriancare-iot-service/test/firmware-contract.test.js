@@ -147,7 +147,7 @@ test("legacy firmware shapes are rejected: dev key, missing/ISO/seconds/stale an
   });
 });
 
-test("bound but unprovisioned camera gets 404; missing bindings gives 503", async () => {
+test("bound but unprovisioned camera gets 404; malformed bindings give 503, absent bindings 401", async () => {
   const key = crypto.randomBytes(24).toString("base64url");
   await withEnv({ CAMERA_DEVICE_BINDINGS: JSON.stringify({ "ESP32-CAM-001": { key, farmId: "farm-khoa-luan-2026" } }) }, async () => {
     const { server, base } = await startPublicApp(fixturePool(null));
@@ -159,17 +159,22 @@ test("bound but unprovisioned camera gets 404; missing bindings gives 503", asyn
       await new Promise(resolve => server.close(resolve));
     }
   });
-  await withEnv({ CAMERA_DEVICE_BINDINGS: "" }, async () => {
-    const { server, base } = await startPublicApp(fixturePool(provisioned));
-    try {
-      const res = await fetch(`${base}/cameras/register`, { method: "POST",
-        headers: { "Content-Type": "application/json", "X-Camera-Key": key }, body: JSON.stringify(firmwareBody(Date.now())) });
-      assert.equal(res.status, 503);
-      assert.equal((await res.json()).code, "CAMERA_BINDINGS_UNAVAILABLE");
-    } finally {
-      await new Promise(resolve => server.close(resolve));
-    }
-  });
+  // Since cloud-ready: cameras may be activated with their claim code (key hash in iot_devices), so an
+  // absent CAMERA_DEVICE_BINDINGS is a valid configuration and an unknown key is a credential error (401).
+  // A malformed (non-empty) value is still reported as a configuration problem (503).
+  for (const [bindings, status] of [["", 401], ["{", 503]]) {
+    await withEnv({ CAMERA_DEVICE_BINDINGS: bindings }, async () => {
+      const { server, base } = await startPublicApp(fixturePool(provisioned));
+      try {
+        const res = await fetch(`${base}/cameras/register`, { method: "POST",
+          headers: { "Content-Type": "application/json", "X-Camera-Key": key }, body: JSON.stringify(firmwareBody(Date.now())) });
+        assert.equal(res.status, status);
+        if (status === 503) assert.equal((await res.json()).code, "CAMERA_BINDINGS_UNAVAILABLE");
+      } finally {
+        await new Promise(resolve => server.close(resolve));
+      }
+    });
+  }
 });
 
 test("responses carry an RFC 7231 Date header the firmware time fallback can parse", async () => {

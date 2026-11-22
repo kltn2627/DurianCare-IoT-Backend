@@ -50,7 +50,7 @@ function connectivityForDevice(device, healthConfig, now = new Date()) {
   const ageSeconds = Math.max(0, Math.floor((now.getTime() - lastSeen.getTime()) / 1000));
   const expected = Math.max(1, Number(healthConfig.expectedTelemetryIntervalSeconds || 60));
   const staleAfterSeconds = expected * Math.max(1, Number(healthConfig.staleAfterIntervals || 3));
-  const offlineAfterSeconds = expected * Math.max(1, Number(healthConfig.offlineAfterIntervals || 10));
+  const offlineAfterSeconds = expected * Math.max(1, Number(healthConfig.offlineAfterIntervals || 5));
   let status = "ONLINE";
   if (ageSeconds > offlineAfterSeconds) {
     status = "OFFLINE";

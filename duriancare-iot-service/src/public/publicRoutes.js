@@ -22,6 +22,8 @@ function createPublicRouter({ pool, schema }) {
 
   router.use("/cameras", require("../camera/registryRuntime").createRegistrationRouter({ pool, schema }));
   router.use("/devices", require("./deviceConfigRoutes").createDeviceConfigRouter());
+  // POST /devices/activate — device exchanges its claim code for a device token / camera key (CLOUD auth).
+  router.use("/devices", require("../devices/deviceAuth").createActivationRouter({ pool, schema }));
 
   // ── GET /traceability/:code ─────────────────────────────────────────────
   // Public endpoint — no authentication required.

@@ -2,8 +2,9 @@
 
 const cron = require("node-cron");
 const { captureAndStore } = require("./cameraService");
-const { getCameraConfig } = require("../config");
-const { resolveCameraUrl } = require("./deviceService");
+const { getCameraConfig, getCameraDeliveryConfig } = require("../config");
+const { resolveCameraUrl, getCamera } = require("./deviceService");
+const { enqueueCapture } = require("./commandService");
 const work = require("../workDrain").createWorkDrain();
 
 // Farmers pick daily capture hours in Vietnam local time (Web UI: 6:00 – 16:00); the container runs in UTC.
@@ -26,6 +27,23 @@ function scheduleOne({ deviceId, cronExpression, pool, schema, serverBaseUrl, up
 
   const task = cron.schedule(cronExpression, () => work.run(async () => {
     try {
+      // PUSH: a scheduled capture is a command the camera picks up (the backend never calls the camera).
+      // A unique index keeps at most one open scheduled command per camera, so an offline camera does
+      // not accumulate a backlog; the command expires after CAMERA_SCHEDULED_COMMAND_TTL_SECONDS.
+      const delivery = getCameraDeliveryConfig();
+      const camera = delivery.mode === "PUSH" ? await getCamera(pool, schema, deviceId) : null;
+      const pushCapable = Array.isArray(camera?.capabilities_reported) && camera.capabilities_reported.includes("push");
+      if (delivery.mode === "PUSH" && (pushCapable || !delivery.pullFallback)) {
+        if (!camera || !pushCapable) {
+          console.log(`[camera-scheduler] Camera ${deviceId} has no push-capable firmware — skipping scheduled capture`);
+          return;
+        }
+        const { command, created } = await enqueueCapture(pool, schema, {
+          deviceId, reason: "SCHEDULED", ttlSeconds: delivery.scheduledTtlSeconds });
+        console.log(`[camera-scheduler] Scheduled capture ${created ? "queued" : "already queued"} for ${deviceId}` +
+          (command ? ` (command ${command.id})` : ""));
+        return;
+      }
       const { esp32CameraUrl: fallbackUrl, esp32CapturePath } = getCameraConfig();
       const { url: esp32CameraUrl, online, found } = await resolveCameraUrl(pool, schema, deviceId, fallbackUrl);
       if (!esp32CameraUrl || (found && !online)) {

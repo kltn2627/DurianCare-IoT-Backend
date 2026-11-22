@@ -33,6 +33,9 @@ const { connectWithRetry } = require("./kafkaConnect");
 const { recordDeviceSeen, httpTelemetryEvent } = require("./telemetryRegistry");
 const { ensureTelemetryProvenanceSchema } = require("./telemetryProvenance");
 const { applySensorQuality, ensureSensorQualitySchema, hasDiagnosis, parseSensorQuality } = require("./sensorQuality");
+const { TOKEN_HEADER, authenticateSensor, ensureDeviceAuthSchema } = require("./devices/deviceAuth");
+const { measurementRangeError, parseOptionalRssi } = require("./sensorRanges");
+const { ensureCameraPushSchema } = require("./camera/commandService");
 const {
   METRICS,
   deviceAlertsEnabled,
@@ -176,6 +179,18 @@ app.post("/api/v1/sensors/data", async (request, response) => {
     } catch (validationError) {
       return response.status(400).json({ error: validationError.message });
     }
+    // Well-formed but physically impossible values (TC39 humidity 100.1 %, TC40 negative soil moisture) are a
+    // client error: 422 before the INSERT, instead of the database CHECK constraint surfacing as HTTP 500.
+    const outOfRange = measurementRangeError({ temperature: temp, humidity: hum, soil_moisture: soil });
+    if (outOfRange) {
+      return response.status(422).json({ error: outOfRange.message, code: "VALUE_OUT_OF_RANGE", field: outOfRange.field });
+    }
+    let wifiRssi;
+    try {
+      wifiRssi = parseOptionalRssi(request.body?.wifi_rssi);
+    } catch (validationError) {
+      return response.status(400).json({ error: validationError.message });
+    }
     // A value the firmware itself marks invalid (unconnected/uncalibrated soil probe, DHT error) is dropped.
     ({ temperature: temp, humidity: hum, soilMoisture: soil } = applySensorQuality(
       { temperature: temp, humidity: hum, soilMoisture: soil }, quality));
@@ -198,6 +213,11 @@ app.post("/api/v1/sensors/data", async (request, response) => {
     if (!ingestDevice) {
       return response.status(404).json({ error: "Device is not registered", code: "DEVICE_NOT_REGISTERED" });
     }
+    // Device token (X-Device-Token): optional in LOCAL mode for legacy firmware, required in CLOUD mode.
+    const auth = authenticateSensor(ingestDevice, request.get(TOKEN_HEADER), config.deviceAuthMode);
+    if (!auth.ok) {
+      return response.status(auth.status).json({ error: auth.error, code: auth.code });
+    }
     if (ingestDevice.provisioning_status !== "CLAIMED") {
       return response.status(409).json({ error: "Device has not been claimed yet", code: "DEVICE_NOT_CLAIMED" });
     }
@@ -219,6 +239,10 @@ app.post("/api/v1/sensors/data", async (request, response) => {
       pool, devicesTable, deviceId: device_id.trim(), receivedAt: now.toISOString()
     });
     await recordFirmwareVersion(ingestDevice, firmwareVersion);
+    if (wifiRssi !== null) {
+      await pool.query(`UPDATE ${devicesTable} SET last_wifi_rssi = $2 WHERE id = $1`, [ingestDevice.id, wifiRssi])
+        .catch((error) => console.warn("[rssi] Update failed (non-fatal):", error.message));
+    }
 
     if (kafkaProducerReady) {
       try {
@@ -260,6 +284,10 @@ app.post("/api/v1/sensors/data", async (request, response) => {
 
     return response.status(201).json(pendingConfig ? { ...formatRow(row), config: pendingConfig } : formatRow(row));
   } catch (error) {
+    // A remaining CHECK violation (23514) is still bad input, never a server fault.
+    if (error && error.code === "23514") {
+      return response.status(422).json({ error: "Measurement violates a value range", code: "VALUE_OUT_OF_RANGE" });
+    }
     console.error("Sensor data POST failed", error);
     return response.status(500).json({ error: "Failed to store sensor data" });
   }
@@ -422,6 +450,9 @@ async function handleTelemetry(topic, payload) {
   ) {
     throw new Error("Telemetry must include at least one measurement");
   }
+  const outOfRange = measurementRangeError({
+    temperature: event.temperature, humidity: event.humidity, soil_moisture: event.soilMoisture });
+  if (outOfRange) throw new Error(`Telemetry dropped: ${outOfRange.message}`);
 
   const ingestDevice = await findIngestDevice(event.deviceId);
   if (!ingestDevice || ingestDevice.provisioning_status !== "CLAIMED") {
@@ -500,7 +531,7 @@ async function evaluateAlertsForDevice(device, telemetry, { force = false } = {}
 async function findIngestDevice(deviceUid) {
   const result = await pool.query(
     `SELECT id, device_uid, name, farm_id, cultivation_area_id, status, provisioning_status, firmware_version, device_type,
-            is_test
+            is_test, device_token_hash
      FROM ${devicesTable}
      WHERE LOWER(device_uid) = LOWER($1) AND status <> 'DELETED'
      LIMIT 1`,
@@ -605,6 +636,8 @@ async function start() {
   await ensureSensorQualitySchema(pool, postgresSchema);
   await ensureCameraHealthSchema(pool, postgresSchema);
   await ensureDeviceLifecycleSchema(pool, postgresSchema);
+  await ensureDeviceAuthSchema(pool, postgresSchema);
+  await ensureCameraPushSchema(pool, postgresSchema);
 
   // Kafka is optional — if the broker is not reachable the service stays up, skips event
   // publishing meanwhile and keeps retrying in the background (see kafkaConnect.js).

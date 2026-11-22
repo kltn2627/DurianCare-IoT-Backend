@@ -137,23 +137,23 @@ async function drainCaptures() {
   await captures.drain();
 }
 
-async function persistCapture({
-  pool, schema, deviceId, captureType,
-  esp32CameraUrl, esp32CapturePath, serverBaseUrl, uploadsDir, aiServiceUrl,
-}) {
+// Complete JPEG: SOI (FFD8 FF) at the start and EOI (FFD9) at the end.
+function isCompleteJpeg(buffer) {
+  return Buffer.isBuffer(buffer) && buffer.length >= 4 && buffer[0] === 0xFF && buffer[1] === 0xD8 &&
+    buffer[2] === 0xFF && buffer[buffer.length - 2] === 0xFF && buffer[buffer.length - 1] === 0xD9;
+}
+
+// Writes the frame to the uploads volume (temp file + rename: a crash never leaves a partial JPEG under the
+// served name) and inserts the camera_captures row. Returns { capture, filename }.
+async function storeCaptureRecord({ pool, schema, deviceId, buffer, captureType, capturedAt, serverBaseUrl,
+  uploadsDir, aiServiceUrl, delivery = null, commandId = null }) {
   const cameraDir = ensureCameraDir(uploadsDir);
   // Digits only (route accepts ^cam_\d+\.jpg$); random suffix avoids same-millisecond collisions.
   const filename  = `cam_${Date.now()}${String(crypto.randomInt(0, 1_000_000)).padStart(6, "0")}.jpg`;
   const filepath  = path.join(cameraDir, filename);
-
-  const downloadStarted = Date.now();
-  const buf = await downloadImageBuffer(`${esp32CameraUrl}${esp32CapturePath}`);
-  console.log(`[camera] frame received device=${deviceId} bytes=${buf.length} ms=${Date.now() - downloadStarted}`);
-  // Local persistent storage (uploads volume). Write to a temp file and rename so a crash never
-  // leaves a partial JPEG under the served name.
   const tmpPath = `${filepath}.${process.pid}.tmp`;
   try {
-    fs.writeFileSync(tmpPath, buf, { flag: "wx" });
+    fs.writeFileSync(tmpPath, buffer, { flag: "wx" });
     fs.renameSync(tmpPath, filepath);
   } catch (err) {
     fs.rmSync(tmpPath, { force: true });
@@ -161,28 +161,78 @@ async function persistCapture({
   }
 
   const imageUrl   = `${serverBaseUrl}/api/v1/camera/image/${filename}`;
-  const capturedAt = new Date().toISOString();
-
   // Insert with PROCESSING status so frontend can show a spinner immediately.
   const initStatus = aiServiceUrl ? "PROCESSING" : null;
-  let capture;
   try {
-    const { rows } = await pool.query(
-      `INSERT INTO "${schema}".camera_captures
-         (device_id, image_url, capture_type, captured_at, ai_status)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING ${CAPTURE_COLS}`,
-      [deviceId, imageUrl, captureType, capturedAt, initStatus],
-    );
-    capture = { ...rows[0], storage: STORAGE_LOCAL };
+    const { rows } = delivery
+      ? await pool.query(
+        `INSERT INTO "${schema}".camera_captures
+           (device_id, image_url, capture_type, captured_at, ai_status, delivery, command_id, received_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+         RETURNING ${CAPTURE_COLS}`,
+        [deviceId, imageUrl, captureType, capturedAt, initStatus, delivery, commandId])
+      : await pool.query(
+        `INSERT INTO "${schema}".camera_captures
+           (device_id, image_url, capture_type, captured_at, ai_status)
+         VALUES ($1, $2, $3, $4, $5)
+         RETURNING ${CAPTURE_COLS}`,
+        [deviceId, imageUrl, captureType, capturedAt, initStatus]);
+    return { capture: { ...rows[0], storage: STORAGE_LOCAL }, filename };
   } catch (err) {
     fs.rmSync(filepath, { force: true });  // no orphan file without a record
     throw err;
   }
+}
 
+/**
+ * PUSH mode: store a frame uploaded by the camera. Responds as soon as the image and its record exist;
+ * the AI diagnosis (same ai-service flow as the pull path) runs in the background so the camera does not
+ * wait for it. capturedAt is the camera's own UTC capture time.
+ */
+async function storePushedFrame({ pool, schema, deviceId, buffer, captureType, capturedAt, commandId = null,
+  serverBaseUrl, uploadsDir, aiServiceUrl }) {
+  if (stopping) throw new Error("Camera service shutting down");
+  if (!isCompleteJpeg(buffer)) throw Object.assign(new Error("Frame is not a complete JPEG"), { status: 400 });
+  const { capture, filename } = await storeCaptureRecord({ pool, schema, deviceId, buffer, captureType,
+    capturedAt, serverBaseUrl, uploadsDir, aiServiceUrl, delivery: "PUSH", commandId });
+  console.log(`[camera] frame pushed device=${deviceId} bytes=${buffer.length} type=${captureType}`);
+  if (aiServiceUrl) {
+    captures.run(() => diagnoseCapture({ pool, schema, capture, buffer, filename, deviceId, aiServiceUrl }))
+      .catch(() => {});
+  }
+  return capture;
+}
+
+/** Latest stored frame of a camera (PUSH preview), or null. */
+async function latestCapture(pool, schema, deviceId) {
+  const { rows } = await pool.query(
+    `SELECT ${CAPTURE_COLS} FROM "${schema}".camera_captures
+     WHERE device_id = $1 ORDER BY captured_at DESC LIMIT 1`, [deviceId]);
+  return rows[0] ?? null;
+}
+
+/** Absolute path of a stored capture image (filename taken from image_url), or null. */
+function captureFilePath(uploadsDir, capture) {
+  const match = /\/api\/v1\/camera\/image\/(cam_\d+\.jpg)$/.exec(capture?.image_url ?? "");
+  return match ? path.resolve(uploadsDir, "cameras", match[1]) : null;
+}
+
+async function persistCapture({
+  pool, schema, deviceId, captureType,
+  esp32CameraUrl, esp32CapturePath, serverBaseUrl, uploadsDir, aiServiceUrl,
+}) {
+  ensureCameraDir(uploadsDir);
+  const downloadStarted = Date.now();
+  const buf = await downloadImageBuffer(`${esp32CameraUrl}${esp32CapturePath}`);
+  console.log(`[camera] frame received device=${deviceId} bytes=${buf.length} ms=${Date.now() - downloadStarted}`);
+  const { capture, filename } = await storeCaptureRecord({ pool, schema, deviceId, buffer: buf, captureType,
+    capturedAt: new Date().toISOString(), serverBaseUrl, uploadsDir, aiServiceUrl });
   if (!aiServiceUrl) return capture;
+  return diagnoseCapture({ pool, schema, capture, buffer: buf, filename, deviceId, aiServiceUrl });
+}
 
-  // AI diagnosis — failure is non-fatal; never crashes the capture flow.
+// AI diagnosis — failure is non-fatal; never crashes the capture flow and never fabricates a result.
+async function diagnoseCapture({ pool, schema, capture, buffer: buf, filename, deviceId, aiServiceUrl }) {
   try {
     const ai = await runAiDiagnosis({ imageBuffer: buf, filename, deviceId, aiServiceUrl });
     const { rows: updated } = await pool.query(
@@ -258,4 +308,5 @@ async function replaceSchedules({ pool, schema, deviceId, schedules }) {
   return rows;
 }
 
-module.exports = { cameraDownloadLimits, captureAndStore, drainCaptures, listCaptures, listSchedules, replaceSchedules };
+module.exports = { cameraDownloadLimits, captureAndStore, captureFilePath, drainCaptures, isCompleteJpeg,
+  latestCapture, listCaptures, listSchedules, replaceSchedules, storePushedFrame };

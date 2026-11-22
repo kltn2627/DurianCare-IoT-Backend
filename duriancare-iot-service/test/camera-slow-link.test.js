@@ -1,4 +1,6 @@
 "use strict";
+// These cases cover the legacy pull path (backend downloads GET <camera>/capture), kept for LOCAL mode.
+process.env.CAMERA_DELIVERY_MODE = "PULL";
 // Reproduces the 2026-10-18 field condition: the camera answers immediately but the JPEG body
 // trickles in (66.5 KB in 7.1 s). Upstream is a local stub with marker bytes, NOT physical evidence.
 const { test } = require("node:test");

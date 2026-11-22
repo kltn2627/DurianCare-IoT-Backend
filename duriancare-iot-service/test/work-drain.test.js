@@ -1,4 +1,6 @@
 "use strict";
+// These cases cover the legacy pull path (backend downloads GET <camera>/capture), kept for LOCAL mode.
+process.env.CAMERA_DELIVERY_MODE = "PULL";
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const { createWorkDrain } = require("../src/workDrain");
@@ -30,7 +32,8 @@ test("scheduler stops all cron tasks and drains an in-flight capture without acc
         captures++; await new Promise(resolve => { release = resolve; });
       }};
       if (id === "./deviceService") return {resolveCameraUrl: async () => ({url: "http://fixture.local", online: true, found: true})};
-      if (id === "../config") return {getCameraConfig: () => ({esp32CapturePath: "/capture"})};
+      if (id === "../config") return {getCameraConfig: () => ({esp32CapturePath: "/capture"}),
+        getCameraDeliveryConfig: () => ({mode: "PULL", pullFallback: false})};
     }
     return original.call(this, id, parent, main);
   });

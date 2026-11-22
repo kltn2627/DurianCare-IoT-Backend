@@ -73,6 +73,7 @@ function registerReadApi(app, dependencies) {
           d.device_type,
           d.provisioning_status,
           d.firmware_version,
+          d.last_wifi_rssi,
           d.claimed_at,
           latest.id AS latest_id,
           latest.temperature,
@@ -185,7 +186,7 @@ function registerReadApi(app, dependencies) {
            created_at, updated_at)
          VALUES ($1, $2, $3, $4, $5, $6, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
          RETURNING id, device_uid, name, farm_id, cultivation_area_id, status, last_seen_at, created_at, updated_at,
-           device_type, provisioning_status, firmware_version, claimed_at`,
+           device_type, provisioning_status, firmware_version, claimed_at, last_wifi_rssi`,
         [
           body.deviceUid,
           body.name,
@@ -249,7 +250,7 @@ function registerReadApi(app, dependencies) {
          WHERE id = $1
            AND status <> 'DELETED'
          RETURNING id, device_uid, name, farm_id, cultivation_area_id, status, last_seen_at, created_at, updated_at,
-           device_type, provisioning_status, firmware_version, claimed_at`,
+           device_type, provisioning_status, firmware_version, claimed_at, last_wifi_rssi`,
         [
           current.id,
           Object.prototype.hasOwnProperty.call(patch, "name") ? patch.name : null,
@@ -281,7 +282,7 @@ function registerReadApi(app, dependencies) {
          WHERE id = $1
            AND status <> 'DELETED'
          RETURNING id, device_uid, name, farm_id, cultivation_area_id, status, last_seen_at, created_at, updated_at,
-           device_type, provisioning_status, firmware_version, claimed_at`,
+           device_type, provisioning_status, firmware_version, claimed_at, last_wifi_rssi`,
         [current.id]
       );
       if (result.rowCount === 0) {
@@ -575,6 +576,7 @@ async function findDevice(pool, devicesTable, telemetryTable, identifier, option
       d.device_type,
       d.provisioning_status,
       d.firmware_version,
+          d.last_wifi_rssi,
       d.claimed_at,
       latest.id AS latest_id,
       latest.temperature,
@@ -838,11 +840,21 @@ function toDeviceResponse(row, healthConfig) {
   };
 }
 
+function deviceStatusReasons(row, connectivityStatus) {
+  const reasons = [];
+  if (connectivityStatus === "STALE") reasons.push("TELEMETRY_DELAYED");
+  if (connectivityStatus === "OFFLINE") reasons.push("NO_DATA_5_MIN");
+  if (["ONLINE", "STALE"].includes(connectivityStatus) && Number.isInteger(row.last_wifi_rssi) && row.last_wifi_rssi < -80) {
+    reasons.push("WIFI_WEAK");
+  }
+  return reasons;
+}
+
 function toDeviceSummary(row, healthConfig) {
   const connectivity = connectivityForDevice(row, healthConfig || {
     expectedTelemetryIntervalSeconds: 60,
     staleAfterIntervals: 3,
-    offlineAfterIntervals: 10
+    offlineAfterIntervals: 5
   });
   return {
     administrativeStatus: row.status,
@@ -859,6 +871,9 @@ function toDeviceSummary(row, healthConfig) {
     name: row.name || row.device_uid,
     provisioningStatus: row.provisioning_status || "CLAIMED",
     status: row.status,
+    // Why a reachable device is not fully healthy (UI: "Hoạt động hạn chế" with the reason).
+    statusReasons: deviceStatusReasons(row, connectivity.status),
+    wifiRssi: Number.isInteger(row.last_wifi_rssi) ? row.last_wifi_rssi : null,
     telemetryState: row.latest_id ? "HAS_TELEMETRY" : "NEVER_REPORTED"
   };
 }

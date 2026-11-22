@@ -273,7 +273,7 @@ function registerDeviceLifecycleApi(app, deps) {
   }
 
   const deviceColumns = `id, device_uid, name, farm_id, cultivation_area_id, status, last_seen_at, created_at, updated_at,
-    device_type, provisioning_status, firmware_version, claimed_at`;
+    device_type, provisioning_status, firmware_version, claimed_at, last_wifi_rssi`;
 
   // UC79/UC83 — provision a device and issue its one-time claim code (shown once, stored hashed).
   app.post("/api/iot/devices/provision", async (request, response) => {
@@ -349,7 +349,10 @@ function registerDeviceLifecycleApi(app, deps) {
            WHERE (id::text = $1 OR LOWER(device_uid) = LOWER($1)) AND status <> 'DELETED' FOR UPDATE`,
           [String(request.params.identifier || "").trim()])).rows[0];
         if (!device) throw apiError(404, "Device was not found");
-        if (device.provisioning_status !== "PROVISIONED") throw apiError(409, "Device is already claimed");
+        // A claimed device can get a fresh code only to (re)activate its device token/camera key
+        // (POST /api/v1/public/devices/activate); it does not reopen the farm claim.
+        const forActivation = request.body?.purpose === "ACTIVATION";
+        if (device.provisioning_status !== "PROVISIONED" && !forActivation) throw apiError(409, "Device is already claimed");
         return issueCode(client, device.id, actor);
       });
       response.status(201).json({ claimCode: result.claimCode, claimCodeExpiresAt: result.expiresAt });
