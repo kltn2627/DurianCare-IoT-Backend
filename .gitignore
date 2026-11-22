@@ -250,3 +250,7 @@ duriancare-ai-service/evaluate_model.py
 *.png
 *.jpg
 !duriancare-iot-service/.env.example
+
+# ESP32 firmware: Wi-Fi/device secrets stay local; only *_secrets.example.h is tracked
+arduino/**/*_secrets.h
+arduino/**/build/
