@@ -98,10 +98,12 @@ async function heartbeat(pool, schema, {
 
 /**
  * Get a single camera device by device_id.
+ * Includes capabilities_reported (column added by ensureCameraPushSchema): the PUSH scheduler
+ * reads it to decide whether the firmware can take a capture command.
  */
 async function getCamera(pool, schema, deviceId) {
   const { rows } = await pool.query(
-    `SELECT ${DEVICE_COLS}
+    `SELECT ${DEVICE_COLS}, capabilities_reported
      FROM "${schema}".camera_devices
      WHERE device_id = $1`,
     [deviceId],
