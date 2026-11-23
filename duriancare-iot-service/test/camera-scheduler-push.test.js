@@ -6,14 +6,20 @@ const Module = require("node:module");
 // Regression: getCamera() did not select capabilities_reported, so the PUSH scheduler always logged
 // "has no push-capable firmware" and never queued the 07:00/12:00/17:00 captures.
 
-test("getCamera selects capabilities_reported", async () => {
+test("getCamera and listCameras select the firmware-reported columns", async () => {
   delete require.cache[require.resolve("../src/camera/deviceService")];
   const { getCamera } = require("../src/camera/deviceService");
   let sql = "";
   const pool = { query: async (text) => { sql = text; return { rows: [{ device_id: "cam", capabilities_reported: ["push"] }] }; } };
   const row = await getCamera(pool, "iot", "cam");
-  assert.match(sql, /\bcapabilities_reported\b/);
+  const cols = ["capabilities_reported", "diagnostics", "wifi_rssi", "last_frame_at"];
+  for (const col of cols) assert.match(sql, new RegExp(`\\b${col}\\b`));
   assert.deepEqual(row.capabilities_reported, ["push"]);
+  // Regression: the device list (Web live view) dropped them, so push cameras looked like PULL firmware.
+  const { listCameras } = require("../src/camera/deviceService");
+  sql = "";
+  await listCameras(pool, "iot");
+  for (const col of cols) assert.match(sql, new RegExp(`\\b${col}\\b`));
 });
 
 async function runScheduledTick(t, camera) {

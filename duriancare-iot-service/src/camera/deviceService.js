@@ -5,6 +5,11 @@ const DEVICE_COLS = `
   firmware_version, ssid, tree_id, zone_id, farm_id, capabilities,
   camera_ready, last_error, created_at, updated_at`;
 
+// Columns reported by push firmware (added by ensureCameraPushSchema). Read paths must include them:
+// cameraView() derives deliveryMode/capabilities/RSSI from them, so leaving them out makes a push
+// camera look like legacy PULL firmware (no live view, scheduled captures skipped).
+const REPORT_COLS = "capabilities_reported, diagnostics, wifi_rssi, last_frame_at";
+
 /**
  * Health reported by the firmware itself (additive, idempotent; runs at startup).
  *   camera_ready — last self-test frame grab succeeded (NULL: firmware too old to report it)
@@ -98,12 +103,11 @@ async function heartbeat(pool, schema, {
 
 /**
  * Get a single camera device by device_id.
- * Includes capabilities_reported (column added by ensureCameraPushSchema): the PUSH scheduler
- * reads it to decide whether the firmware can take a capture command.
+ * Includes the firmware-reported columns (REPORT_COLS): the PUSH scheduler and the registry view read them.
  */
 async function getCamera(pool, schema, deviceId) {
   const { rows } = await pool.query(
-    `SELECT ${DEVICE_COLS}, capabilities_reported
+    `SELECT ${DEVICE_COLS}, ${REPORT_COLS}
      FROM "${schema}".camera_devices
      WHERE device_id = $1`,
     [deviceId],
@@ -116,7 +120,7 @@ async function getCamera(pool, schema, deviceId) {
  */
 async function listCameras(pool, schema) {
   const { rows } = await pool.query(
-    `SELECT ${DEVICE_COLS}
+    `SELECT ${DEVICE_COLS}, ${REPORT_COLS}
      FROM "${schema}".camera_devices
      ORDER BY online DESC, last_seen DESC NULLS LAST`,
   );
