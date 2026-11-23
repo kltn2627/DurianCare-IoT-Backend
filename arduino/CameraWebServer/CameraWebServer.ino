@@ -360,6 +360,7 @@ static int postRegistry(const char *path) {
   JsonArray caps = doc["capabilities"].to<JsonArray>();
   caps.add("push");
   caps.add("commands");
+  caps.add("live");
   fillDiagnostics(doc["diagnostics"].to<JsonObject>());
   String body;
   serializeJson(doc, body);
@@ -463,6 +464,100 @@ static void handleRegistryResult(int code, bool wasHeartbeat) {
 // ==========================================
 static String camerasUrl(const char *suffix) {
   return dc::endpointUrl(DC_PATH_CAMERAS) + CAMERA_ID + suffix;
+}
+
+// ==========================================
+// Live view: phát khung liên tục khi có người xem (chỉ trong bộ nhớ Backend, không lưu lịch sử)
+// ==========================================
+static dc::HttpChannel s_live;              // kênh riêng, keep-alive: không bắt tay TCP/TLS cho từng khung
+static unsigned long s_liveUntilMs = 0;     // 0 = tắt
+static unsigned long s_liveNextFrameMs = 0;
+static unsigned long s_liveFrames = 0;
+static unsigned long s_liveWindowStartMs = 0;
+static unsigned long s_liveWindowFrames = 0;
+
+static bool liveActive() { return s_liveUntilMs != 0 && !timeReached(millis(), s_liveUntilMs); }
+
+static void stopLive(const char *why) {
+  if (s_liveUntilMs == 0) return;
+  s_liveUntilMs = 0;
+  s_live.close();
+  sensor_t *sensor = esp_camera_sensor_get();
+  if (sensor && sensor->status.framesize != CAMERA_FRAME_SIZE) sensor->set_framesize(sensor, CAMERA_FRAME_SIZE);
+  Serial.printf("[live] Dừng phát (%s) — đã gửi %lu khung.\n", why, s_liveFrames);
+}
+
+// remainingMs từ Backend: > 0 mở/gia hạn, 0 dừng.
+static void setLiveWindow(long remainingMs) {
+  if (remainingMs <= 0) { stopLive("không còn người xem"); return; }
+  unsigned long window = min((unsigned long)remainingMs, (unsigned long)LIVE_MAX_WINDOW_MS);
+  bool wasActive = liveActive();
+  s_liveUntilMs = millis() + window;
+  if (s_liveUntilMs == 0) s_liveUntilMs = 1;
+  if (!wasActive) {
+    s_liveFrames = 0;
+    s_liveNextFrameMs = 0;
+    s_liveWindowStartMs = millis();
+    s_liveWindowFrames = 0;
+    Serial.printf("[live] Bắt đầu phát trực tiếp (%lus).\n", window / 1000);
+  }
+}
+
+static void pushLiveFrame() {
+  unsigned long now = millis();
+  if (!timeReached(now, s_liveNextFrameMs)) return;
+  s_liveNextFrameMs = now + LIVE_FRAME_INTERVAL_MS;
+  if (!s_cameraInitialized) { stopLive("camera chưa sẵn sàng"); return; }
+  sensor_t *sensor = esp_camera_sensor_get();
+  if (sensor && sensor->status.framesize != LIVE_FRAME_SIZE) {
+    sensor->set_framesize(sensor, LIVE_FRAME_SIZE);  // lệnh chụp ảnh lớn có thể đã đổi kích thước
+    camera_fb_t *old = esp_camera_fb_get();          // khung đầu sau khi đổi kích thước: bỏ
+    if (old) esp_camera_fb_return(old);
+  }
+  camera_fb_t *fb = esp_camera_fb_get();
+  if (!validJpeg(fb)) {
+    if (fb) esp_camera_fb_return(fb);
+    s_captureFailures++;
+    return;
+  }
+  dc::HttpHeader headers[] = { { DC_HEADER_CAMERA_KEY, cameraKey().c_str() } };
+  dc::HttpRequest req;
+  req.method = "POST";
+  req.url = camerasUrl("/live-frame");
+  req.contentType = "image/jpeg";
+  req.body = fb->buf;
+  req.bodyLen = fb->len;
+  req.headers = headers;
+  req.headerCount = 1;
+  req.connectTimeoutMs = LIVE_HTTP_TIMEOUT_MS;
+  req.responseTimeoutMs = LIVE_HTTP_TIMEOUT_MS;
+  req.maxBody = 256;
+  req.keepAlive = true;
+  esp_task_wdt_reset();
+  dc::HttpResponse res = s_live.send(req);
+  esp_camera_fb_return(fb);
+  if (res.code == 200) {
+    s_liveFrames++;
+    s_liveWindowFrames++;
+    JsonDocument doc;
+    long liveMs = (!deserializeJson(doc, res.body)) ? (doc["liveMs"] | 0L) : 0L;
+    unsigned long span = millis() - s_liveWindowStartMs;
+    if (span >= 10000) {
+      Serial.printf("[live] %.1f khung/giây | khung cuối %u byte, %lums | RSSI %d dBm\n",
+                    s_liveWindowFrames * 1000.0f / span, (unsigned)req.bodyLen, res.elapsedMs, WiFi.RSSI());
+      s_liveWindowStartMs = millis();
+      s_liveWindowFrames = 0;
+    }
+    setLiveWindow(liveMs);
+    return;
+  }
+  if (res.code == 401 || res.code == 403 || res.code == 404) {
+    stopLive("Backend từ chối");
+    s_registered = false;  // đăng ký lại sẽ báo lý do cụ thể
+    return;
+  }
+  dc::endpointReport(res.code);
+  if (res.code <= 0) s_liveNextFrameMs = millis() + 500;  // lỗi mạng: nghỉ ngắn rồi thử khung mới
 }
 
 static void reportCommandFailure(const char *commandId, const char *error) {
@@ -582,6 +677,8 @@ static void pollCommands() {
   if (deserializeJson(doc, res.body)) return;
   long pollAfter = doc["pollAfterMs"] | 0L;
   if (pollAfter >= 1000 && pollAfter <= 60000) s_serverPollMs = (unsigned long)pollAfter;
+  // Có người đang xem live: bật/gia hạn chế độ phát (từ 3.1.0).
+  if (!doc["live"].isNull()) setLiveWindow(doc["live"]["remainingMs"] | 0L);
   JsonArray list = doc["commands"].as<JsonArray>();
   for (JsonObject cmd : list) {
     const char *id = cmd["id"] | "";
@@ -691,5 +788,11 @@ void loop() {
   } else {
     pollCommands();
   }
+  if (s_registered && liveActive()) {
+    pushLiveFrame();  // tự giới hạn LIVE_FRAME_INTERVAL_MS
+    delay(1);
+    return;
+  }
+  if (s_liveUntilMs != 0) stopLive(s_registered ? "hết thời gian, không ai gia hạn" : "mất đăng ký");
   delay(20);
 }

@@ -281,3 +281,105 @@ test("livePreview keeps the newest frame and drops stale ones", () => {
   assert.equal(livePreview.getFrame("c", t + livePreview.MAX_AGE_MS + 1), null);
   livePreview.clear();
 });
+
+test("real-time live view: start -> camera told via poll -> frames fan out to the MJPEG stream", async () => {
+  const saved = { ...process.env };
+  const key = crypto.randomBytes(32).toString("hex");
+  Object.assign(process.env, { CAMERA_DELIVERY_MODE: "PUSH", IOT_DEPLOYMENT_MODE: "CLOUD",
+    CAMERA_DEVICE_BINDINGS: JSON.stringify({ "cam-1": { key, farmId: "farm-1" } }) });
+  const uploadsDir = fs.mkdtempSync(path.join(os.tmpdir(), "duriancare-stream-"));
+  const livePreview = require("../src/camera/livePreview");
+  livePreview.clear();
+  const pool = memoryPool();
+  pool.db.cameras.set("cam-1", { device_id: "cam-1", farm_id: "farm-1", zone_id: null, tree_id: null,
+    ip_address: "192.168.1.50", port: 80, protocol: "http", online: false, last_seen: null });
+  const { createRegistrationRouter } = require("../src/camera/registryRuntime");
+  const { createCameraRouter } = require("../src/camera/cameraRoutes");
+  const app = express();
+  app.use(express.json({ limit: "32kb" }));
+  app.use("/api/v1/public/cameras", createRegistrationRouter({ pool, schema: "fx", serverBaseUrl: "http://gw", uploadsDir, aiServiceUrl: "" }));
+  app.use("/api/v1/camera", createCameraRouter({ pool, schema: "fx", serverBaseUrl: "http://gw", uploadsDir, aiServiceUrl: "",
+    farmAccessClient: { canReadIot: async () => true, canManageIot: async () => true } }));
+  const server = app.listen(0, "127.0.0.1");
+  await new Promise(resolve => server.once("listening", resolve));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const user = { "X-Auth-User-Id": "farmer-1", "X-Auth-Role": "FARMER" };
+  const cam = { "X-Camera-Key": key };
+  const heartbeat = (capabilities) => fetch(`${base}/api/v1/public/cameras/heartbeat`, { method: "POST",
+    headers: { ...cam, "Content-Type": "application/json" },
+    body: JSON.stringify({ cameraId: "cam-1", ipAddress: "192.168.1.50", port: 80, protocol: "http", announcedAt: Date.now(),
+      cameraReady: true, capabilities }) });
+  const start = () => fetch(`${base}/api/v1/camera/live/start?device_id=cam-1`, { method: "POST", headers: user });
+  let stream = null;
+  try {
+    // Firmware without "live" cannot stream: the Web falls back to refreshed snapshots.
+    await heartbeat(["push", "commands"]);
+    assert.equal((await start()).status, 409);
+    // Nobody watching: the poll stays a cheap 204.
+    await heartbeat(["push", "commands", "live"]);
+    assert.equal((await fetch(`${base}/api/v1/public/cameras/cam-1/commands`, { headers: cam })).status, 204);
+
+    const started = await start();
+    assert.equal(started.status, 200);
+    const { streamPath, renewAfterMs } = await started.json();
+    assert.match(streamPath, /^\/api\/v1\/public\/cameras\/cam-1\/live\.mjpeg\?token=/);
+    assert.ok(renewAfterMs < livePreview.LIVE_WINDOW_MS);
+
+    const poll = await (await fetch(`${base}/api/v1/public/cameras/cam-1/commands`, { headers: cam })).json();
+    assert.ok(poll.live.remainingMs > 0 && poll.live.remainingMs <= livePreview.LIVE_WINDOW_MS);
+    assert.equal(poll.pollAfterMs, 2000);
+
+    // A wrong or foreign token cannot open the stream.
+    assert.equal((await fetch(`${base}/api/v1/public/cameras/cam-1/live.mjpeg?token=1.bad`)).status, 403);
+    const otherToken = livePreview.issueToken("cam-2").token;
+    assert.equal((await fetch(`${base}/api/v1/public/cameras/cam-1/live.mjpeg?token=${encodeURIComponent(otherToken)}`)).status, 403);
+
+    // Open the stream, then the camera pushes a frame: it must reach the viewer.
+    const received = [];
+    const firstFrame = new Promise((resolve, reject) => {
+      stream = http.get(`${base}${streamPath}`, (res) => {
+        assert.equal(res.statusCode, 200);
+        assert.match(res.headers["content-type"], /^multipart\/x-mixed-replace; boundary=/);
+        res.on("data", (chunk) => { received.push(chunk); if (Buffer.concat(received).includes(Buffer.from([0xFF, 0xD9]))) resolve(); });
+      });
+      stream.on("error", reject);
+    });
+    await new Promise(resolve => setTimeout(resolve, 50));
+    const LIVE = Buffer.concat([Buffer.from([0xFF, 0xD8, 0xFF, 0xE0]), crypto.randomBytes(32), Buffer.from([0xFF, 0xD9])]);
+    const pushed = await fetch(`${base}/api/v1/public/cameras/cam-1/live-frame`, { method: "POST",
+      headers: { ...cam, "Content-Type": "image/jpeg" }, body: LIVE });
+    assert.equal(pushed.status, 200);
+    assert.ok((await pushed.json()).liveMs > 0, "camera keeps streaming while the session is open");
+    await firstFrame;
+    const body = Buffer.concat(received);
+    assert.ok(body.includes(LIVE), "viewer receives the exact JPEG");
+    assert.ok(body.toString("latin1").includes("Content-Type: image/jpeg"));
+
+    assert.equal((await fetch(`${base}/api/v1/public/cameras/cam-1/live-frame`, { method: "POST",
+      headers: { "X-Camera-Key": "wrong", "Content-Type": "image/jpeg" }, body: LIVE })).status, 401);
+    assert.equal((await fetch(`${base}/api/v1/public/cameras/cam-1/live-frame`, { method: "POST",
+      headers: { ...cam, "Content-Type": "image/jpeg" }, body: Buffer.from("nope") })).status, 400);
+    assert.equal(pool.db.captures.length, 0, "live frames never become history");
+  } finally {
+    stream?.destroy();
+    livePreview.clear();
+    await new Promise(resolve => server.close(resolve));
+    for (const k of Object.keys(process.env)) if (!(k in saved)) delete process.env[k];
+    Object.assign(process.env, saved);
+    fs.rmSync(uploadsDir, { recursive: true, force: true });
+  }
+});
+
+test("live session expires without renewal and tokens are camera-bound", () => {
+  const livePreview = require("../src/camera/livePreview");
+  livePreview.clear();
+  const t = Date.now();
+  livePreview.startSession("c", t);
+  assert.ok(livePreview.sessionRemainingMs("c", t + 1000) > 0);
+  assert.equal(livePreview.sessionRemainingMs("c", t + livePreview.LIVE_WINDOW_MS + 1), 0);
+  const { token } = livePreview.issueToken("c", t);
+  assert.equal(livePreview.verifyToken("c", token, t + 1000), true);
+  assert.equal(livePreview.verifyToken("d", token, t + 1000), false);
+  assert.equal(livePreview.verifyToken("c", token, t + livePreview.TOKEN_TTL_MS + 1), false);
+  livePreview.clear();
+});

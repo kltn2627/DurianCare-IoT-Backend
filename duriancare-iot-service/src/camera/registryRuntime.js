@@ -7,7 +7,10 @@ const { findCameraByKey } = require("../devices/deviceAuth");
 const commands = require("./commandService");
 const livePreview = require("./livePreview");
 
-const LIVE_POLL_MS = 2000;  // camera command-poll interval while live preview commands are being delivered
+const LIVE_POLL_MS = 2000;  // camera command-poll interval while someone watches
+const MJPEG_BOUNDARY = "duriancareframe";
+const LIVE_IDLE_CLOSE_MS = 45_000;       // no frame for this long: close the MJPEG response
+const LIVE_STREAM_MAX_MS = 30 * 60_000;  // hard cap per stream; the Web simply reopens it
 
 function cameraOrigin(value) {
   let url;
@@ -45,7 +48,7 @@ const DIAG_NUMBERS = {
 const DIAG_STRINGS = {
   resetReason: /^[A-Z_]{1,32}$/, frameSize: /^[A-Z0-9]{2,12}$/, endpointSource: /^(NVS|BEACON|CLOUD|DEFAULT)$/,
 };
-const CAPABILITIES = new Set(["push", "commands", "pull"]);
+const CAPABILITIES = new Set(["push", "commands", "pull", "live"]);
 
 function parseDiagnostics(value) {
   if (value === undefined || value === null) return null;
@@ -339,12 +342,16 @@ function createRegistrationRouter({ pool, schema, serverBaseUrl, uploadsDir, aiS
       if (!row) return;
       const list = await commands.takeCommands(pool, schema, row.device_id);
       res.setHeader("Cache-Control", "no-store");
-      if (list.length === 0) return res.status(204).end();
-      // Someone is watching live: poll faster while preview commands flow. The next register/heartbeat
-      // reply (every 60 s) restores the normal interval once the viewer leaves.
+      // Someone is watching: tell live-capable firmware to stream (it then pushes to /live-frame).
+      const liveMs = livePreview.sessionRemainingMs(row.device_id);
+      if (list.length === 0 && liveMs === 0) return res.status(204).end();
+      // Poll faster while someone watches. The next register/heartbeat reply (every 60 s) restores the
+      // normal interval once the viewer leaves.
       const pollMs = config.getCameraDeliveryConfig().pollMs;
-      const pollAfterMs = list.some((c) => c.preview) ? Math.min(pollMs, LIVE_POLL_MS) : pollMs;
-      return res.json({ commands: list.map(commands.commandForDevice), pollAfterMs });
+      const watching = liveMs > 0 || list.some((c) => c.preview);
+      const reply = { commands: list.map(commands.commandForDevice), pollAfterMs: watching ? Math.min(pollMs, LIVE_POLL_MS) : pollMs };
+      if (liveMs > 0) reply.live = { remainingMs: liveMs };
+      return res.json(reply);
     } catch (error) {
       console.error("[camera] Command poll failed:", error.message);
       return res.status(503).json({ error: "Camera commands unavailable" });
@@ -368,8 +375,72 @@ function createRegistrationRouter({ pool, schema, serverBaseUrl, uploadsDir, aiS
     }
   });
 
-  // ── POST /:cameraId/frames — camera pushes a JPEG (PUSH delivery mode) ────
   const frameLimit = () => config.getCameraDeliveryConfig().frameMaxBytes;
+  const rawJpeg = (req, res, next) => express.raw({ type: "image/jpeg", limit: frameLimit() })(req, res, (error) => {
+    if (error) {
+      return res.status(error.type === "entity.too.large" ? 413 : 400)
+        .json({ error: error.type === "entity.too.large" ? "Frame too large" : "Invalid frame body" });
+    }
+    next();
+  });
+
+  // ── POST /:cameraId/live-frame — one live-view frame (memory only) ────────
+  // Reply { liveMs }: how long the camera should keep streaming (0 = nobody is watching, stop).
+  router.post("/:cameraId/live-frame", rawJpeg, async (req, res) => {
+    try {
+      const row = await deviceRequest(req, res);
+      if (!row) return;
+      if (!Buffer.isBuffer(req.body) || !cameraService.isCompleteJpeg(req.body)) {
+        return res.status(400).json({ error: "Frame is not a complete JPEG", code: "INVALID_JPEG" });
+      }
+      livePreview.setFrame(row.device_id, Buffer.from(req.body), new Date());
+      res.setHeader("Cache-Control", "no-store");
+      return res.json({ liveMs: livePreview.sessionRemainingMs(row.device_id) });
+    } catch (error) {
+      console.error("[camera] Live frame failed:", error.message);
+      return res.status(503).json({ error: "Live frame unavailable" });
+    }
+  });
+
+  // ── GET /:cameraId/live.mjpeg?token= — MJPEG stream for a browser <img> ───
+  // The token (from POST /api/v1/camera/live/start, which checks the viewer's farm access) is the only
+  // credential: an <img> cannot send the viewer's bearer token. The stream ends when the camera has sent
+  // nothing for LIVE_IDLE_CLOSE_MS (viewer left, camera offline) or after LIVE_STREAM_MAX_MS.
+  router.get("/:cameraId/live.mjpeg", (req, res) => {
+    const cameraId = req.params.cameraId;
+    if (!livePreview.verifyToken(cameraId, req.query.token)) {
+      return res.status(403).json({ error: "Live token is invalid or expired", code: "LIVE_TOKEN_INVALID" });
+    }
+    res.writeHead(200, {
+      "Content-Type": `multipart/x-mixed-replace; boundary=${MJPEG_BOUNDARY}`,
+      "Cache-Control": "no-cache, no-store, private",
+      Pragma: "no-cache",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+    });
+    let lastFrameAt = Date.now();
+    let draining = false;  // slow viewer: drop frames until the socket drains (never queue a backlog)
+    const write = (frame) => {
+      lastFrameAt = Date.now();
+      if (draining || res.writableEnded) return;
+      res.write(`--${MJPEG_BOUNDARY}\r\nContent-Type: image/jpeg\r\nContent-Length: ${frame.buffer.length}\r\n\r\n`);
+      res.write(frame.buffer);
+      if (!res.write("\r\n")) { draining = true; res.once("drain", () => { draining = false; }); }
+    };
+    const current = livePreview.getFrame(cameraId);
+    if (current) write(current);
+    const unsubscribe = livePreview.subscribe(cameraId, write);
+    const openedAt = Date.now();
+    const watchdog = setInterval(() => {
+      const now = Date.now();
+      if (now - lastFrameAt > LIVE_IDLE_CLOSE_MS || now - openedAt > LIVE_STREAM_MAX_MS) res.end();
+    }, 5_000);
+    const cleanup = () => { clearInterval(watchdog); unsubscribe(); };
+    res.on("close", cleanup);
+    res.on("finish", cleanup);
+  });
+
+  // ── POST /:cameraId/frames — camera pushes a JPEG (PUSH delivery mode) ────
   router.post("/:cameraId/frames",
     (req, res, next) => express.raw({ type: "image/jpeg", limit: frameLimit() })(req, res, (error) => {
       if (error) {

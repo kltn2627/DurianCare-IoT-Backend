@@ -87,6 +87,27 @@ function createCameraRouter({ pool, schema, esp32CameraUrl, esp32CapturePath, se
     }
   });
 
+  // ── POST /live/start — open or renew the live view (viewer calls it every ~15 s) ──
+  // Returns the path of an MJPEG stream (relative to the gateway) plus a short-lived token for it.
+  router.post("/live/start", async (req, res) => {
+    const device = req.cameraDevice;
+    if (deliveryFor(device) !== "PUSH" || !(device?.capabilities ?? []).includes("live")) {
+      return res.status(409).json({ error: "Camera firmware does not support live streaming", code: "CAMERA_LIVE_UNSUPPORTED" });
+    }
+    if (!["ONLINE", "DEGRADED"].includes(device.status)) {
+      return res.status(503).json({ error: "Camera heartbeat is stale", code: "CAMERA_OFFLINE" });
+    }
+    const until = livePreview.startSession(device.device_id);
+    const { token, expiresAt } = livePreview.issueToken(device.device_id);
+    return res.json({
+      cameraId: device.device_id,
+      streamPath: `/api/v1/public/cameras/${encodeURIComponent(device.device_id)}/live.mjpeg?token=${encodeURIComponent(token)}`,
+      tokenExpiresAt: new Date(expiresAt).toISOString(),
+      liveUntil: new Date(until).toISOString(),
+      renewAfterMs: 15_000,
+    });
+  });
+
   // ── GET /snapshot — single JPEG frame proxy (for live preview polling) ─────
   //
   // Design goals:

@@ -9,7 +9,7 @@
 
 // Định danh cố định — trùng device_uid đã provision (iot_devices, loại CAMERA) / CAMERA_DEVICE_BINDINGS.
 #define CAMERA_ID             "ESP32-CAM-001"
-#define FIRMWARE_VERSION      "3.0.0"
+#define FIRMWARE_VERSION      "3.1.1"
 
 // Web server debug trong LAN (/capture, /stream:81). Backend KHÔNG gọi cổng này ở chế độ PUSH.
 #define CAMERA_HTTP_PORT      80
@@ -35,6 +35,13 @@
 #define COMMAND_POLL_MS         5000UL          // poll GET .../commands; Backend có thể gợi ý pollAfterMs
 #define COMMAND_POLL_IDLE_MS    15000UL         // giãn khi 10 phút không có lệnh (HTTPS)
 #define COMMAND_IDLE_AFTER_MS   600000UL
+
+// Live view (>= 3.1.0): khi có người xem trên Web, Backend báo "live" qua lệnh poll; camera đẩy liên tục
+// khung nhỏ tới POST .../live-frame (kết nối giữ sẵn). Mỗi phản hồi cho biết còn phát bao lâu (0 = dừng).
+#define LIVE_FRAME_SIZE         FRAMESIZE_QVGA  // 320x240 (~4–5 KB/khung): chịu được Wi-Fi yếu; FRAMESIZE_VGA nếu sóng tốt
+#define LIVE_FRAME_INTERVAL_MS  100UL           // tối đa ~10 khung/giây
+#define LIVE_MAX_WINDOW_MS      60000UL         // không tin cửa sổ dài hơn 60 s từ Backend
+#define LIVE_HTTP_TIMEOUT_MS    3000            // một khung không gửi được trong 3 s: bỏ, gửi khung sau
 #define FRAME_UPLOAD_RETRIES    1
 // lwIP RTO 3 s (doubling). Connect: 2 SYN retransmits; response: 2 data retransmits + margin.
 #define HTTP_CONNECT_TIMEOUT_MS 10000
